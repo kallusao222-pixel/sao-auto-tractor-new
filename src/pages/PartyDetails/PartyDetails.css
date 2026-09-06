@@ -1,0 +1,1556 @@
+.party-details-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.party-details-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: rgba(21, 32, 51, 0.28);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+  cursor: default;
+}
+
+.party-details-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(620px, 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(21, 32, 51, 0.1);
+  background: #f3efe6;
+  box-shadow: -18px 0 50px rgba(21, 32, 51, 0.14);
+  pointer-events: auto;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.pd-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 25px 20px;
+  border-bottom: 1px solid rgba(21, 32, 51, 0.08);
+  background: #fffcf7;
+}
+
+.pd-eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #9c7349;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.pd-header h2 {
+  margin: 0;
+  color: #152033;
+  font-family: "Fraunces", serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.pd-header p {
+  margin: 7px 0 0;
+  color: #6d675e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pd-close {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(21, 32, 51, 0.1);
+  border-radius: 9px;
+  background: transparent;
+  color: #6d675e;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.pd-close:hover {
+  border-color: rgba(27, 75, 115, 0.25);
+  background: rgba(27, 75, 115, 0.07);
+  color: #1b4b73;
+}
+
+/* =========================================================
+   BODY
+========================================================= */
+
+.party-details-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(27, 75, 115, 0.28) transparent;
+}
+
+.party-details-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.party-details-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.party-details-body::-webkit-scrollbar-thumb {
+  border-radius: 20px;
+  background: rgba(27, 75, 115, 0.22);
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.pd-profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px;
+  border: 1px solid rgba(21, 32, 51, 0.08);
+  border-radius: 12px;
+  background: #fffcf7;
+}
+
+.pd-profile-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.pd-avatar {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(27, 75, 115, 0.15);
+  border-radius: 12px;
+  background: #edf3f7;
+  color: #1b4b73;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pd-profile-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pd-profile-info strong {
+  overflow: hidden;
+  color: #152033;
+  font-size: 15px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-profile-info span {
+  color: #9c7349;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+}
+
+.pd-profile-info small {
+  color: #6d675e;
+  font-size: 11px;
+}
+
+/* =========================================================
+   BALANCE
+========================================================= */
+
+.pd-balance-banner {
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 13px;
+  padding: 17px 18px;
+  border: 1px solid rgba(156, 115, 73, 0.22);
+  border-radius: 12px;
+  background: #faf5eb;
+}
+
+.pd-balance-banner span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7d756a;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.pd-balance-banner strong {
+  display: block;
+  color: #152033;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.pd-balance-status {
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pd-balance-status.due {
+  background: rgba(156, 115, 73, 0.13);
+  color: #8a6239;
+}
+
+.pd-balance-status.paid {
+  background: rgba(27, 75, 115, 0.09);
+  color: #1b4b73;
+}
+
+.pd-balance-status.advance {
+  background: rgba(42, 98, 143, 0.1);
+  color: #2a628f;
+}
+
+/* =========================================================
+   METRICS
+========================================================= */
+
+.pd-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.pd-metric {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(21, 32, 51, 0.08);
+  border-radius: 10px;
+  background: #fffcf7;
+}
+
+.pd-metric-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(27, 75, 115, 0.07);
+  color: #1b4b73;
+}
+
+.pd-metric span {
+  display: block;
+  margin-bottom: 3px;
+  color: #6d675e;
+  font-size: 10px;
+}
+
+.pd-metric strong {
+  display: block;
+  overflow: hidden;
+  color: #152033;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-metric.is-due strong {
+  color: #9c7349;
+}
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+.pd-section {
+  margin-top: 16px;
+}
+
+.pd-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pd-section-heading span {
+  display: block;
+  margin-bottom: 3px;
+  color: #9c7349;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.pd-section-heading h3 {
+  margin: 0;
+  color: #152033;
+  font-family: "Fraunces", serif;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pd-section-heading small {
+  color: #6d675e;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+}
+
+/* =========================================================
+   TRIP BREAKDOWN
+========================================================= */
+
+.pd-trip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(21, 32, 51, 0.08);
+  border-radius: 10px;
+  background: #fffcf7;
+}
+
+.pd-trip-grid > div {
+  min-width: 0;
+  padding: 13px;
+  border-right: 1px solid rgba(21, 32, 51, 0.07);
+}
+
+.pd-trip-grid > div:last-child {
+  border-right: 0;
+}
+
+.pd-trip-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: #6d675e;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.pd-trip-grid strong {
+  color: #152033;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+}
+
+/* =========================================================
+   INFO
+========================================================= */
+
+.pd-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.pd-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid rgba(21, 32, 51, 0.08);
+  border-radius: 10px;
+  background: #fffcf7;
+  color: #1b4b73;
+}
+
+.pd-info-full {
+  grid-column: 1 / -1;
+}
+
+.pd-info-item div {
+  min-width: 0;
+}
+
+.pd-info-item span {
+  display: block;
+  margin-bottom: 4px;
+  color: #6d675e;
+  font-size: 10px;
+}
+
+.pd-info-item strong {
+  display: block;
+  color: #152033;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   PAYMENT
+========================================================= */
+
+.pd-payment-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(21, 32, 51, 0.08);
+  border-radius: 10px;
+  background: #fffcf7;
+  color: #1b4b73;
+}
+
+.pd-payment-card div {
+  min-width: 0;
+}
+
+.pd-payment-card span {
+  display: block;
+  margin-bottom: 4px;
+  color: #6d675e;
+  font-size: 10px;
+}
+
+.pd-payment-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #152033;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.pd-advance-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(42, 98, 143, 0.14);
+  border-radius: 8px;
+  background: rgba(42, 98, 143, 0.06);
+  color: #2a628f;
+  font-size: 11px;
+}
+
+.pd-advance-note strong {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+.pd-history-section {
+  padding-bottom: 8px;
+}
+
+.pd-history-list {
+  overflow: hidden;
+  border: 1px solid rgba(21, 32, 51, 0.08);
+  border-radius: 10px;
+  background: #fffcf7;
+}
+
+.pd-history-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  border-bottom: 1px solid rgba(21, 32, 51, 0.07);
+}
+
+.pd-history-item:last-child {
+  border-bottom: 0;
+}
+
+.pd-history-icon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(27, 75, 115, 0.08);
+  color: #1b4b73;
+}
+
+.pd-history-icon.payment {
+  background: rgba(156, 115, 73, 0.1);
+  color: #9c7349;
+}
+
+.pd-history-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pd-history-content strong {
+  overflow: hidden;
+  color: #152033;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-history-content > span {
+  overflow: hidden;
+  color: #6d675e;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-history-content small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #999187;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+}
+
+.pd-history-amount {
+  color: #1b4b73;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pd-history-amount.received {
+  color: #9c7349;
+}
+
+.pd-history-empty {
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed rgba(21, 32, 51, 0.14);
+  border-radius: 10px;
+  color: #6d675e;
+  font-size: 11px;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.pd-footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(21, 32, 51, 0.08);
+  background: #fffcf7;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 560px) {
+  .party-details-drawer {
+    width: 100%;
+  }
+
+  .pd-header {
+    padding: 19px 17px 16px;
+  }
+
+  .pd-header h2 {
+    font-size: 24px;
+  }
+
+  .party-details-body {
+    padding: 12px;
+  }
+
+  .pd-profile-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pd-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pd-trip-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pd-trip-grid > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .pd-trip-grid > div:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(21, 32, 51, 0.07);
+  }
+
+  .pd-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-info-full {
+    grid-column: auto;
+  }
+
+  .pd-footer {
+    padding: 12px;
+  }
+
+  .pd-footer button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 380px) {
+  .pd-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-history-item {
+    grid-template-columns: 31px minmax(0, 1fr);
+  }
+
+  .pd-history-amount {
+    grid-column: 2;
+  }
+}
+/* ============================================================
+   PARTY DETAILS — NEW FEATURES
+   Actions, Daily Activity, Delete Modal
+   ============================================================ */
+
+/* ============================================================
+   HEADER ACTIONS
+   ============================================================ */
+
+.pd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pd-action-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-muted, #6C757D);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-action-btn:hover {
+  border-color: var(--color-primary, #1A5F7A);
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-action-btn.pd-danger:hover {
+  border-color: #E74C3C;
+  background: #FDECEA;
+  color: #E74C3C;
+}
+
+/* ============================================================
+   DELETE CONFIRMATION MODAL
+   ============================================================ */
+
+.pd-delete-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(21, 32, 51, 0.48);
+  backdrop-filter: blur(4px);
+  border-radius: inherit;
+}
+
+.pd-delete-modal {
+  width: min(420px, 100%);
+  padding: 24px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 16px;
+  background: var(--color-surface, #FFFFFF);
+  box-shadow: 0 24px 70px rgba(21, 32, 51, 0.18);
+  text-align: center;
+}
+
+.pd-delete-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #FDECEA;
+  color: #E74C3C;
+}
+
+.pd-delete-modal h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+}
+
+.pd-delete-modal p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--color-text-muted, #6C757D);
+  line-height: 1.5;
+}
+
+.pd-delete-modal p strong {
+  color: var(--color-text, #212529);
+}
+
+.pd-delete-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.pd-delete-cancel {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #212529);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-delete-cancel:hover {
+  background: var(--color-surface-soft, #F8F9FA);
+}
+
+.pd-delete-confirm {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid #E74C3C;
+  border-radius: 8px;
+  background: #E74C3C;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.pd-delete-confirm:hover {
+  background: #C0392B;
+  border-color: #C0392B;
+}
+
+/* ============================================================
+   DAILY ACTIVITY SECTION
+   ============================================================ */
+
+.pd-daily-section {
+  margin-top: 6px;
+}
+
+.pd-daily-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.pd-date-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 6px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-muted, #6C757D);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-date-btn:hover {
+  border-color: var(--color-primary, #1A5F7A);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-date-btn.active {
+  border-color: var(--color-primary, #1A5F7A);
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-date-input {
+  padding: 5px 10px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 6px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #212529);
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
+.pd-date-input:focus {
+  border-color: var(--color-primary, #1A5F7A);
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.08);
+}
+
+.pd-daily-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pd-daily-stat {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  background: var(--color-surface-soft, #F8F9FA);
+  text-align: center;
+}
+
+.pd-daily-stat span {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #6C757D);
+  margin-bottom: 2px;
+}
+
+.pd-daily-stat strong {
+  display: block;
+  font-family: var(--font-mono, "IBM Plex Mono", monospace);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+}
+
+.pd-daily-received strong {
+  color: #2ECC71;
+}
+
+.pd-daily-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  color: var(--color-text-muted, #6C757D);
+  font-size: 13px;
+}
+
+.pd-daily-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.pd-daily-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--color-surface-soft, #F8F9FA);
+  transition: background 0.15s ease;
+}
+
+.pd-daily-item:hover {
+  background: var(--color-surface, #FFFFFF);
+}
+
+.pd-daily-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.pd-daily-icon.trip {
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-daily-icon.payment {
+  background: #E8F8F0;
+  color: #2ECC71;
+}
+
+.pd-daily-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-daily-content strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text, #212529);
+}
+
+.pd-daily-content span {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted, #6C757D);
+}
+
+.pd-daily-amount {
+  font-family: var(--font-mono, "IBM Plex Mono", monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+  flex-shrink: 0;
+}
+
+.pd-daily-amount.received {
+  color: #2ECC71;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .pd-header-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .pd-action-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .pd-daily-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pd-daily-controls {
+    gap: 4px;
+  }
+
+  .pd-date-btn {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  .pd-delete-modal {
+    padding: 18px;
+    margin: 10px;
+  }
+
+  .pd-delete-actions {
+    flex-direction: column;
+  }
+
+  .pd-delete-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .pd-daily-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pd-daily-item {
+    flex-wrap: wrap;
+  }
+
+  .pd-daily-amount {
+    margin-left: 38px;
+  }
+}
+/* ============================================================
+   PARTY DETAILS — ALL 9 FEATURES CSS
+   ============================================================ */
+
+/* 1. HEADER ACTIONS */
+.pd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pd-action-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-muted, #6C757D);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-action-btn:hover {
+  border-color: var(--color-primary, #1A5F7A);
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-action-btn.pd-danger:hover {
+  border-color: #E74C3C;
+  background: #FDECEA;
+  color: #E74C3C;
+}
+
+/* 2. SMART REMINDER */
+.pd-reminder-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #F39C12;
+  border-radius: 999px;
+  background: #FEF3E2;
+  color: #F39C12;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.pd-reminder-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border: 1px solid #F39C12;
+  border-radius: 10px;
+  background: #FEF3E2;
+}
+
+.pd-reminder-banner svg {
+  color: #F39C12;
+  flex-shrink: 0;
+}
+
+.pd-reminder-banner strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #8B6914;
+}
+
+.pd-reminder-banner span {
+  display: block;
+  font-size: 12px;
+  color: #7A5A0A;
+}
+
+/* 3. DELETE CONFIRMATION MODAL */
+.pd-delete-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(21, 32, 51, 0.48);
+  backdrop-filter: blur(4px);
+  border-radius: inherit;
+}
+
+.pd-delete-modal {
+  width: min(420px, 100%);
+  padding: 24px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 16px;
+  background: var(--color-surface, #FFFFFF);
+  box-shadow: 0 24px 70px rgba(21, 32, 51, 0.18);
+  text-align: center;
+}
+
+.pd-delete-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #FDECEA;
+  color: #E74C3C;
+}
+
+.pd-delete-modal h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+}
+
+.pd-delete-modal p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--color-text-muted, #6C757D);
+  line-height: 1.5;
+}
+
+.pd-delete-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.pd-delete-cancel {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #212529);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-delete-confirm {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid #E74C3C;
+  border-radius: 8px;
+  background: #E74C3C;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.pd-delete-confirm:hover {
+  background: #C0392B;
+  border-color: #C0392B;
+}
+
+/* 4. DAILY ACTIVITY */
+.pd-daily-section {
+  margin-top: 6px;
+}
+
+.pd-daily-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.pd-date-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 6px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-muted, #6C757D);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-date-btn:hover {
+  border-color: var(--color-primary, #1A5F7A);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-date-btn.active {
+  border-color: var(--color-primary, #1A5F7A);
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-date-input {
+  padding: 5px 10px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 6px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #212529);
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
+.pd-date-input:focus {
+  border-color: var(--color-primary, #1A5F7A);
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.08);
+}
+
+.pd-daily-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pd-daily-stat {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  background: var(--color-surface-soft, #F8F9FA);
+  text-align: center;
+}
+
+.pd-daily-stat span {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #6C757D);
+  margin-bottom: 2px;
+}
+
+.pd-daily-stat strong {
+  display: block;
+  font-family: var(--font-mono, "IBM Plex Mono", monospace);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+}
+
+.pd-daily-received strong {
+  color: #2ECC71;
+}
+
+.pd-daily-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed var(--color-border, #E9ECEF);
+  border-radius: 8px;
+  color: var(--color-text-muted, #6C757D);
+  font-size: 13px;
+}
+
+.pd-daily-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.pd-daily-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--color-surface-soft, #F8F9FA);
+  transition: background 0.15s ease;
+}
+
+.pd-daily-item:hover {
+  background: var(--color-surface, #FFFFFF);
+}
+
+.pd-daily-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.pd-daily-icon.trip {
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-daily-icon.payment {
+  background: #E8F8F0;
+  color: #2ECC71;
+}
+
+.pd-daily-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-daily-content strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text, #212529);
+}
+
+.pd-daily-content span {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted, #6C757D);
+}
+
+.pd-daily-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pd-daily-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 6px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-muted, #6C757D);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-daily-view-btn:hover {
+  border-color: var(--color-primary, #1A5F7A);
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-daily-amount {
+  font-family: var(--font-mono, "IBM Plex Mono", monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+}
+
+.pd-daily-amount.received {
+  color: #2ECC71;
+}
+
+/* 5. HISTORY WITH VIEW BUTTON */
+.pd-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pd-history-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border, #E9ECEF);
+  border-radius: 6px;
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-text-muted, #6C757D);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pd-history-view-btn:hover {
+  border-color: var(--color-primary, #1A5F7A);
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-history-amount {
+  font-family: var(--font-mono, "IBM Plex Mono", monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text, #212529);
+}
+
+.pd-history-amount.received {
+  color: #2ECC71;
+}
+
+.pd-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-soft, #E9ECEF);
+}
+
+.pd-history-item:last-child {
+  border-bottom: 0;
+}
+
+.pd-history-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.pd-history-icon.trip {
+  background: var(--color-primary-soft, #E8F0F4);
+  color: var(--color-primary, #1A5F7A);
+}
+
+.pd-history-icon.payment {
+  background: #E8F8F0;
+  color: #2ECC71;
+}
+
+.pd-history-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-history-content strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #212529);
+}
+
+.pd-history-content span {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted, #6C757D);
+}
+
+.pd-history-content small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--color-text-muted, #6C757D);
+}
+
+/* 6. RESPONSIVE */
+@media (max-width: 640px) {
+  .pd-header-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .pd-action-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .pd-daily-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .pd-daily-controls {
+    gap: 4px;
+  }
+  .pd-date-btn {
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+  .pd-delete-modal {
+    padding: 18px;
+    margin: 10px;
+  }
+  .pd-delete-actions {
+    flex-direction: column;
+  }
+  .pd-delete-actions button {
+    width: 100%;
+  }
+  .pd-daily-item {
+    flex-wrap: wrap;
+  }
+  .pd-daily-actions {
+    margin-left: 38px;
+  }
+  .pd-reminder-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+@media (max-width: 480px) {
+  .pd-daily-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .pd-history-item {
+    flex-wrap: wrap;
+  }
+  .pd-history-actions {
+    margin-left: 44px;
+  }
+  .pd-reminder-badge {
+    font-size: 8px;
+    padding: 2px 8px;
+  }
+}

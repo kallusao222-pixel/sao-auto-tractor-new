@@ -1,0 +1,37 @@
+.ui-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.ui-form-actions-left {
+  justify-content: flex-start;
+}
+
+.ui-form-actions-center {
+  justify-content: center;
+}
+
+.ui-form-actions-right {
+  justify-content: flex-end;
+}
+
+.ui-form-actions-between {
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .ui-form-actions {
+    flex-wrap: wrap;
+  }
+
+  .ui-form-actions-right {
+    justify-content: stretch;
+  }
+
+  .ui-form-actions-right > * {
+    flex: 1;
+  }
+}

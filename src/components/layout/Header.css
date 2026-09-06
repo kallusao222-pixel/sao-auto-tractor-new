@@ -1,0 +1,319 @@
+.app-header {
+  position: sticky;
+  z-index: 80;
+
+  top: 0;
+
+  min-height: var(--header-height);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: var(--space-6);
+
+  padding: 0 var(--space-8);
+
+  background: rgba(
+    255,
+    255,
+    255,
+    0.94
+  );
+
+  border-bottom: 1px solid var(--color-border);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* =========================================
+   LEFT
+========================================= */
+
+.header-left {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-4);
+}
+
+.header-title {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.header-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+
+  color: var(--color-primary);
+}
+
+.header-title h1 {
+  margin: 2px 0 0;
+
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  line-height: 1.2;
+
+  color: var(--color-text);
+}
+
+/* =========================================
+   ACTIONS
+========================================= */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-2);
+}
+
+.header-icon-button {
+  position: relative;
+
+  width: 38px;
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  background: transparent;
+
+  color: var(--color-text-secondary);
+
+  cursor: pointer;
+
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.header-icon-button:hover {
+  background: var(--color-surface-soft);
+
+  border-color: var(--color-border);
+
+  color: var(--color-primary);
+}
+
+.notification-dot {
+  position: absolute;
+
+  top: 8px;
+  right: 8px;
+
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: var(--color-danger);
+
+  border: 1.5px solid
+    var(--color-surface);
+}
+
+.header-divider {
+  width: 1px;
+  height: 28px;
+
+  margin: 0 var(--space-2);
+
+  background: var(--color-border);
+}
+
+/* =========================================
+   PROFILE
+========================================= */
+
+.profile-button {
+  display: flex;
+  align-items: center;
+
+  gap: var(--space-3);
+
+  min-height: 42px;
+
+  padding: 3px 4px 3px 3px;
+
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  background: transparent;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.profile-button:hover {
+  background: var(--color-surface-soft);
+
+  border-color: var(--color-border);
+}
+
+.profile-avatar {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--color-primary-soft);
+
+  color: var(--color-primary);
+
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 100px;
+}
+
+.profile-info strong {
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  color: var(--color-text);
+}
+
+.profile-info span {
+  margin-top: 2px;
+
+  font-size: 0.68rem;
+
+  color: var(--color-text-muted);
+}
+
+.profile-chevron {
+  color: var(--color-text-muted);
+}
+
+/* =========================================
+   MOBILE MENU
+========================================= */
+
+.mobile-menu-button {
+  display: none;
+
+  width: 38px;
+  height: 38px;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface);
+
+  color: var(--color-text-secondary);
+
+  cursor: pointer;
+}
+
+.mobile-menu-button:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 1100px) {
+  .app-header {
+    padding: 0 var(--space-6);
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+  .app-header {
+    min-height: var(--header-height);
+
+    padding: 0 var(--space-5);
+
+    gap: var(--space-3);
+  }
+
+  .mobile-menu-button {
+    display: inline-flex;
+  }
+
+  .header-eyebrow {
+    display: none;
+  }
+
+  .header-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .header-actions {
+    gap: 2px;
+  }
+
+  .header-icon-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-divider,
+  .profile-info,
+  .profile-chevron {
+    display: none;
+  }
+
+  .profile-button {
+    padding: 2px;
+  }
+
+  .profile-avatar {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0 var(--space-4);
+  }
+
+  .header-left {
+    gap: var(--space-3);
+  }
+
+  .header-title h1 {
+    font-size: 1.15rem;
+  }
+}

@@ -1,0 +1,54 @@
+.ui-form-field {
+  min-width: 0;
+}
+
+.ui-form-field-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ui-form-field-required {
+  margin-left: 3px;
+  color: var(--color-danger);
+}
+
+.ui-form-field-control {
+  min-width: 0;
+}
+
+.ui-form-field-control input,
+.ui-form-field-control textarea,
+.ui-form-field-control select {
+  width: 100%;
+}
+
+.ui-form-field-hint,
+.ui-form-field-error-text {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ui-form-field-hint {
+  color: var(--color-text-muted);
+}
+
+.ui-form-field-error-text {
+  color: var(--color-danger);
+}
+
+.ui-form-field-error input,
+.ui-form-field-error textarea,
+.ui-form-field-error select {
+  border-color: var(--color-danger);
+}
+
+.ui-form-field-error input:focus,
+.ui-form-field-error textarea:focus,
+.ui-form-field-error select:focus {
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
+}

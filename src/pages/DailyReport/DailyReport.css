@@ -1,0 +1,646 @@
+/* ============================================================
+   DAILY REPORT — SAO AUTO TRACTOR
+   Complete Styles
+   ============================================================ */
+
+.daily-report-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  color: #152033;
+  font-family: "Outfit", sans-serif;
+}
+
+/* ---------- HEADER ---------- */
+.daily-report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.daily-report-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.daily-report-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #edf3f7;
+  color: #1b4b73;
+}
+
+.daily-report-title h1 {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+}
+
+.daily-report-title p {
+  margin: 4px 0 0;
+  color: #6d675e;
+  font-size: 13px;
+}
+
+.section-kicker {
+  display: block;
+  color: #6d675e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+/* ---------- BUTTONS ---------- */
+.daily-btn {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 13px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.daily-btn:hover {
+  transform: translateY(-1px);
+}
+
+.daily-btn-primary {
+  background: #1b4b73;
+  color: #fff;
+  border-color: #1b4b73;
+  box-shadow: 0 4px 12px rgba(27, 75, 115, 0.15);
+}
+
+.daily-btn-primary:hover {
+  background: #143a59;
+  border-color: #143a59;
+}
+
+.daily-btn-light {
+  background: #fffcf7;
+  color: #34445a;
+  border-color: #ded8cd;
+}
+
+.daily-btn-light:hover {
+  background: #f8f5ef;
+  border-color: #cec7bb;
+}
+
+.daily-btn-ghost {
+  background: transparent;
+  color: #6d675e;
+  border-color: transparent;
+}
+
+.daily-btn-ghost:hover {
+  background: #f3efe6;
+  color: #1b4b73;
+}
+
+.daily-btn-small {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.daily-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- CONTROLS ---------- */
+.daily-report-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid #ded8cd;
+  border-radius: 12px;
+  background: #fffcf7;
+}
+
+.daily-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.daily-date-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #ded8cd;
+  border-radius: 8px;
+  background: #fff;
+  height: 36px;
+}
+
+.daily-date-input-wrap input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: #152033;
+}
+
+.daily-date-input-wrap svg {
+  color: #6d675e;
+}
+
+.daily-date-display {
+  font-weight: 700;
+  color: #1b4b73;
+  font-size: 14px;
+}
+
+.daily-search-box {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #ded8cd;
+  border-radius: 8px;
+  background: #fff;
+  height: 36px;
+}
+
+.daily-search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: #152033;
+  min-width: 0;
+}
+
+.daily-search-box input::placeholder {
+  color: #aaa49a;
+}
+
+.daily-search-box > button {
+  border: none;
+  background: transparent;
+  color: #8a847b;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+}
+
+.daily-search-box > button:hover {
+  color: #1b4b73;
+}
+
+/* ---------- FILTERS PANEL ---------- */
+.daily-filters-panel {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #ded8cd;
+  border-radius: 10px;
+  background: #f8f5ef;
+  flex-wrap: wrap;
+}
+
+.daily-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.daily-filter-group label {
+  color: #6d675e;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.daily-filter-group select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #ded8cd;
+  border-radius: 7px;
+  background: #fff;
+  color: #152033;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.daily-filter-group select:focus {
+  border-color: #1b4b73;
+  box-shadow: 0 0 0 3px rgba(27, 75, 115, 0.08);
+}
+
+/* ---------- STATS ---------- */
+.daily-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.daily-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #ded8cd;
+  border-radius: 11px;
+  background: #fffcf7;
+}
+
+.daily-stat-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #edf3f7;
+  color: #1b4b73;
+}
+
+.daily-stat span {
+  display: block;
+  color: #6d675e;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.daily-stat strong {
+  display: block;
+  color: #152033;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ---------- CARD ---------- */
+.daily-report-card {
+  border: 1px solid #ded8cd;
+  border-radius: 13px;
+  background: #fffcf7;
+  box-shadow: 0 4px 16px rgba(21, 32, 51, 0.04);
+  overflow: hidden;
+}
+
+.daily-report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ded8cd;
+}
+
+.daily-report-card-header h2 {
+  margin: 0;
+  font-family: "Fraunces", serif;
+  font-size: 18px;
+}
+
+.daily-report-card-header p {
+  margin: 4px 0 0;
+  color: #6d675e;
+  font-size: 12px;
+}
+
+.daily-record-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 20px;
+  background: #edf3f7;
+  color: #1b4b73;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------- TABLE ---------- */
+.daily-table-wrap {
+  overflow-x: auto;
+  padding: 0 4px;
+}
+
+.daily-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.daily-table th {
+  padding: 11px 14px;
+  background: #f8f5ef;
+  color: #6d675e;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  text-align: left;
+  border-bottom: 1px solid #ded8cd;
+}
+
+.daily-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(222, 216, 205, 0.6);
+  color: #465264;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.daily-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.daily-table tbody tr:hover {
+  background: rgba(237, 243, 247, 0.4);
+}
+
+.daily-row-num {
+  color: #a39c91 !important;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px !important;
+  width: 40px;
+}
+
+.daily-col-center {
+  text-align: center !important;
+}
+
+.daily-trip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #1b4b73;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ---------- VEHICLE SUMMARY ---------- */
+.daily-summary-section {
+  padding: 18px 20px;
+  border-top: 1px solid #ded8cd;
+  background: #f8f5ef;
+}
+
+.daily-summary-section h3 {
+  margin: 0 0 12px;
+  font-family: "Fraunces", serif;
+  font-size: 15px;
+  color: #152033;
+}
+
+.daily-vehicle-summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.daily-vehicle-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 12px;
+  border: 1px solid #ded8cd;
+  border-radius: 8px;
+  background: #fffcf7;
+}
+
+.daily-vehicle-summary-item strong {
+  color: #152033;
+  font-size: 13px;
+}
+
+.daily-vehicle-count {
+  color: #1b4b73;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.daily-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 10px 0 4px;
+  border-top: 2px solid #1b4b73;
+}
+
+.daily-total-row span {
+  color: #152033;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.daily-total-row strong {
+  color: #1b4b73;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 20px;
+}
+
+/* ---------- EMPTY ---------- */
+.daily-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.daily-empty svg {
+  color: #1b4b73;
+  opacity: 0.4;
+  margin-bottom: 12px;
+}
+
+.daily-empty strong {
+  color: #152033;
+  font-size: 16px;
+}
+
+.daily-empty p {
+  color: #6d675e;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+/* ---------- FOOTER ---------- */
+.daily-report-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid #ded8cd;
+  color: #8a8379;
+  font-size: 10px;
+}
+
+.daily-company {
+  font-weight: 700;
+  color: #1b4b73;
+}
+
+.daily-page-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 20px;
+  color: #8a8379;
+  font-size: 10px;
+}
+
+.daily-page-footer strong {
+  color: #1b4b73;
+}
+
+/* ============================================================
+   PRINT STYLES
+============================================================ */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  .daily-report-page {
+    padding: 0 !important;
+  }
+
+  .daily-report-actions,
+  .daily-report-controls,
+  .daily-filters-panel,
+  .daily-page-footer,
+  .daily-btn,
+  .daily-search-box > button {
+    display: none !important;
+  }
+
+  .daily-report-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+
+  .daily-report-card-header {
+    background: #f5f2ec !important;
+  }
+
+  .daily-table th {
+    background: #e8e3db !important;
+  }
+
+  .daily-trip-badge {
+    background: #1b4b73 !important;
+    color: #fff !important;
+  }
+
+  .daily-vehicle-summary-item {
+    border-color: #ccc !important;
+  }
+
+  .daily-total-row {
+    border-top-color: #1b4b73 !important;
+  }
+
+  .daily-stat {
+    border-color: #ccc !important;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media (max-width: 850px) {
+  .daily-report-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .daily-report-actions {
+    width: 100%;
+  }
+
+  .daily-report-actions .daily-btn {
+    flex: 1;
+  }
+
+  .daily-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .daily-report-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-date-picker {
+    flex-wrap: wrap;
+  }
+
+  .daily-search-box {
+    flex: 1;
+  }
+}
+
+@media (max-width: 540px) {
+  .daily-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-report-title h1 {
+    font-size: 22px;
+  }
+
+  .daily-table th,
+  .daily-table td {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .daily-vehicle-summary-grid {
+    flex-direction: column;
+  }
+
+  .daily-vehicle-summary-item {
+    justify-content: space-between;
+  }
+}
