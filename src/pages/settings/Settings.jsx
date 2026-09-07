@@ -40,6 +40,7 @@ import "./Settings.css";
 const STORAGE_KEYS = {
   settings: "saoAutoTractorSettings",
   pin: "saoAutoTractorAppPin",
+  loginPassword: "saoAutoTractorLoginPassword",
 
   trips: "saoAutoTractorTrips",
   payments: "saoAutoTractorPayments",
@@ -638,6 +639,28 @@ export default function Settings() {
   const [showPin, setShowPin] =
     useState(false);
   const [hasPin, setHasPin] =
+    useState(false);
+
+  /* =======================================================
+     LOGIN PASSWORD
+  ======================================================= */
+
+  const [currentPassword, setCurrentPassword] =
+    useState("");
+
+  const [newPassword, setNewPassword] =
+    useState("");
+
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
+
+  const [showCurrentPassword, setShowCurrentPassword] =
+    useState(false);
+
+  const [showNewPassword, setShowNewPassword] =
+    useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
   const [logoError, setLogoError] =
@@ -1303,7 +1326,7 @@ export default function Settings() {
 
           "Restore will replace the current saved data for these modules.",
 
-          "Your App PIN will NOT be restored from the backup.",
+          "Your App PIN and Login Password will NOT be restored from the backup.",
         ].join("\n");
 
         const confirmed =
@@ -1600,6 +1623,85 @@ export default function Settings() {
 
     showMessage(
       "App PIN removed. Save settings to apply."
+    );
+  }
+
+  /* =======================================================
+     LOGIN PASSWORD
+  ======================================================= */
+
+  function changeLoginPassword() {
+    const current =
+      currentPassword.trim();
+
+    const next =
+      newPassword.trim();
+
+    const confirm =
+      confirmPassword.trim();
+
+    const savedPassword =
+      localStorage.getItem(
+        STORAGE_KEYS.loginPassword
+      ) || "1234";
+
+    if (
+      !current ||
+      !next ||
+      !confirm
+    ) {
+      showMessage(
+        "Please fill in all password fields.",
+        "error"
+      );
+      return;
+    }
+
+    if (
+      current !== savedPassword
+    ) {
+      showMessage(
+        "Current password is incorrect.",
+        "error"
+      );
+      return;
+    }
+
+    if (next.length < 4) {
+      showMessage(
+        "New password must contain at least 4 characters.",
+        "error"
+      );
+      return;
+    }
+
+    if (next !== confirm) {
+      showMessage(
+        "New password and confirmation do not match.",
+        "error"
+      );
+      return;
+    }
+
+    if (next === current) {
+      showMessage(
+        "New password must be different from the current password.",
+        "error"
+      );
+      return;
+    }
+
+    localStorage.setItem(
+      STORAGE_KEYS.loginPassword,
+      next
+    );
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    showMessage(
+      "Login password changed successfully."
     );
   }
 
@@ -2825,11 +2927,11 @@ export default function Settings() {
           <>
             <InfoBox
               icon={ShieldCheck}
-              title="Your PIN is never included in backups."
+              title="Your PIN and Login Password are never included in backups."
             >
               Full backups contain business data and
-              settings, but the app security PIN is deliberately
-              excluded.
+              settings, but your App PIN and Login Password
+              are deliberately excluded for security.
             </InfoBox>
 
             <div className="backup-grid">
@@ -3259,9 +3361,10 @@ export default function Settings() {
               title="Online account system is optional"
             >
               Your current application works completely in
-              local mode. Sign-in, multi-device access and
-              password management should only be enabled once
-              a real backend is connected.
+              local mode. Online sign-in, multi-device access
+              and online account management require a real
+              backend. Your local app login password is managed
+              separately under Security.
             </InfoBox>
 
             <SettingsCard
@@ -3348,9 +3451,207 @@ export default function Settings() {
               icon={ShieldCheck}
               title="Local app security"
             >
-              Your app PIN is stored locally and is never
-              included in backups.
+              Your App PIN and Login Password are stored
+              locally in this browser and are never included
+              in backups.
             </InfoBox>
+
+            {/* =================================================
+                LOGIN PASSWORD
+            ================================================== */}
+
+            <SettingsCard
+              title="Login Password"
+              description="Change the password used to access SAO AUTO TRACTOR."
+            >
+              <div className="password-editor">
+                <div className="password-editor-header">
+                  <div className="password-icon">
+                    <KeyRound size={16} />
+                  </div>
+
+                  <div>
+                    <strong>
+                      Change Login Password
+                    </strong>
+
+                    <p>
+                      Use at least 4 characters. Your password
+                      is stored locally in this browser.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="settings-grid">
+                  <div className="settings-field">
+                    <label className="settings-label">
+                      Current Password
+                    </label>
+
+                    <div className="pin-input-wrap">
+                      <input
+                        type={
+                          showCurrentPassword
+                            ? "text"
+                            : "password"
+                        }
+                        value={
+                          currentPassword
+                        }
+                        onChange={(event) =>
+                          setCurrentPassword(
+                            event.target.value
+                          )
+                        }
+                        placeholder="Enter current password"
+                        autoComplete="current-password"
+                      />
+
+                      <IconButton
+                        title={
+                          showCurrentPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                        onClick={() =>
+                          setShowCurrentPassword(
+                            (value) =>
+                              !value
+                          )
+                        }
+                      >
+                        {showCurrentPassword ? (
+                          <Unlock
+                            size={15}
+                          />
+                        ) : (
+                          <Lock
+                            size={15}
+                          />
+                        )}
+                      </IconButton>
+                    </div>
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">
+                      New Password
+                    </label>
+
+                    <div className="pin-input-wrap">
+                      <input
+                        type={
+                          showNewPassword
+                            ? "text"
+                            : "password"
+                        }
+                        value={
+                          newPassword
+                        }
+                        onChange={(event) =>
+                          setNewPassword(
+                            event.target.value
+                          )
+                        }
+                        placeholder="Enter new password"
+                        autoComplete="new-password"
+                      />
+
+                      <IconButton
+                        title={
+                          showNewPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                        onClick={() =>
+                          setShowNewPassword(
+                            (value) =>
+                              !value
+                          )
+                        }
+                      >
+                        {showNewPassword ? (
+                          <Unlock
+                            size={15}
+                          />
+                        ) : (
+                          <Lock
+                            size={15}
+                          />
+                        )}
+                      </IconButton>
+                    </div>
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">
+                      Confirm New Password
+                    </label>
+
+                    <div className="pin-input-wrap">
+                      <input
+                        type={
+                          showConfirmPassword
+                            ? "text"
+                            : "password"
+                        }
+                        value={
+                          confirmPassword
+                        }
+                        onChange={(event) =>
+                          setConfirmPassword(
+                            event.target.value
+                          )
+                        }
+                        placeholder="Confirm new password"
+                        autoComplete="new-password"
+                      />
+
+                      <IconButton
+                        title={
+                          showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                        onClick={() =>
+                          setShowConfirmPassword(
+                            (value) =>
+                              !value
+                          )
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <Unlock
+                            size={15}
+                          />
+                        ) : (
+                          <Lock
+                            size={15}
+                          />
+                        )}
+                      </IconButton>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="button-row">
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn-primary"
+                    onClick={
+                      changeLoginPassword
+                    }
+                  >
+                    <KeyRound size={14} />
+                    Change Password
+                  </button>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* =================================================
+                APP PIN
+            ================================================== */}
 
             <SettingsCard
               title="App Lock"
@@ -3668,6 +3969,7 @@ export default function Settings() {
       {/* =========================
           SETTINGS HEADER
       ========================== */}
+
       <header className="settings-header">
         <div className="settings-header-left">
           <div className="settings-header-icon">
@@ -3727,6 +4029,7 @@ export default function Settings() {
       {/* =========================
           TOAST
       ========================== */}
+
       {savedMessage && (
         <div
           className={`settings-toast ${
@@ -3763,6 +4066,7 @@ export default function Settings() {
       {/* =========================
           SEARCH
       ========================== */}
+
       <div className="settings-searchbar">
         <div className="settings-search-icon">
           <Search size={17} />
@@ -3799,10 +4103,12 @@ export default function Settings() {
       {/* =========================
           SETTINGS WORKSPACE
       ========================== */}
+
       <div className="settings-shell">
         {/* =======================
             SIDEBAR
         ======================== */}
+
         <aside className="settings-sidebar">
           <div className="settings-sidebar-title">
             <div>
@@ -3944,6 +4250,7 @@ export default function Settings() {
         {/* =======================
             MAIN CONTENT
         ======================== */}
+
         <main className="settings-main">
           <div className="settings-content-header">
             <div className="settings-content-heading">
@@ -3978,6 +4285,7 @@ export default function Settings() {
       {/* =========================
           BOTTOM SAVE BAR
       ========================== */}
+
       <div className="settings-bottom-bar">
         <div className="bottom-status">
           <div
@@ -4039,6 +4347,7 @@ export default function Settings() {
       {/* =========================
           FOOTER
       ========================== */}
+
       <footer className="settings-footer">
         <span>
           {settings.companyName ||

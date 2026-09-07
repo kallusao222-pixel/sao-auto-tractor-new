@@ -56,9 +56,12 @@ import StaffManagement from "./pages/StaffManagement/StaffManagement";
 import Settings from "./pages/settings/Settings";
 import DailyReport from "./pages/records/DailyReport/DailyReport";
 
+import Login from "./pages/Login/Login";
+
 import "./App.css";
 
 const MOBILE_QUERY = "(max-width: 900px)";
+
 
 /* =========================================================
    NAVIGATION
@@ -314,6 +317,8 @@ function ThemeIcon({ theme, size = 18 }) {
    APP LAYOUT
    ========================================================= */
 
+  const LOGIN_KEY = "saoAutoTractorLoggedIn";
+
 function AppLayout() {
   const { theme, toggleTheme } = useTheme();
 
@@ -343,7 +348,7 @@ function AppLayout() {
     });
 
   const [openMenu, setOpenMenu] =
-    useState("transport");
+  useState(null);
 
   const sidebarRef = useRef(null);
   const mainRef = useRef(null);
@@ -1239,9 +1244,21 @@ function AppLayout() {
    ========================================================= */
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem(LOGIN_KEY) === "true";
+  });
+
+  const handleLogin = useCallback(() => {
+    setIsLoggedIn(true);
+  }, []);
+
   return (
     <AppDataProvider>
-      <AppLayout />
+      {isLoggedIn ? (
+        <AppLayout />
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
     </AppDataProvider>
   );
 }
