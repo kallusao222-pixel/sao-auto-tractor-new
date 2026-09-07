@@ -429,20 +429,29 @@
 }
 
 /* =========================================================
-   SEARCH BOX
+   SEARCH BOX — PREMIUM DROPDOWN
    ========================================================= */
 
 .add-trip-search {
   position: relative;
-  z-index: 20;
+  z-index: 30;
 }
 
 .add-trip-input-wrap {
+  position: relative;
+  z-index: 31;
+
   display: flex;
   align-items: center;
 
   min-height: 42px;
   padding: 0 10px;
+
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+
+  box-sizing: border-box;
 }
 
 .add-trip-input-wrap > svg {
@@ -455,7 +464,6 @@
   flex: 1;
 
   height: 40px;
-
   padding: 0 9px;
 
   border: 0;
@@ -475,39 +483,6 @@
   background: transparent;
 }
 
-.add-trip-clear {
-  width: 26px;
-  height: 26px;
-  flex: 0 0 26px;
-
-  display: grid;
-  place-items: center;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: var(--radius-sm);
-
-  background: transparent;
-  color: var(--color-text-muted);
-
-  cursor: pointer;
-
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.add-trip-clear:hover {
-  background: var(--color-surface-soft);
-  color: var(--color-text);
-}
-
-.add-trip-clear:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
 /* =========================================================
    SEARCH OVERLAY
    ========================================================= */
@@ -515,7 +490,8 @@
 .add-trip-search-overlay {
   position: fixed;
   inset: 0;
-  z-index: -1;
+
+  z-index: 40;
 
   width: 100%;
   height: 100%;
@@ -535,26 +511,38 @@
 
 .add-trip-search-menu {
   position: absolute;
-  z-index: 50;
 
   top: calc(100% + 6px);
   right: 0;
   left: 0;
+
+  z-index: 50;
 
   max-height: 280px;
 
   overflow-x: hidden;
   overflow-y: auto;
 
-  background: var(--color-surface);
+  background: #fffcf7;
+  color: var(--color-text);
 
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
 
-  box-shadow: var(--shadow-lg);
+  box-shadow:
+    0 12px 30px rgba(21, 32, 51, 0.12),
+    0 3px 8px rgba(21, 32, 51, 0.06);
+
+  isolation: isolate;
 }
 
+/* =========================================================
+   SEARCH OPTION
+   ========================================================= */
+
 .add-trip-search-option {
+  position: relative;
+
   width: 100%;
 
   display: flex;
@@ -567,7 +555,7 @@
   border: 0;
   border-bottom: 1px solid var(--color-border);
 
-  background: transparent;
+  background: #fffcf7;
   color: var(--color-text);
 
   text-align: left;
@@ -588,14 +576,15 @@
 }
 
 .add-trip-search-option:focus-visible {
-  position: relative;
-  z-index: 1;
-
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 
   background: var(--color-surface-soft);
 }
+
+/* =========================================================
+   OPTION ICON
+   ========================================================= */
 
 .add-trip-option-icon {
   width: 32px;
@@ -610,6 +599,10 @@
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }
+
+/* =========================================================
+   OPTION TEXT
+   ========================================================= */
 
 .add-trip-search-option strong {
   display: block;
@@ -645,11 +638,33 @@
 .add-trip-search-empty {
   padding: var(--space-6) var(--space-4);
 
+  background: #fffcf7;
   color: var(--color-text-muted);
 
   text-align: center;
 
   font-size: 0.68rem;
+}
+
+/* =========================================================
+   SEARCH SCROLLBAR
+   ========================================================= */
+
+.add-trip-search-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.add-trip-search-menu::-webkit-scrollbar-track {
+  background: var(--color-surface-soft);
+}
+
+.add-trip-search-menu::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 10px;
+}
+
+.add-trip-search-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 
 /* =========================================================
@@ -1883,4 +1898,71 @@
   .trip-template-apply {
     flex: 1;
   }
+}
+/* =========================================================
+   READY TO SAVE — ACTION BUTTONS
+   ========================================================= */
+
+.add-trip-submit .submit-actions button {
+  min-height: 40px;
+
+  border: 1px solid rgba(255, 252, 247, 0.7);
+  border-radius: var(--radius-md);
+
+  background: #fffcf7;
+  color: #152033;
+
+  box-shadow: 0 1px 2px rgba(21, 32, 51, 0.08);
+
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.add-trip-submit .submit-actions button:hover {
+  background: #f3efe6;
+  border-color: #fffcf7;
+  color: #143a59;
+
+  box-shadow: 0 3px 8px rgba(21, 32, 51, 0.14);
+
+  transform: translateY(-1px);
+}
+
+.add-trip-submit .submit-actions button:active {
+  transform: translateY(0);
+}
+
+.add-trip-submit .submit-actions button:focus-visible {
+  outline: 2px solid #fffcf7;
+  outline-offset: 2px;
+}
+
+/* Save / Update — primary action */
+.add-trip-submit .submit-actions button:last-child {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #143a59;
+  font-weight: 700;
+}
+
+.add-trip-submit .submit-actions button:last-child:hover {
+  background: #f3efe6;
+  border-color: #f3efe6;
+  color: #143a59;
+}
+/* =========================================================
+   READY TO SAVE — WHITE TEXT
+   ========================================================= */
+
+.add-trip-submit > div:first-child span,
+.add-trip-submit > div:first-child strong {
+  color: #ffffff !important;
+}
+
+.add-trip-submit > div:first-child span {
+  opacity: 0.78;
 }
