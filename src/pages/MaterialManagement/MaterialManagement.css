@@ -1528,3 +1528,138 @@
     grid-template-columns: 1fr;
   }
 }
+/* =========================================================
+   MATERIALS — LIVE COLOR STABILITY FIX
+   ========================================================= */
+
+.material-management-page {
+  color: #152033;
+}
+
+/* Cards / surfaces */
+.material-management-page .material-summary-card,
+.material-management-page .material-form-card,
+.material-management-page .material-toolbar-card,
+.material-management-page .material-table-card {
+  background: #fffcf7;
+  color: #152033;
+}
+
+/* Secondary surfaces */
+.material-management-page .material-filter-tabs,
+.material-management-page .material-table th,
+.material-management-page .material-profile,
+.material-management-page .material-detail-stats > div,
+.material-management-page .material-unit,
+.material-management-page .material-activity span {
+  background: #f7f3eb;
+}
+
+/* Inputs */
+.material-management-page input,
+.material-management-page select {
+  background-color: #fffcf7;
+  color: #152033;
+}
+
+/* Primary */
+.material-management-page .material-summary-icon,
+.material-management-page .material-avatar,
+.material-management-page .material-profile-avatar,
+.material-management-page .material-empty-icon,
+.material-management-page .material-activity span:first-child,
+.material-management-page .material-daily-item-tag,
+.material-management-page .material-date-btn.active {
+  background-color: rgba(27, 75, 115, 0.08);
+  color: #1b4b73;
+  border-color: rgba(27, 75, 115, 0.14);
+}
+
+/* Brass */
+.material-management-page .material-summary-billing .material-summary-icon,
+.material-management-page .material-activity span:nth-child(2) {
+  background-color: rgba(156, 115, 73, 0.10);
+  color: #9c7349;
+  border-color: rgba(156, 115, 73, 0.16);
+}
+
+/* Text */
+.material-management-page h2,
+.material-management-page h3,
+.material-management-page strong {
+  color: #152033;
+}
+
+.material-management-page p,
+.material-management-page td {
+  color: #6d675e;
+}
+
+/* Table */
+.material-management-page .material-table tbody tr {
+  background: #fffcf7;
+}
+
+.material-management-page .material-table tbody tr:hover {
+  background: #f7f3eb;
+}
+
+/* Borders */
+.material-management-page input,
+.material-management-page select,
+.material-management-page .material-filter-tabs,
+.material-management-page .material-unit {
+  border-color: #ded8cc;
+}
+
+/* Focus */
+.material-management-page input:focus,
+.material-management-page select:focus,
+.material-management-page .material-date-input:focus {
+  border-color: #1b4b73;
+  box-shadow: 0 0 0 3px rgba(27, 75, 115, 0.08);
+}
+
+/* Daily Activity */
+.material-management-page .material-daily-activity {
+  background: #f7f3eb;
+  border-color: #ded8cc;
+}
+
+.material-management-page .material-daily-stat {
+  background: #fffcf7;
+  border-color: #ded8cc;
+}
+
+/* Buttons / tabs */
+.material-management-page .material-filter-tabs button.active {
+  background: #fffcf7;
+  color: #1b4b73;
+}
+
+/* Details drawer */
+.material-management-page .material-details-drawer {
+  background: #fffcf7;
+}
+
+.material-management-page .material-details-footer {
+  background: #fffcf7;
+}
+
+/* Dark mode should continue using existing theme */
+[data-theme="dark"] .material-management-page {
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .material-management-page .material-summary-card,
+[data-theme="dark"] .material-management-page .material-form-card,
+[data-theme="dark"] .material-management-page .material-toolbar-card,
+[data-theme="dark"] .material-management-page .material-table-card,
+[data-theme="dark"] .material-management-page .material-details-drawer,
+[data-theme="dark"] .material-management-page .material-details-footer {
+  background: var(--color-surface);
+}
+
+[data-theme="dark"] .material-management-page .material-table tbody tr {
+  background: var(--color-surface);
+}
