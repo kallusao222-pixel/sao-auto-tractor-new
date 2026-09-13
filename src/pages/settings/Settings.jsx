@@ -16,6 +16,7 @@ import {
   Hash,
   Info,
   KeyRound,
+  Keyboard,
   Lock,
   Palette,
   Package,
@@ -60,7 +61,7 @@ const STORAGE_KEYS = {
   backupMeta: "saoAutoTractorLastBackup",
 };
 
-const APP_VERSION = "1.3.0";
+const APP_VERSION = "1.4.0";
 
 const defaultSettings = {
   companyName: "SAO AUTO TRACTOR",
@@ -161,7 +162,6 @@ const menuGroups = [
       },
     ],
   },
-
   {
     id: "finance",
     title: "Finance",
@@ -174,7 +174,6 @@ const menuGroups = [
       },
     ],
   },
-
   {
     id: "system",
     title: "System",
@@ -205,7 +204,6 @@ const menuGroups = [
       },
     ],
   },
-
   {
     id: "data-security",
     title: "Data & Security",
@@ -236,7 +234,6 @@ const menuGroups = [
       },
     ],
   },
-
   {
     id: "app",
     title: "App",
@@ -260,11 +257,8 @@ const menuItems = menuGroups.flatMap((group) => group.items);
 function readArray(key) {
   try {
     const raw = localStorage.getItem(key);
-
     if (!raw) return [];
-
     const parsed = JSON.parse(raw);
-
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -274,11 +268,8 @@ function readArray(key) {
 function readObject(key, fallback = {}) {
   try {
     const raw = localStorage.getItem(key);
-
     if (!raw) return fallback;
-
     const parsed = JSON.parse(raw);
-
     return parsed && typeof parsed === "object"
       ? parsed
       : fallback;
@@ -289,11 +280,8 @@ function readObject(key, fallback = {}) {
 
 function formatDateTime(value) {
   if (!value) return "Never";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "Never";
-
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -307,23 +295,14 @@ function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "Unavailable";
   }
-
   const units = ["B", "KB", "MB", "GB"];
-
   let value = bytes;
   let index = 0;
-
-  while (
-    value >= 1024 &&
-    index < units.length - 1
-  ) {
+  while (value >= 1024 && index < units.length - 1) {
     value /= 1024;
     index += 1;
   }
-
-  return `${value.toFixed(index === 0 ? 0 : 1)} ${
-    units[index]
-  }`;
+  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
 /* =========================================================
@@ -355,16 +334,12 @@ function Field({
 }) {
   return (
     <div className="settings-field">
-      <label className="settings-label">
-        {label}
-      </label>
+      <label className="settings-label">{label}</label>
 
       {options ? (
         <select
           value={value ?? ""}
-          onChange={(event) =>
-            onChange(event.target.value)
-          }
+          onChange={(event) => onChange(event.target.value)}
         >
           {options.map((option) => (
             <option
@@ -379,47 +354,29 @@ function Field({
         <input
           type={type}
           value={value ?? ""}
-          onChange={(event) =>
-            onChange(event.target.value)
-          }
+          onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
         />
       )}
 
       {hint && (
-        <small className="settings-field-hint">
-          {hint}
-        </small>
+        <small className="settings-field-hint">{hint}</small>
       )}
     </div>
   );
 }
 
-function TextAreaField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  hint,
-}) {
+function TextAreaField({ label, value, onChange, placeholder, hint }) {
   return (
     <div className="settings-field">
-      <label className="settings-label">
-        {label}
-      </label>
-
+      <label className="settings-label">{label}</label>
       <textarea
         value={value ?? ""}
-        onChange={(event) =>
-          onChange(event.target.value)
-        }
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
       />
-
       {hint && (
-        <small className="settings-field-hint">
-          {hint}
-        </small>
+        <small className="settings-field-hint">{hint}</small>
       )}
     </div>
   );
@@ -429,9 +386,7 @@ function Toggle({ value, onChange, label }) {
   return (
     <button
       type="button"
-      className={`settings-toggle ${
-        value ? "on" : ""
-      }`}
+      className={`settings-toggle ${value ? "on" : ""}`}
       onClick={() => onChange(!value)}
       aria-label={label}
       aria-pressed={value}
@@ -453,27 +408,19 @@ function SettingRow({
 }) {
   return (
     <div
-      className={`settings-setting-row ${
-        last ? "last" : ""
-      }`}
+      className={`settings-setting-row ${last ? "last" : ""}`}
     >
       <div className="setting-row-left">
         <div className="setting-row-icon">
           <Icon size={15} />
         </div>
-
         <div className="setting-row-copy">
           <strong>{title}</strong>
           <span>{description}</span>
         </div>
       </div>
-
       <div className="setting-row-control">
-        <Toggle
-          value={value}
-          onChange={onChange}
-          label={title}
-        />
+        <Toggle value={value} onChange={onChange} label={title} />
       </div>
     </div>
   );
@@ -494,16 +441,10 @@ function SettingsCard({
       <div className="card-heading">
         <div>
           <h3>{title}</h3>
-
-          {description && (
-            <p>{description}</p>
-          )}
+          {description && <p>{description}</p>}
         </div>
       </div>
-
-      <div className="card-content">
-        {children}
-      </div>
+      <div className="card-content">{children}</div>
     </section>
   );
 }
@@ -516,14 +457,11 @@ function InfoBox({
 }) {
   return (
     <div
-      className={`settings-info-box ${
-        muted ? "muted" : ""
-      }`}
+      className={`settings-info-box ${muted ? "muted" : ""}`}
     >
       <div className="settings-info-icon">
         <Icon size={15} />
       </div>
-
       <div>
         <strong>{title}</strong>
         <p>{children}</p>
@@ -545,12 +483,10 @@ function BackupCard({
       <div className="backup-icon">
         <Icon size={18} />
       </div>
-
       <div className="backup-copy">
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
-
       <button
         type="button"
         className="settings-btn settings-btn-secondary backup-action"
@@ -569,9 +505,7 @@ function Credit({ icon: Icon, label, value }) {
       <div className="credit-icon">
         <Icon size={14} />
       </div>
-
       <span>{label}</span>
-
       <strong>{value}</strong>
     </div>
   );
@@ -585,22 +519,16 @@ function DangerRow({
   last = false,
 }) {
   return (
-    <div
-      className={`danger-row ${
-        last ? "last" : ""
-      }`}
-    >
+    <div className={`danger-row ${last ? "last" : ""}`}>
       <div className="danger-row-left">
         <div className="danger-icon">
           <Icon size={15} />
         </div>
-
         <div>
           <strong>{title}</strong>
           <p>{description}</p>
         </div>
       </div>
-
       <button
         type="button"
         className="settings-btn settings-btn-danger"
@@ -618,70 +546,53 @@ function DangerRow({
 ========================================================= */
 
 export default function Settings() {
-  const [settings, setSettings] =
-    useState(defaultSettings);
-
-  const [activeSection, setActiveSection] =
-    useState("company");
-
+  const [settings, setSettings] = useState(defaultSettings);
+  const [activeSection, setActiveSection] = useState("company");
   const [search, setSearch] = useState("");
-
-  const [savedMessage, setSavedMessage] =
-    useState("");
-
-  const [messageType, setMessageType] =
-    useState("success");
-
+  const [savedMessage, setSavedMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
   const [hasUnsavedChanges, setHasUnsavedChanges] =
     useState(false);
-
   const [pin, setPin] = useState("");
-  const [showPin, setShowPin] =
+  const [showPin, setShowPin] = useState(false);
+  const [hasPin, setHasPin] = useState(false);
+
+  /* Search suggestion dropdown */
+  const [searchSuggestionsOpen, setSearchSuggestionsOpen] =
     useState(false);
-  const [hasPin, setHasPin] =
-    useState(false);
+  const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] =
+    useState(-1);
 
-  /* =======================================================
-     LOGIN PASSWORD
-  ======================================================= */
+  /* Leave modal */
+  const [leaveModal, setLeaveModal] = useState(null);
 
-  const [currentPassword, setCurrentPassword] =
-    useState("");
+  /* Backup preview modal */
+  const [backupPreview, setBackupPreview] = useState(null);
 
-  const [newPassword, setNewPassword] =
-    useState("");
+  /* Keyboard shortcuts overlay */
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
-
+  /* Login password */
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] =
     useState(false);
-
-  const [showNewPassword, setShowNewPassword] =
-    useState(false);
-
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
-  const [logoError, setLogoError] =
-    useState("");
-
-  const [restoreLoading, setRestoreLoading] =
-    useState(false);
-
-  const [dataStats, setDataStats] =
-    useState({});
-
-  const [storageEstimate, setStorageEstimate] =
-    useState(null);
-
-  const [lastBackup, setLastBackup] =
-    useState(null);
+  const [logoError, setLogoError] = useState("");
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [dataStats, setDataStats] = useState({});
+  const [storageEstimate, setStorageEstimate] = useState(null);
+  const [lastBackup, setLastBackup] = useState(null);
 
   const fileInputRef = useRef(null);
   const restoreInputRef = useRef(null);
   const messageTimerRef = useRef(null);
   const searchInputRef = useRef(null);
+  const searchWrapRef = useRef(null);
 
   /* =======================================================
      INITIAL LOAD + DATA SYNC
@@ -691,18 +602,10 @@ export default function Settings() {
     loadSettings();
     refreshDataStats();
 
-    const pinValue =
-      localStorage.getItem(
-        STORAGE_KEYS.pin
-      );
-
+    const pinValue = localStorage.getItem(STORAGE_KEYS.pin);
     setHasPin(Boolean(pinValue));
 
-    const backup = readObject(
-      STORAGE_KEYS.backupMeta,
-      null
-    );
-
+    const backup = readObject(STORAGE_KEYS.backupMeta, null);
     setLastBackup(backup);
 
     estimateStorage();
@@ -711,54 +614,30 @@ export default function Settings() {
       loadSettings();
       refreshDataStats();
 
-      const currentPin =
-        localStorage.getItem(
-          STORAGE_KEYS.pin
-        );
-
+      const currentPin = localStorage.getItem(STORAGE_KEYS.pin);
       setHasPin(Boolean(currentPin));
 
-      setLastBackup(
-        readObject(
-          STORAGE_KEYS.backupMeta,
-          null
-        )
-      );
-
+      setLastBackup(readObject(STORAGE_KEYS.backupMeta, null));
       estimateStorage();
     };
 
-    window.addEventListener(
-      "storage",
-      sync
-    );
-
-    window.addEventListener(
-      "saoAutoTractorDataChanged",
-      sync
-    );
+    window.addEventListener("storage", sync);
+    window.addEventListener("saoAutoTractorDataChanged", sync);
 
     return () => {
-      window.removeEventListener(
-        "storage",
-        sync
-      );
-
+      window.removeEventListener("storage", sync);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         sync
       );
-
       if (messageTimerRef.current) {
-        clearTimeout(
-          messageTimerRef.current
-        );
+        clearTimeout(messageTimerRef.current);
       }
     };
   }, []);
 
   /* =======================================================
-     CTRL + K SEARCH SHORTCUT
+     KEYBOARD SHORTCUTS
   ======================================================= */
 
   useEffect(() => {
@@ -767,17 +646,38 @@ export default function Settings() {
         (event.ctrlKey || event.metaKey) &&
         event.key.toLowerCase() === "k";
 
-      if (!isSearchShortcut) return;
+      if (isSearchShortcut) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchSuggestionsOpen(true);
+        return;
+      }
 
-      event.preventDefault();
+      const isSaveShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "s";
 
-      searchInputRef.current?.focus();
+      if (isSaveShortcut) {
+        event.preventDefault();
+        saveSettings();
+        return;
+      }
+
+      /* ? key shows shortcuts (when not typing in an input) */
+      const tag = (event.target?.tagName || "").toLowerCase();
+      const typing =
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        event.target?.isContentEditable;
+
+      if (!typing && event.key === "?") {
+        event.preventDefault();
+        setShowShortcuts(true);
+      }
     };
 
-    window.addEventListener(
-      "keydown",
-      handleKeyboardShortcut
-    );
+    window.addEventListener("keydown", handleKeyboardShortcut);
 
     return () => {
       window.removeEventListener(
@@ -785,6 +685,29 @@ export default function Settings() {
         handleKeyboardShortcut
       );
     };
+  }, [settings, hasUnsavedChanges]);
+
+  /* =======================================================
+     OUTSIDE CLICK — close search suggestions
+  ======================================================= */
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchWrapRef.current &&
+        !searchWrapRef.current.contains(event.target)
+      ) {
+        setSearchSuggestionsOpen(false);
+        setHighlightedSuggestionIndex(-1);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
   }, []);
 
   /* =======================================================
@@ -792,13 +715,11 @@ export default function Settings() {
   ======================================================= */
 
   useEffect(() => {
-    const protectUnsavedChanges =
-      (event) => {
-        if (!hasUnsavedChanges) return;
-
-        event.preventDefault();
-        event.returnValue = "";
-      };
+    const protectUnsavedChanges = (event) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
 
     window.addEventListener(
       "beforeunload",
@@ -819,18 +740,12 @@ export default function Settings() {
 
   function loadSettings() {
     try {
-      const raw =
-        localStorage.getItem(
-          STORAGE_KEYS.settings
-        );
-
+      const raw = localStorage.getItem(STORAGE_KEYS.settings);
       if (!raw) {
         setSettings(defaultSettings);
         return;
       }
-
       const saved = JSON.parse(raw);
-
       setSettings({
         ...defaultSettings,
         ...(saved || {}),
@@ -842,50 +757,21 @@ export default function Settings() {
 
   function refreshDataStats() {
     const stats = {
-      tractors: readArray(
-        STORAGE_KEYS.tractors
-      ).length,
-
-      trips: readArray(
-        STORAGE_KEYS.trips
-      ).length,
-
-      parties: readArray(
-        STORAGE_KEYS.parties
-      ).length,
-
-      materials: readArray(
-        STORAGE_KEYS.materials
-      ).length,
-
-      payments: readArray(
-        STORAGE_KEYS.payments
-      ).length,
-
-      expenses: readArray(
-        STORAGE_KEYS.expenses
-      ).length,
-
-      staff: readArray(
-        STORAGE_KEYS.staff
-      ).length,
-
-      invoices: readArray(
-        STORAGE_KEYS.invoices
-      ).length,
-
+      tractors: readArray(STORAGE_KEYS.tractors).length,
+      trips: readArray(STORAGE_KEYS.trips).length,
+      parties: readArray(STORAGE_KEYS.parties).length,
+      materials: readArray(STORAGE_KEYS.materials).length,
+      payments: readArray(STORAGE_KEYS.payments).length,
+      expenses: readArray(STORAGE_KEYS.expenses).length,
+      staff: readArray(STORAGE_KEYS.staff).length,
+      invoices: readArray(STORAGE_KEYS.invoices).length,
       attendance: Object.keys(
-        readObject(
-          STORAGE_KEYS.staffAttendance,
-          {}
-        )
+        readObject(STORAGE_KEYS.staffAttendance, {})
       ).length,
-
       salaryPayments: readArray(
         STORAGE_KEYS.staffSalaryPayments
       ).length,
     };
-
     setDataStats(stats);
   }
 
@@ -893,12 +779,9 @@ export default function Settings() {
     try {
       if (
         navigator.storage &&
-        typeof navigator.storage
-          .estimate === "function"
+        typeof navigator.storage.estimate === "function"
       ) {
-        const estimate =
-          await navigator.storage.estimate();
-
+        const estimate = await navigator.storage.estimate();
         setStorageEstimate({
           usage: estimate.usage || 0,
           quota: estimate.quota || 0,
@@ -909,23 +792,17 @@ export default function Settings() {
     }
   }
 
-  function showMessage(
-    message,
-    type = "success"
-  ) {
+  function showMessage(message, type = "success") {
     setSavedMessage(message);
     setMessageType(type);
 
     if (messageTimerRef.current) {
-      clearTimeout(
-        messageTimerRef.current
-      );
+      clearTimeout(messageTimerRef.current);
     }
 
-    messageTimerRef.current =
-      setTimeout(() => {
-        setSavedMessage("");
-      }, 3500);
+    messageTimerRef.current = setTimeout(() => {
+      setSavedMessage("");
+    }, 3500);
   }
 
   function updateSetting(key, value) {
@@ -933,7 +810,6 @@ export default function Settings() {
       ...previous,
       [key]: value,
     }));
-
     setHasUnsavedChanges(true);
   }
 
@@ -947,17 +823,12 @@ export default function Settings() {
       setHasUnsavedChanges(false);
 
       window.dispatchEvent(
-        new Event(
-          "saoAutoTractorDataChanged"
-        )
+        new Event("saoAutoTractorDataChanged")
       );
 
-      showMessage(
-        "Settings saved successfully."
-      );
+      showMessage("Settings saved successfully.");
     } catch (error) {
       console.error(error);
-
       showMessage(
         "Unable to save settings. Please try again.",
         "error"
@@ -965,20 +836,40 @@ export default function Settings() {
     }
   }
 
-  function resetSettings() {
-    const confirmed =
-      window.confirm(
-        "Reset all application settings to default values?\n\nYour trips, parties, tractors, payments, expenses and other business data will NOT be deleted."
+  function saveAndReload() {
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.settings,
+        JSON.stringify(settings)
       );
+
+      setHasUnsavedChanges(false);
+
+      window.dispatchEvent(
+        new Event("saoAutoTractorDataChanged")
+      );
+
+      showMessage("Settings saved. Reloading...");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      console.error(error);
+      showMessage("Unable to save settings.", "error");
+    }
+  }
+
+  function resetSettings() {
+    const confirmed = window.confirm(
+      "Reset all application settings to default values?\n\nYour trips, parties, tractors, payments, expenses and other business data will NOT be deleted."
+    );
 
     if (!confirmed) return;
 
     setSettings(defaultSettings);
     setHasUnsavedChanges(true);
-
-    showMessage(
-      "Settings reset to default. Save to apply."
-    );
+    showMessage("Settings reset to default. Save to apply.");
   }
 
   /* =======================================================
@@ -986,9 +877,7 @@ export default function Settings() {
   ======================================================= */
 
   function handleLogo(event) {
-    const file =
-      event.target.files?.[0];
-
+    const file = event.target.files?.[0];
     if (!file) return;
 
     setLogoError("");
@@ -1006,44 +895,27 @@ export default function Settings() {
       return;
     }
 
-    if (
-      file.size >
-      2 * 1024 * 1024
-    ) {
-      setLogoError(
-        "Logo size must be 2 MB or smaller."
-      );
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError("Logo size must be 2 MB or smaller.");
       return;
     }
 
     const reader = new FileReader();
 
     reader.onload = () => {
-      updateSetting(
-        "companyLogo",
-        reader.result
-      );
-
-      showMessage(
-        "Logo selected. Save settings to keep it."
-      );
+      updateSetting("companyLogo", reader.result);
+      showMessage("Logo selected. Save settings to keep it.");
     };
 
     reader.onerror = () => {
-      setLogoError(
-        "Unable to read the selected image."
-      );
+      setLogoError("Unable to read the selected image.");
     };
 
     reader.readAsDataURL(file);
   }
 
   function removeLogo() {
-    updateSetting(
-      "companyLogo",
-      ""
-    );
-
+    updateSetting("companyLogo", "");
     setLogoError("");
   }
 
@@ -1056,8 +928,7 @@ export default function Settings() {
       application: "SAO AUTO TRACTOR",
       version: APP_VERSION,
       backupType: "Full Local Backup",
-      createdAt:
-        new Date().toISOString(),
+      createdAt: new Date().toISOString(),
 
       settings: readObject(
         STORAGE_KEYS.settings,
@@ -1065,148 +936,74 @@ export default function Settings() {
       ),
 
       data: {
-        trips: readArray(
-          STORAGE_KEYS.trips
+        trips: readArray(STORAGE_KEYS.trips),
+        payments: readArray(STORAGE_KEYS.payments),
+        parties: readArray(STORAGE_KEYS.parties),
+        tractors: readArray(STORAGE_KEYS.tractors),
+        materials: readArray(STORAGE_KEYS.materials),
+        expenses: readArray(STORAGE_KEYS.expenses),
+        staff: readArray(STORAGE_KEYS.staff),
+        staffAttendance: readObject(
+          STORAGE_KEYS.staffAttendance,
+          {}
         ),
-
-        payments: readArray(
-          STORAGE_KEYS.payments
+        staffSalaryPayments: readArray(
+          STORAGE_KEYS.staffSalaryPayments
         ),
-
-        parties: readArray(
-          STORAGE_KEYS.parties
+        invoices: readArray(STORAGE_KEYS.invoices),
+        invoiceNumber: localStorage.getItem(
+          STORAGE_KEYS.invoiceNumber
         ),
-
-        tractors: readArray(
-          STORAGE_KEYS.tractors
+        businessDetails: readObject(
+          STORAGE_KEYS.businessDetails,
+          {}
         ),
-
-        materials: readArray(
-          STORAGE_KEYS.materials
-        ),
-
-        expenses: readArray(
-          STORAGE_KEYS.expenses
-        ),
-
-        staff: readArray(
-          STORAGE_KEYS.staff
-        ),
-
-        staffAttendance:
-          readObject(
-            STORAGE_KEYS.staffAttendance,
-            {}
-          ),
-
-        staffSalaryPayments:
-          readArray(
-            STORAGE_KEYS.staffSalaryPayments
-          ),
-
-        invoices: readArray(
-          STORAGE_KEYS.invoices
-        ),
-
-        invoiceNumber:
-          localStorage.getItem(
-            STORAGE_KEYS.invoiceNumber
-          ),
-
-        businessDetails:
-          readObject(
-            STORAGE_KEYS.businessDetails,
-            {}
-          ),
       },
     };
   }
 
   function getBackupCounts(backup) {
-    const data =
-      backup?.data || {};
-
+    const data = backup?.data || {};
     return {
-      trips: Array.isArray(
-        data.trips
-      )
-        ? data.trips.length
-        : 0,
-
-      payments: Array.isArray(
-        data.payments
-      )
+      trips: Array.isArray(data.trips) ? data.trips.length : 0,
+      payments: Array.isArray(data.payments)
         ? data.payments.length
         : 0,
-
-      parties: Array.isArray(
-        data.parties
-      )
+      parties: Array.isArray(data.parties)
         ? data.parties.length
         : 0,
-
-      tractors: Array.isArray(
-        data.tractors
-      )
+      tractors: Array.isArray(data.tractors)
         ? data.tractors.length
         : 0,
-
-      materials: Array.isArray(
-        data.materials
-      )
+      materials: Array.isArray(data.materials)
         ? data.materials.length
         : 0,
-
-      expenses: Array.isArray(
-        data.expenses
-      )
+      expenses: Array.isArray(data.expenses)
         ? data.expenses.length
         : 0,
-
-      staff: Array.isArray(
-        data.staff
-      )
+      staff: Array.isArray(data.staff)
         ? data.staff.length
         : 0,
-
-      invoices: Array.isArray(
-        data.invoices
-      )
+      invoices: Array.isArray(data.invoices)
         ? data.invoices.length
         : 0,
     };
   }
 
-  function downloadJSON(
-    filename,
-    data
-  ) {
+  function downloadJSON(filename, data) {
     const blob = new Blob(
-      [
-        JSON.stringify(
-          data,
-          null,
-          2
-        ),
-      ],
-      {
-        type: "application/json",
-      }
+      [JSON.stringify(data, null, 2)],
+      { type: "application/json" }
     );
 
-    const url =
-      URL.createObjectURL(blob);
-
-    const anchor =
-      document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
 
     anchor.href = url;
     anchor.download = filename;
 
     document.body.appendChild(anchor);
-
     anchor.click();
-
     anchor.remove();
 
     URL.revokeObjectURL(url);
@@ -1214,11 +1011,8 @@ export default function Settings() {
 
   function backupData() {
     try {
-      const backup =
-        createBackupObject();
-
-      const counts =
-        getBackupCounts(backup);
+      const backup = createBackupObject();
+      const counts = getBackupCounts(backup);
 
       downloadJSON(
         `SAO-AUTO-TRACTOR-Backup-${new Date()
@@ -1228,8 +1022,7 @@ export default function Settings() {
       );
 
       const meta = {
-        createdAt:
-          backup.createdAt,
+        createdAt: backup.createdAt,
         version: APP_VERSION,
         counts,
       };
@@ -1240,273 +1033,85 @@ export default function Settings() {
       );
 
       setLastBackup(meta);
-
-      showMessage(
-        "Full backup created successfully."
-      );
-
+      showMessage("Full backup created successfully.");
       refreshDataStats();
     } catch (error) {
       console.error(error);
-
-      showMessage(
-        "Backup could not be created.",
-        "error"
-      );
+      showMessage("Backup could not be created.", "error");
     }
   }
 
   /* =======================================================
-     RESTORE
+     EXPORT / IMPORT SETTINGS ONLY
   ======================================================= */
 
-  function handleRestore(event) {
-    const file =
-      event.target.files?.[0];
+  function exportSettings() {
+    try {
+      downloadJSON(
+        `SAO-AUTO-TRACTOR-Settings-${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`,
+        {
+          application: "SAO AUTO TRACTOR",
+          type: "Settings Only",
+          version: APP_VERSION,
+          createdAt: new Date().toISOString(),
+          settings,
+        }
+      );
+      showMessage("Settings exported successfully.");
+    } catch (error) {
+      console.error(error);
+      showMessage("Unable to export settings.", "error");
+    }
+  }
 
+  function handleSettingsImport(event) {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    setRestoreLoading(true);
-
-    const reader =
-      new FileReader();
+    const reader = new FileReader();
 
     reader.onload = () => {
       try {
-        const backup =
-          JSON.parse(
-            reader.result
-          );
+        const parsed = JSON.parse(reader.result);
 
         if (
-          !backup ||
-          backup.application !==
-            "SAO AUTO TRACTOR"
+          !parsed ||
+          parsed.application !== "SAO AUTO TRACTOR" ||
+          !parsed.settings ||
+          typeof parsed.settings !== "object"
         ) {
-          throw new Error(
-            "Invalid application backup."
-          );
+          throw new Error("Invalid settings file");
         }
 
-        if (
-          !backup.data ||
-          typeof backup.data !==
-            "object"
-        ) {
-          throw new Error(
-            "Backup data section is missing."
-          );
-        }
-
-        const counts =
-          getBackupCounts(backup);
-
-        const summary = [
-          `Backup Version: ${
-            backup.version ||
-            "Unknown"
-          }`,
-
-          `Created: ${formatDateTime(
-            backup.createdAt
-          )}`,
-
-          "",
-
-          `Tractors: ${counts.tractors}`,
-          `Trips: ${counts.trips}`,
-          `Parties: ${counts.parties}`,
-          `Materials: ${counts.materials}`,
-          `Payments: ${counts.payments}`,
-          `Expenses: ${counts.expenses}`,
-          `Staff: ${counts.staff}`,
-          `Invoices: ${counts.invoices}`,
-
-          "",
-
-          "Restore will replace the current saved data for these modules.",
-
-          "Your App PIN and Login Password will NOT be restored from the backup.",
-        ].join("\n");
-
-        const confirmed =
-          window.confirm(
-            `${summary}\n\nContinue with restore?`
-          );
+        const confirmed = window.confirm(
+          "Import settings from this file?\n\nYour business data (trips, payments, parties etc.) will NOT be affected.\n\nCurrent settings will be replaced."
+        );
 
         if (!confirmed) {
-          setRestoreLoading(false);
           event.target.value = "";
           return;
         }
 
-        if (backup.settings) {
-          localStorage.setItem(
-            STORAGE_KEYS.settings,
-            JSON.stringify({
-              ...defaultSettings,
-              ...backup.settings,
-            })
-          );
-        }
+        setSettings({
+          ...defaultSettings,
+          ...parsed.settings,
+        });
 
-        const data =
-          backup.data;
+        setHasUnsavedChanges(true);
 
-        const arrayKeys = [
-          [
-            "trips",
-            STORAGE_KEYS.trips,
-          ],
-
-          [
-            "payments",
-            STORAGE_KEYS.payments,
-          ],
-
-          [
-            "parties",
-            STORAGE_KEYS.parties,
-          ],
-
-          [
-            "tractors",
-            STORAGE_KEYS.tractors,
-          ],
-
-          [
-            "materials",
-            STORAGE_KEYS.materials,
-          ],
-
-          [
-            "expenses",
-            STORAGE_KEYS.expenses,
-          ],
-
-          [
-            "staff",
-            STORAGE_KEYS.staff,
-          ],
-
-          [
-            "staffSalaryPayments",
-            STORAGE_KEYS.staffSalaryPayments,
-          ],
-
-          [
-            "invoices",
-            STORAGE_KEYS.invoices,
-          ],
-        ];
-
-        arrayKeys.forEach(
-          ([sourceKey, storageKey]) => {
-            if (
-              Array.isArray(
-                data[sourceKey]
-              )
-            ) {
-              localStorage.setItem(
-                storageKey,
-                JSON.stringify(
-                  data[sourceKey]
-                )
-              );
-            }
-          }
-        );
-
-        if (
-          data.staffAttendance &&
-          typeof data.staffAttendance ===
-            "object"
-        ) {
-          localStorage.setItem(
-            STORAGE_KEYS.staffAttendance,
-            JSON.stringify(
-              data.staffAttendance
-            )
-          );
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            data,
-            "invoiceNumber"
-          )
-        ) {
-          if (
-            data.invoiceNumber ===
-              null ||
-            data.invoiceNumber ===
-              undefined
-          ) {
-            localStorage.removeItem(
-              STORAGE_KEYS.invoiceNumber
-            );
-          } else {
-            localStorage.setItem(
-              STORAGE_KEYS.invoiceNumber,
-              String(
-                data.invoiceNumber
-              )
-            );
-          }
-        }
-
-        if (
-          data.businessDetails &&
-          typeof data.businessDetails ===
-            "object"
-        ) {
-          localStorage.setItem(
-            STORAGE_KEYS.businessDetails,
-            JSON.stringify(
-              data.businessDetails
-            )
-          );
-        }
-
-        window.dispatchEvent(
-          new Event(
-            "saoAutoTractorDataChanged"
-          )
-        );
-
-        setHasUnsavedChanges(
-          false
-        );
-
-        showMessage(
-          "Backup restored successfully. Reloading..."
-        );
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 700);
+        showMessage("Settings imported. Save to apply.");
       } catch (error) {
         console.error(error);
-
-        showMessage(
-          "Invalid or corrupted backup file.",
-          "error"
-        );
-
-        setRestoreLoading(false);
+        showMessage("Invalid settings file.", "error");
       }
 
       event.target.value = "";
     };
 
     reader.onerror = () => {
-      showMessage(
-        "Unable to read backup file.",
-        "error"
-      );
-
-      setRestoreLoading(false);
-
+      showMessage("Unable to read the file.", "error");
       event.target.value = "";
     };
 
@@ -1514,53 +1119,194 @@ export default function Settings() {
   }
 
   /* =======================================================
+     RESTORE
+  ======================================================= */
+
+  function handleRestoreSelect(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setRestoreLoading(true);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const backup = JSON.parse(reader.result);
+
+        if (
+          !backup ||
+          backup.application !== "SAO AUTO TRACTOR"
+        ) {
+          throw new Error("Invalid application backup.");
+        }
+
+        if (
+          !backup.data ||
+          typeof backup.data !== "object"
+        ) {
+          throw new Error("Backup data section is missing.");
+        }
+
+        setBackupPreview(backup);
+        setRestoreLoading(false);
+      } catch (error) {
+        console.error(error);
+        showMessage(
+          "Invalid or corrupted backup file.",
+          "error"
+        );
+        setRestoreLoading(false);
+      }
+
+      event.target.value = "";
+    };
+
+    reader.onerror = () => {
+      showMessage("Unable to read backup file.", "error");
+      setRestoreLoading(false);
+      event.target.value = "";
+    };
+
+    reader.readAsText(file);
+  }
+
+  function confirmRestore() {
+    const backup = backupPreview;
+    if (!backup) return;
+
+    try {
+      if (backup.settings) {
+        localStorage.setItem(
+          STORAGE_KEYS.settings,
+          JSON.stringify({
+            ...defaultSettings,
+            ...backup.settings,
+          })
+        );
+      }
+
+      const data = backup.data;
+
+      const arrayKeys = [
+        ["trips", STORAGE_KEYS.trips],
+        ["payments", STORAGE_KEYS.payments],
+        ["parties", STORAGE_KEYS.parties],
+        ["tractors", STORAGE_KEYS.tractors],
+        ["materials", STORAGE_KEYS.materials],
+        ["expenses", STORAGE_KEYS.expenses],
+        ["staff", STORAGE_KEYS.staff],
+        [
+          "staffSalaryPayments",
+          STORAGE_KEYS.staffSalaryPayments,
+        ],
+        ["invoices", STORAGE_KEYS.invoices],
+      ];
+
+      arrayKeys.forEach(([sourceKey, storageKey]) => {
+        if (Array.isArray(data[sourceKey])) {
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify(data[sourceKey])
+          );
+        }
+      });
+
+      if (
+        data.staffAttendance &&
+        typeof data.staffAttendance === "object"
+      ) {
+        localStorage.setItem(
+          STORAGE_KEYS.staffAttendance,
+          JSON.stringify(data.staffAttendance)
+        );
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          data,
+          "invoiceNumber"
+        )
+      ) {
+        if (
+          data.invoiceNumber === null ||
+          data.invoiceNumber === undefined
+        ) {
+          localStorage.removeItem(
+            STORAGE_KEYS.invoiceNumber
+          );
+        } else {
+          localStorage.setItem(
+            STORAGE_KEYS.invoiceNumber,
+            String(data.invoiceNumber)
+          );
+        }
+      }
+
+      if (
+        data.businessDetails &&
+        typeof data.businessDetails === "object"
+      ) {
+        localStorage.setItem(
+          STORAGE_KEYS.businessDetails,
+          JSON.stringify(data.businessDetails)
+        );
+      }
+
+      window.dispatchEvent(
+        new Event("saoAutoTractorDataChanged")
+      );
+
+      setHasUnsavedChanges(false);
+      setBackupPreview(null);
+
+      showMessage(
+        "Backup restored successfully. Reloading..."
+      );
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
+    } catch (error) {
+      console.error(error);
+      showMessage("Restore failed.", "error");
+    }
+  }
+
+  /* =======================================================
      CLEAR DATA
   ======================================================= */
 
-  function clearData(
-    storageKey,
-    label
-  ) {
-    const count =
-      readArray(storageKey).length;
+  function clearData(storageKey, label) {
+    const count = readArray(storageKey).length;
 
     if (count === 0) {
-      showMessage(
-        `${label} is already empty.`
-      );
+      showMessage(`${label} is already empty.`);
       return;
     }
 
-    const confirmed =
-      window.confirm(
-        `Delete all ${label.toLowerCase()}?\n\nRecords: ${count}\n\nThis action cannot be undone. Please create a backup first.`
-      );
+    const confirmed = window.confirm(
+      `Delete all ${label.toLowerCase()}?\n\nRecords: ${count}\n\nThis action cannot be undone. Please create a backup first.`
+    );
 
     if (!confirmed) return;
 
-    const secondConfirm =
-      window.confirm(
-        `Final confirmation:\n\nDelete ${count} ${label.toLowerCase()} permanently?`
-      );
+    const secondConfirm = window.confirm(
+      `Final confirmation:\n\nDelete ${count} ${label.toLowerCase()} permanently?`
+    );
 
     if (!secondConfirm) return;
 
-    localStorage.removeItem(
-      storageKey
-    );
+    localStorage.removeItem(storageKey);
 
     window.dispatchEvent(
-      new Event(
-        "saoAutoTractorDataChanged"
-      )
+      new Event("saoAutoTractorDataChanged")
     );
 
     refreshDataStats();
     estimateStorage();
 
-    showMessage(
-      `${label} cleared successfully.`
-    );
+    showMessage(`${label} cleared successfully.`);
   }
 
   /* =======================================================
@@ -1568,62 +1314,38 @@ export default function Settings() {
   ======================================================= */
 
   function savePin() {
-    const value =
-      pin.trim();
+    const value = pin.trim();
 
-    if (
-      !/^\d{4,6}$/.test(
-        value
-      )
-    ) {
-      showMessage(
-        "PIN must contain 4 to 6 digits.",
-        "error"
-      );
+    if (!/^\d{4,6}$/.test(value)) {
+      showMessage("PIN must contain 4 to 6 digits.", "error");
       return;
     }
 
-    localStorage.setItem(
-      STORAGE_KEYS.pin,
-      value
-    );
+    localStorage.setItem(STORAGE_KEYS.pin, value);
 
     setHasPin(true);
     setPin("");
 
-    updateSetting(
-      "appLock",
-      true
-    );
+    updateSetting("appLock", true);
 
-    showMessage(
-      "App PIN saved. Save settings to finish."
-    );
+    showMessage("App PIN saved. Save settings to finish.");
   }
 
   function removePin() {
-    const confirmed =
-      window.confirm(
-        "Remove the app PIN and disable app lock?"
-      );
+    const confirmed = window.confirm(
+      "Remove the app PIN and disable app lock?"
+    );
 
     if (!confirmed) return;
 
-    localStorage.removeItem(
-      STORAGE_KEYS.pin
-    );
+    localStorage.removeItem(STORAGE_KEYS.pin);
 
     setHasPin(false);
     setPin("");
 
-    updateSetting(
-      "appLock",
-      false
-    );
+    updateSetting("appLock", false);
 
-    showMessage(
-      "App PIN removed. Save settings to apply."
-    );
+    showMessage("App PIN removed. Save settings to apply.");
   }
 
   /* =======================================================
@@ -1631,25 +1353,15 @@ export default function Settings() {
   ======================================================= */
 
   function changeLoginPassword() {
-    const current =
-      currentPassword.trim();
-
-    const next =
-      newPassword.trim();
-
-    const confirm =
-      confirmPassword.trim();
+    const current = currentPassword.trim();
+    const next = newPassword.trim();
+    const confirm = confirmPassword.trim();
 
     const savedPassword =
-      localStorage.getItem(
-        STORAGE_KEYS.loginPassword
-      ) || "1234";
+      localStorage.getItem(STORAGE_KEYS.loginPassword) ||
+      "1234";
 
-    if (
-      !current ||
-      !next ||
-      !confirm
-    ) {
+    if (!current || !next || !confirm) {
       showMessage(
         "Please fill in all password fields.",
         "error"
@@ -1657,9 +1369,7 @@ export default function Settings() {
       return;
     }
 
-    if (
-      current !== savedPassword
-    ) {
+    if (current !== savedPassword) {
       showMessage(
         "Current password is incorrect.",
         "error"
@@ -1700,9 +1410,7 @@ export default function Settings() {
     setNewPassword("");
     setConfirmPassword("");
 
-    showMessage(
-      "Login password changed successfully."
-    );
+    showMessage("Login password changed successfully.");
   }
 
   /* =======================================================
@@ -1718,44 +1426,52 @@ export default function Settings() {
       return;
     }
 
-    if (
-      Notification.permission ===
-      "granted"
-    ) {
-      updateSetting(
-        "browserNotifications",
-        true
-      );
-
-      showMessage(
-        "Browser notifications are already allowed."
-      );
-
+    if (Notification.permission === "granted") {
+      updateSetting("browserNotifications", true);
+      showMessage("Browser notifications are already allowed.");
       return;
     }
 
-    Notification.requestPermission().then(
-      (permission) => {
-        if (
-          permission ===
-          "granted"
-        ) {
-          updateSetting(
-            "browserNotifications",
-            true
-          );
-
-          showMessage(
-            "Browser notifications enabled."
-          );
-        } else {
-          showMessage(
-            "Browser notification permission was not granted.",
-            "error"
-          );
-        }
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        updateSetting("browserNotifications", true);
+        showMessage("Browser notifications enabled.");
+      } else {
+        showMessage(
+          "Browser notification permission was not granted.",
+          "error"
+        );
       }
-    );
+    });
+  }
+
+  function sendTestNotification() {
+    if (!("Notification" in window)) {
+      showMessage(
+        "This browser does not support notifications.",
+        "error"
+      );
+      return;
+    }
+
+    if (Notification.permission !== "granted") {
+      showMessage(
+        "Enable browser notifications first.",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      new Notification("SAO AUTO TRACTOR", {
+        body: "This is a test notification from your settings.",
+      });
+
+      showMessage("Test notification sent.");
+    } catch (error) {
+      console.error(error);
+      showMessage("Unable to send notification.", "error");
+    }
   }
 
   /* =======================================================
@@ -1780,6 +1496,8 @@ export default function Settings() {
 
   function selectSection(id) {
     setActiveSection(id);
+    setSearchSuggestionsOpen(false);
+    setHighlightedSuggestionIndex(-1);
 
     window.scrollTo({
       top: 0,
@@ -1791,58 +1509,60 @@ export default function Settings() {
      SEARCH
   ======================================================= */
 
-  const filteredGroups =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredGroups = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      if (!query) {
-        return menuGroups;
-      }
+    if (!query) return menuGroups;
 
-      return menuGroups
-        .map((group) => ({
-          ...group,
-          items: group.items.filter(
-            (item) =>
-              item.title
-                .toLowerCase()
-                .includes(query) ||
-              item.subtitle
-                .toLowerCase()
-                .includes(query) ||
-              group.title
-                .toLowerCase()
-                .includes(query)
-          ),
-        }))
-        .filter(
-          (group) =>
-            group.items.length > 0
-        );
-    }, [search]);
-
-  const filteredMenu =
-    useMemo(
-      () =>
-        filteredGroups.flatMap(
-          (group) => group.items
+    return menuGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (item) =>
+            item.title.toLowerCase().includes(query) ||
+            item.subtitle.toLowerCase().includes(query) ||
+            group.title.toLowerCase().includes(query)
         ),
-      [filteredGroups]
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [search]);
+
+  const filteredMenu = useMemo(
+    () => filteredGroups.flatMap((group) => group.items),
+    [filteredGroups]
+  );
+
+  const suggestions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return [];
+
+    return menuItems
+      .filter(
+        (item) =>
+          item.title.toLowerCase().includes(query) ||
+          item.subtitle.toLowerCase().includes(query)
+      )
+      .slice(0, 8);
+  }, [search]);
+
+  /* FIX: Auto-navigate after search if current section is hidden */
+  useEffect(() => {
+    if (!search.trim()) return;
+
+    const isCurrentVisible = filteredMenu.some(
+      (item) => item.id === activeSection
     );
 
+    if (!isCurrentVisible && filteredMenu.length > 0) {
+      setActiveSection(filteredMenu[0].id);
+    }
+  }, [search, filteredMenu, activeSection]);
+
   const current =
-    menuItems.find(
-      (item) =>
-        item.id ===
-        activeSection
-    ) ||
+    menuItems.find((item) => item.id === activeSection) ||
     menuItems[0];
 
-  const CurrentIcon =
-    current.icon;
+  const CurrentIcon = current.icon;
 
   const totalRecords =
     (dataStats.trips || 0) +
@@ -1855,8 +1575,7 @@ export default function Settings() {
     (dataStats.invoices || 0);
 
   const storagePercent =
-    storageEstimate?.usage &&
-    storageEstimate?.quota
+    storageEstimate?.usage && storageEstimate?.quota
       ? Math.min(
           100,
           Math.round(
@@ -1868,6 +1587,50 @@ export default function Settings() {
       : null;
 
   /* =======================================================
+     SEARCH SUGGESTION KEYBOARD NAV
+  ======================================================= */
+
+  function handleSearchKeyDown(event) {
+    if (!searchSuggestionsOpen) {
+      if (
+        event.key === "ArrowDown" &&
+        suggestions.length > 0
+      ) {
+        event.preventDefault();
+        setSearchSuggestionsOpen(true);
+        setHighlightedSuggestionIndex(0);
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedSuggestionIndex((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedSuggestionIndex((prev) =>
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      );
+    } else if (event.key === "Enter") {
+      if (
+        highlightedSuggestionIndex >= 0 &&
+        suggestions[highlightedSuggestionIndex]
+      ) {
+        event.preventDefault();
+        selectSection(
+          suggestions[highlightedSuggestionIndex].id
+        );
+        setSearch("");
+      }
+    } else if (event.key === "Escape") {
+      setSearchSuggestionsOpen(false);
+      setHighlightedSuggestionIndex(-1);
+    }
+  }
+
+  /* =======================================================
      SECTION CONTENT
   ======================================================= */
 
@@ -1876,10 +1639,7 @@ export default function Settings() {
       case "company":
         return (
           <>
-            <InfoBox
-              icon={Building2}
-              title="Business identity"
-            >
+            <InfoBox icon={Building2} title="Business identity">
               These details are used across invoices,
               billing and business documents.
             </InfoBox>
@@ -1892,9 +1652,7 @@ export default function Settings() {
                 <div className="logo-preview-large">
                   {settings.companyLogo ? (
                     <img
-                      src={
-                        settings.companyLogo
-                      }
+                      src={settings.companyLogo}
                       alt="Company logo"
                     />
                   ) : (
@@ -1903,10 +1661,7 @@ export default function Settings() {
                 </div>
 
                 <div className="logo-editor-info">
-                  <strong>
-                    Business logo
-                  </strong>
-
+                  <strong>Business logo</strong>
                   <p>
                     PNG, JPG or WEBP · Maximum 2 MB
                   </p>
@@ -1927,9 +1682,7 @@ export default function Settings() {
                       <button
                         type="button"
                         className="settings-btn settings-btn-danger"
-                        onClick={
-                          removeLogo
-                        }
+                        onClick={removeLogo}
                       >
                         <Trash2 size={14} />
                         Remove
@@ -1961,28 +1714,17 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Company Name"
-                  value={
-                    settings.companyName
-                  }
+                  value={settings.companyName}
                   onChange={(value) =>
-                    updateSetting(
-                      "companyName",
-                      value
-                    )
+                    updateSetting("companyName", value)
                   }
                   placeholder="SAO AUTO TRACTOR"
                 />
-
                 <Field
                   label="Business Name"
-                  value={
-                    settings.businessName
-                  }
+                  value={settings.businessName}
                   onChange={(value) =>
-                    updateSetting(
-                      "businessName",
-                      value
-                    )
+                    updateSetting("businessName", value)
                   }
                   placeholder="Optional trade name"
                 />
@@ -1996,40 +1738,23 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Owner Name"
-                  value={
-                    settings.ownerName
-                  }
+                  value={settings.ownerName}
                   onChange={(value) =>
-                    updateSetting(
-                      "ownerName",
-                      value
-                    )
+                    updateSetting("ownerName", value)
                   }
                 />
-
                 <Field
                   label="Owner Phone"
-                  value={
-                    settings.ownerPhone
-                  }
+                  value={settings.ownerPhone}
                   onChange={(value) =>
-                    updateSetting(
-                      "ownerPhone",
-                      value
-                    )
+                    updateSetting("ownerPhone", value)
                   }
                 />
-
                 <Field
                   label="Owner Email"
-                  value={
-                    settings.ownerEmail
-                  }
+                  value={settings.ownerEmail}
                   onChange={(value) =>
-                    updateSetting(
-                      "ownerEmail",
-                      value
-                    )
+                    updateSetting("ownerEmail", value)
                   }
                   type="email"
                 />
@@ -2043,54 +1768,32 @@ export default function Settings() {
               <div className="settings-grid">
                 <TextAreaField
                   label="Address"
-                  value={
-                    settings.address
-                  }
+                  value={settings.address}
                   onChange={(value) =>
-                    updateSetting(
-                      "address",
-                      value
-                    )
+                    updateSetting("address", value)
                   }
                 />
 
                 <div className="settings-grid settings-grid-inner">
                   <Field
                     label="City"
-                    value={
-                      settings.city
-                    }
+                    value={settings.city}
                     onChange={(value) =>
-                      updateSetting(
-                        "city",
-                        value
-                      )
+                      updateSetting("city", value)
                     }
                   />
-
                   <Field
                     label="State"
-                    value={
-                      settings.state
-                    }
+                    value={settings.state}
                     onChange={(value) =>
-                      updateSetting(
-                        "state",
-                        value
-                      )
+                      updateSetting("state", value)
                     }
                   />
-
                   <Field
                     label="PIN Code"
-                    value={
-                      settings.pinCode
-                    }
+                    value={settings.pinCode}
                     onChange={(value) =>
-                      updateSetting(
-                        "pinCode",
-                        value
-                      )
+                      updateSetting("pinCode", value)
                     }
                   />
                 </div>
@@ -2104,67 +1807,38 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Phone"
-                  value={
-                    settings.phone
-                  }
+                  value={settings.phone}
                   onChange={(value) =>
-                    updateSetting(
-                      "phone",
-                      value
-                    )
+                    updateSetting("phone", value)
                   }
                 />
-
                 <Field
                   label="Email"
-                  value={
-                    settings.email
-                  }
+                  value={settings.email}
                   onChange={(value) =>
-                    updateSetting(
-                      "email",
-                      value
-                    )
+                    updateSetting("email", value)
                   }
                   type="email"
                 />
-
                 <Field
                   label="Website"
-                  value={
-                    settings.website
-                  }
+                  value={settings.website}
                   onChange={(value) =>
-                    updateSetting(
-                      "website",
-                      value
-                    )
+                    updateSetting("website", value)
                   }
                 />
-
                 <Field
                   label="GST Number"
-                  value={
-                    settings.gstNumber
-                  }
+                  value={settings.gstNumber}
                   onChange={(value) =>
-                    updateSetting(
-                      "gstNumber",
-                      value
-                    )
+                    updateSetting("gstNumber", value)
                   }
                 />
-
                 <Field
                   label="PAN Number"
-                  value={
-                    settings.panNumber
-                  }
+                  value={settings.panNumber}
                   onChange={(value) =>
-                    updateSetting(
-                      "panNumber",
-                      value
-                    )
+                    updateSetting("panNumber", value)
                   }
                 />
               </div>
@@ -2176,14 +1850,9 @@ export default function Settings() {
             >
               <TextAreaField
                 label="Footer Text"
-                value={
-                  settings.footerText
-                }
+                value={settings.footerText}
                 onChange={(value) =>
-                  updateSetting(
-                    "footerText",
-                    value
-                  )
+                  updateSetting("footerText", value)
                 }
               />
             </SettingsCard>
@@ -2193,10 +1862,7 @@ export default function Settings() {
       case "transport":
         return (
           <>
-            <InfoBox
-              icon={Tractor}
-              title="Transport defaults"
-            >
+            <InfoBox icon={Tractor} title="Transport defaults">
               These settings control the default behavior
               when creating new transport records.
             </InfoBox>
@@ -2208,14 +1874,9 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Default Trip Type"
-                  value={
-                    settings.defaultTripType
-                  }
+                  value={settings.defaultTripType}
                   onChange={(value) =>
-                    updateSetting(
-                      "defaultTripType",
-                      value
-                    )
+                    updateSetting("defaultTripType", value)
                   }
                   options={[
                     "Loading",
@@ -2223,36 +1884,19 @@ export default function Settings() {
                     "Site to Site",
                   ]}
                 />
-
                 <Field
                   label="Default Unit"
-                  value={
-                    settings.defaultUnit
-                  }
+                  value={settings.defaultUnit}
                   onChange={(value) =>
-                    updateSetting(
-                      "defaultUnit",
-                      value
-                    )
+                    updateSetting("defaultUnit", value)
                   }
-                  options={[
-                    "Ton",
-                    "Load",
-                    "Trip",
-                    "Piece",
-                  ]}
+                  options={["Ton", "Load", "Trip", "Piece"]}
                 />
-
                 <Field
                   label="Rate Type"
-                  value={
-                    settings.rateType
-                  }
+                  value={settings.rateType}
                   onChange={(value) =>
-                    updateSetting(
-                      "rateType",
-                      value
-                    )
+                    updateSetting("rateType", value)
                   }
                   options={[
                     "Per Trip",
@@ -2272,44 +1916,27 @@ export default function Settings() {
                 icon={Package}
                 title="Loading Required"
                 description="Treat loading as a normal part of the transport workflow."
-                value={
-                  settings.loadingRequired
-                }
+                value={settings.loadingRequired}
                 onChange={(value) =>
-                  updateSetting(
-                    "loadingRequired",
-                    value
-                  )
+                  updateSetting("loadingRequired", value)
                 }
               />
-
               <SettingRow
                 icon={Package}
                 title="Unloading Required"
                 description="Enable unloading as a required workflow step."
-                value={
-                  settings.unloadingRequired
-                }
+                value={settings.unloadingRequired}
                 onChange={(value) =>
-                  updateSetting(
-                    "unloadingRequired",
-                    value
-                  )
+                  updateSetting("unloadingRequired", value)
                 }
               />
-
               <SettingRow
                 icon={Hash}
                 title="Automatic Trip Number"
                 description="Automatically generate a trip number for new records."
-                value={
-                  settings.autoTripNumber
-                }
+                value={settings.autoTripNumber}
                 onChange={(value) =>
-                  updateSetting(
-                    "autoTripNumber",
-                    value
-                  )
+                  updateSetting("autoTripNumber", value)
                 }
                 last
               />
@@ -2336,28 +1963,15 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Currency"
-                  value={
-                    settings.currency
-                  }
+                  value={settings.currency}
                   onChange={(value) =>
-                    updateSetting(
-                      "currency",
-                      value
-                    )
+                    updateSetting("currency", value)
                   }
-                  options={[
-                    "₹",
-                    "$",
-                    "€",
-                    "£",
-                  ]}
+                  options={["₹", "$", "€", "£"]}
                 />
-
                 <Field
                   label="Decimal Places"
-                  value={
-                    settings.decimalPlaces
-                  }
+                  value={settings.decimalPlaces}
                   onChange={(value) =>
                     updateSetting(
                       "decimalPlaces",
@@ -2365,51 +1979,25 @@ export default function Settings() {
                     )
                   }
                   options={[
-                    {
-                      value: 0,
-                      label: "0",
-                    },
-                    {
-                      value: 1,
-                      label: "1",
-                    },
-                    {
-                      value: 2,
-                      label: "2",
-                    },
+                    { value: 0, label: "0" },
+                    { value: 1, label: "1" },
+                    { value: 2, label: "2" },
                   ]}
                 />
-
                 <Field
                   label="Bill Prefix"
-                  value={
-                    settings.billPrefix
-                  }
+                  value={settings.billPrefix}
                   onChange={(value) =>
-                    updateSetting(
-                      "billPrefix",
-                      value
-                    )
+                    updateSetting("billPrefix", value)
                   }
                 />
-
                 <Field
                   label="Default Payment Mode"
-                  value={
-                    settings.paymentMode
-                  }
+                  value={settings.paymentMode}
                   onChange={(value) =>
-                    updateSetting(
-                      "paymentMode",
-                      value
-                    )
+                    updateSetting("paymentMode", value)
                   }
-                  options={[
-                    "Cash",
-                    "UPI",
-                    "Bank",
-                    "Other",
-                  ]}
+                  options={["Cash", "UPI", "Bank", "Other"]}
                 />
               </div>
             </SettingsCard>
@@ -2422,29 +2010,18 @@ export default function Settings() {
                 icon={WalletCards}
                 title="Allow Advance"
                 description="Allow advance payments against bills."
-                value={
-                  settings.allowAdvance
-                }
+                value={settings.allowAdvance}
                 onChange={(value) =>
-                  updateSetting(
-                    "allowAdvance",
-                    value
-                  )
+                  updateSetting("allowAdvance", value)
                 }
               />
-
               <SettingRow
                 icon={ArrowUp}
                 title="Allow Extra Payment"
                 description="Allow payment entries greater than current due when needed."
-                value={
-                  settings.allowExtraPayment
-                }
+                value={settings.allowExtraPayment}
                 onChange={(value) =>
-                  updateSetting(
-                    "allowExtraPayment",
-                    value
-                  )
+                  updateSetting("allowExtraPayment", value)
                 }
                 last
               />
@@ -2463,44 +2040,27 @@ export default function Settings() {
                 icon={Hash}
                 title="Automatic Party Code"
                 description="Generate a unique code when creating parties."
-                value={
-                  settings.autoPartyCode
-                }
+                value={settings.autoPartyCode}
                 onChange={(value) =>
-                  updateSetting(
-                    "autoPartyCode",
-                    value
-                  )
+                  updateSetting("autoPartyCode", value)
                 }
               />
-
               <SettingRow
                 icon={WalletCards}
                 title="Credit Tracking"
                 description="Track billed, received and outstanding amounts."
-                value={
-                  settings.creditTracking
-                }
+                value={settings.creditTracking}
                 onChange={(value) =>
-                  updateSetting(
-                    "creditTracking",
-                    value
-                  )
+                  updateSetting("creditTracking", value)
                 }
               />
-
               <SettingRow
                 icon={AlertCircle}
                 title="Duplicate Warning"
                 description="Warn before creating likely duplicate party records."
-                value={
-                  settings.duplicateWarning
-                }
+                value={settings.duplicateWarning}
                 onChange={(value) =>
-                  updateSetting(
-                    "duplicateWarning",
-                    value
-                  )
+                  updateSetting("duplicateWarning", value)
                 }
                 last
               />
@@ -2518,14 +2078,9 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Date Format"
-                  value={
-                    settings.dateFormat
-                  }
+                  value={settings.dateFormat}
                   onChange={(value) =>
-                    updateSetting(
-                      "dateFormat",
-                      value
-                    )
+                    updateSetting("dateFormat", value)
                   }
                   options={[
                     "DD-MM-YYYY",
@@ -2534,34 +2089,19 @@ export default function Settings() {
                     "MM-DD-YYYY",
                   ]}
                 />
-
                 <Field
                   label="Time Format"
-                  value={
-                    settings.timeFormat
-                  }
+                  value={settings.timeFormat}
                   onChange={(value) =>
-                    updateSetting(
-                      "timeFormat",
-                      value
-                    )
+                    updateSetting("timeFormat", value)
                   }
-                  options={[
-                    "12 Hour",
-                    "24 Hour",
-                  ]}
+                  options={["12 Hour", "24 Hour"]}
                 />
-
                 <Field
                   label="Financial Year"
-                  value={
-                    settings.financialYear
-                  }
+                  value={settings.financialYear}
                   onChange={(value) =>
-                    updateSetting(
-                      "financialYear",
-                      value
-                    )
+                    updateSetting("financialYear", value)
                   }
                   options={[
                     "April - March",
@@ -2592,89 +2132,54 @@ export default function Settings() {
                 icon={CalendarDays}
                 title="Today's Trips"
                 description="Show today's transport activity."
-                value={
-                  settings.showTodayTrips
-                }
+                value={settings.showTodayTrips}
                 onChange={(value) =>
-                  updateSetting(
-                    "showTodayTrips",
-                    value
-                  )
+                  updateSetting("showTodayTrips", value)
                 }
               />
-
               <SettingRow
                 icon={WalletCards}
                 title="Billing"
                 description="Show billing summary."
-                value={
-                  settings.showBilling
-                }
+                value={settings.showBilling}
                 onChange={(value) =>
-                  updateSetting(
-                    "showBilling",
-                    value
-                  )
+                  updateSetting("showBilling", value)
                 }
               />
-
               <SettingRow
                 icon={ArrowDown}
                 title="Received"
                 description="Show payment received summary."
-                value={
-                  settings.showReceived
-                }
+                value={settings.showReceived}
                 onChange={(value) =>
-                  updateSetting(
-                    "showReceived",
-                    value
-                  )
+                  updateSetting("showReceived", value)
                 }
               />
-
               <SettingRow
                 icon={AlertCircle}
                 title="Due"
                 description="Show outstanding due summary."
-                value={
-                  settings.showDue
-                }
+                value={settings.showDue}
                 onChange={(value) =>
-                  updateSetting(
-                    "showDue",
-                    value
-                  )
+                  updateSetting("showDue", value)
                 }
               />
-
               <SettingRow
                 icon={Tractor}
                 title="Tractors"
                 description="Show tractor overview."
-                value={
-                  settings.showTractors
-                }
+                value={settings.showTractors}
                 onChange={(value) =>
-                  updateSetting(
-                    "showTractors",
-                    value
-                  )
+                  updateSetting("showTractors", value)
                 }
               />
-
               <SettingRow
                 icon={ReceiptText}
                 title="Recent Records"
                 description="Show latest transport records."
-                value={
-                  settings.showRecentRecords
-                }
+                value={settings.showRecentRecords}
                 onChange={(value) =>
-                  updateSetting(
-                    "showRecentRecords",
-                    value
-                  )
+                  updateSetting("showRecentRecords", value)
                 }
                 last
               />
@@ -2685,10 +2190,7 @@ export default function Settings() {
       case "notifications":
         return (
           <>
-            <InfoBox
-              icon={Bell}
-              title="Smart notifications"
-            >
+            <InfoBox icon={Bell} title="Smart notifications">
               These controls prepare the app for useful
               business reminders. No fake notifications are
               generated.
@@ -2702,89 +2204,54 @@ export default function Settings() {
                 icon={Bell}
                 title="Notifications"
                 description="Master switch for application reminders."
-                value={
-                  settings.notifications
-                }
+                value={settings.notifications}
                 onChange={(value) =>
-                  updateSetting(
-                    "notifications",
-                    value
-                  )
+                  updateSetting("notifications", value)
                 }
               />
-
               <SettingRow
                 icon={WalletCards}
                 title="Due Payment Alerts"
                 description="Remind about pending party payments."
-                value={
-                  settings.dueAlerts
-                }
+                value={settings.dueAlerts}
                 onChange={(value) =>
-                  updateSetting(
-                    "dueAlerts",
-                    value
-                  )
+                  updateSetting("dueAlerts", value)
                 }
               />
-
               <SettingRow
                 icon={Tractor}
                 title="Trip Alerts"
                 description="Prepare reminders around transport activity."
-                value={
-                  settings.tripAlerts
-                }
+                value={settings.tripAlerts}
                 onChange={(value) =>
-                  updateSetting(
-                    "tripAlerts",
-                    value
-                  )
+                  updateSetting("tripAlerts", value)
                 }
               />
-
               <SettingRow
                 icon={Wrench}
                 title="Maintenance Alerts"
                 description="Prepare tractor maintenance reminders."
-                value={
-                  settings.maintenanceAlerts
-                }
+                value={settings.maintenanceAlerts}
                 onChange={(value) =>
-                  updateSetting(
-                    "maintenanceAlerts",
-                    value
-                  )
+                  updateSetting("maintenanceAlerts", value)
                 }
               />
-
               <SettingRow
                 icon={Users}
                 title="Staff Salary Alerts"
                 description="Prepare salary and staff payment reminders."
-                value={
-                  settings.staffSalaryAlerts
-                }
+                value={settings.staffSalaryAlerts}
                 onChange={(value) =>
-                  updateSetting(
-                    "staffSalaryAlerts",
-                    value
-                  )
+                  updateSetting("staffSalaryAlerts", value)
                 }
               />
-
               <SettingRow
                 icon={Database}
                 title="Backup Reminder"
                 description="Remind you to keep regular local backups."
-                value={
-                  settings.backupReminder
-                }
+                value={settings.backupReminder}
                 onChange={(value) =>
-                  updateSetting(
-                    "backupReminder",
-                    value
-                  )
+                  updateSetting("backupReminder", value)
                 }
                 last
               />
@@ -2798,9 +2265,7 @@ export default function Settings() {
                 icon={Bell}
                 title="Allow Browser Notifications"
                 description="Use the browser notification system when supported."
-                value={
-                  settings.browserNotifications
-                }
+                value={settings.browserNotifications}
                 onChange={(value) => {
                   if (value) {
                     requestBrowserNotifications();
@@ -2813,6 +2278,18 @@ export default function Settings() {
                 }}
                 last
               />
+
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="settings-btn settings-btn-secondary"
+                  onClick={sendTestNotification}
+                  disabled={!settings.browserNotifications}
+                >
+                  <Bell size={14} />
+                  Send Test Notification
+                </button>
+              </div>
             </SettingsCard>
           </>
         );
@@ -2827,38 +2304,20 @@ export default function Settings() {
               <div className="settings-grid">
                 <Field
                   label="Theme"
-                  value={
-                    settings.theme
-                  }
+                  value={settings.theme}
                   onChange={(value) =>
-                    updateSetting(
-                      "theme",
-                      value
-                    )
+                    updateSetting("theme", value)
                   }
-                  options={[
-                    "Light",
-                    "Dark",
-                    "System",
-                  ]}
+                  options={["Light", "Dark", "System"]}
                   hint="Light remains the current master Dashboard theme."
                 />
-
                 <Field
                   label="Layout"
-                  value={
-                    settings.layout
-                  }
+                  value={settings.layout}
                   onChange={(value) =>
-                    updateSetting(
-                      "layout",
-                      value
-                    )
+                    updateSetting("layout", value)
                   }
-                  options={[
-                    "Comfortable",
-                    "Compact",
-                  ]}
+                  options={["Comfortable", "Compact"]}
                 />
               </div>
 
@@ -2867,7 +2326,6 @@ export default function Settings() {
                   <span className="preview-dot" />
                   <span className="preview-dot" />
                   <span className="preview-dot" />
-
                   <span className="preview-line wide" />
                 </div>
 
@@ -2885,7 +2343,6 @@ export default function Settings() {
                       <div className="preview-line medium" />
                       <div className="preview-line short" />
                     </div>
-
                     <div className="preview-card">
                       <div className="preview-line long" />
                       <div className="preview-line medium" />
@@ -2907,14 +2364,9 @@ export default function Settings() {
                 icon={Package}
                 title="Compact Tables"
                 description="Reduce table spacing where supported."
-                value={
-                  settings.compactTables
-                }
+                value={settings.compactTables}
                 onChange={(value) =>
-                  updateSetting(
-                    "compactTables",
-                    value
-                  )
+                  updateSetting("compactTables", value)
                 }
                 last
               />
@@ -2942,22 +2394,19 @@ export default function Settings() {
                 buttonText="Create Backup"
                 onClick={backupData}
               />
-
               <BackupCard
                 icon={Upload}
                 title="Restore Backup"
                 description="Import a previously created SAO AUTO TRACTOR JSON backup after reviewing its contents."
                 buttonText={
                   restoreLoading
-                    ? "Restoring..."
+                    ? "Reading..."
                     : "Choose Backup"
                 }
                 onClick={() =>
                   restoreInputRef.current?.click()
                 }
-                disabled={
-                  restoreLoading
-                }
+                disabled={restoreLoading}
               />
             </div>
 
@@ -2965,9 +2414,36 @@ export default function Settings() {
               ref={restoreInputRef}
               type="file"
               accept="application/json,.json"
-              onChange={handleRestore}
+              onChange={handleRestoreSelect}
               hidden
             />
+
+            <SettingsCard
+              title="Settings Only"
+              description="Export or import only your application preferences, separate from business data."
+            >
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="settings-btn settings-btn-secondary"
+                  onClick={exportSettings}
+                >
+                  <Download size={14} />
+                  Export Settings
+                </button>
+
+                <label className="settings-btn settings-btn-secondary settings-import-label">
+                  <Upload size={14} />
+                  Import Settings
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={handleSettingsImport}
+                    hidden
+                  />
+                </label>
+              </div>
+            </SettingsCard>
 
             <SettingsCard
               title="Backup Status"
@@ -2975,36 +2451,18 @@ export default function Settings() {
             >
               <div className="backup-status-grid">
                 <div className="backup-stat">
-                  <span>
-                    Last Backup
-                  </span>
-
+                  <span>Last Backup</span>
                   <strong>
-                    {formatDateTime(
-                      lastBackup?.createdAt
-                    )}
+                    {formatDateTime(lastBackup?.createdAt)}
                   </strong>
                 </div>
-
                 <div className="backup-stat">
-                  <span>
-                    Backup Version
-                  </span>
-
-                  <strong>
-                    {lastBackup?.version ||
-                      "—"}
-                  </strong>
+                  <span>Backup Version</span>
+                  <strong>{lastBackup?.version || "—"}</strong>
                 </div>
-
                 <div className="backup-stat">
-                  <span>
-                    Total Records
-                  </span>
-
-                  <strong>
-                    {totalRecords}
-                  </strong>
+                  <span>Total Records</span>
+                  <strong>{totalRecords}</strong>
                 </div>
               </div>
             </SettingsCard>
@@ -3016,90 +2474,43 @@ export default function Settings() {
               <div className="data-health-grid">
                 <div className="data-health-item">
                   <Tractor />
-                  <span>
-                    Tractors
-                  </span>
-                  <strong>
-                    {dataStats.tractors ||
-                      0}
-                  </strong>
+                  <span>Tractors</span>
+                  <strong>{dataStats.tractors || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <ReceiptText />
-                  <span>
-                    Trips
-                  </span>
-                  <strong>
-                    {dataStats.trips ||
-                      0}
-                  </strong>
+                  <span>Trips</span>
+                  <strong>{dataStats.trips || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <Users />
-                  <span>
-                    Parties
-                  </span>
-                  <strong>
-                    {dataStats.parties ||
-                      0}
-                  </strong>
+                  <span>Parties</span>
+                  <strong>{dataStats.parties || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <Package />
-                  <span>
-                    Materials
-                  </span>
-                  <strong>
-                    {dataStats.materials ||
-                      0}
-                  </strong>
+                  <span>Materials</span>
+                  <strong>{dataStats.materials || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <WalletCards />
-                  <span>
-                    Payments
-                  </span>
-                  <strong>
-                    {dataStats.payments ||
-                      0}
-                  </strong>
+                  <span>Payments</span>
+                  <strong>{dataStats.payments || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <ReceiptText />
-                  <span>
-                    Expenses
-                  </span>
-                  <strong>
-                    {dataStats.expenses ||
-                      0}
-                  </strong>
+                  <span>Expenses</span>
+                  <strong>{dataStats.expenses || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <Users />
-                  <span>
-                    Staff
-                  </span>
-                  <strong>
-                    {dataStats.staff ||
-                      0}
-                  </strong>
+                  <span>Staff</span>
+                  <strong>{dataStats.staff || 0}</strong>
                 </div>
-
                 <div className="data-health-item">
                   <FileBarChart />
-                  <span>
-                    Invoices
-                  </span>
-                  <strong>
-                    {dataStats.invoices ||
-                      0}
-                  </strong>
+                  <span>Invoices</span>
+                  <strong>{dataStats.invoices || 0}</strong>
                 </div>
               </div>
             </SettingsCard>
@@ -3111,7 +2522,6 @@ export default function Settings() {
               <div className="storage-overview">
                 <div className="storage-main">
                   <Database size={18} />
-
                   <div>
                     <strong>
                       {storageEstimate
@@ -3120,7 +2530,6 @@ export default function Settings() {
                           )} used`
                         : "Storage estimate unavailable"}
                     </strong>
-
                     <span>
                       {storageEstimate
                         ? `Approximate browser quota: ${formatBytes(
@@ -3131,8 +2540,7 @@ export default function Settings() {
                   </div>
                 </div>
 
-                {storagePercent !==
-                  null && (
+                {storagePercent !== null && (
                   <div className="storage-meter">
                     <div className="storage-meter-track">
                       <div
@@ -3142,10 +2550,7 @@ export default function Settings() {
                         }}
                       />
                     </div>
-
-                    <strong>
-                      {storagePercent}%
-                    </strong>
+                    <strong>{storagePercent}%</strong>
                   </div>
                 )}
               </div>
@@ -3161,13 +2566,9 @@ export default function Settings() {
                 title="Clear Trips"
                 description={`${dataStats.trips || 0} trip records`}
                 onClick={() =>
-                  clearData(
-                    STORAGE_KEYS.trips,
-                    "Trips"
-                  )
+                  clearData(STORAGE_KEYS.trips, "Trips")
                 }
               />
-
               <DangerRow
                 icon={WalletCards}
                 title="Clear Payments"
@@ -3179,7 +2580,6 @@ export default function Settings() {
                   )
                 }
               />
-
               <DangerRow
                 icon={ReceiptText}
                 title="Clear Expenses"
@@ -3191,19 +2591,14 @@ export default function Settings() {
                   )
                 }
               />
-
               <DangerRow
                 icon={Users}
                 title="Clear Staff"
                 description={`${dataStats.staff || 0} staff records`}
                 onClick={() =>
-                  clearData(
-                    STORAGE_KEYS.staff,
-                    "Staff"
-                  )
+                  clearData(STORAGE_KEYS.staff, "Staff")
                 }
               />
-
               <DangerRow
                 icon={FileBarChart}
                 title="Clear Invoices"
@@ -3215,7 +2610,6 @@ export default function Settings() {
                   )
                 }
               />
-
               <DangerRow
                 icon={Users}
                 title="Clear Parties"
@@ -3227,7 +2621,6 @@ export default function Settings() {
                   )
                 }
               />
-
               <DangerRow
                 icon={Tractor}
                 title="Clear Tractors"
@@ -3239,7 +2632,6 @@ export default function Settings() {
                   )
                 }
               />
-
               <DangerRow
                 icon={Package}
                 title="Clear Materials"
@@ -3259,10 +2651,7 @@ export default function Settings() {
       case "cloud":
         return (
           <>
-            <InfoBox
-              icon={Cloud}
-              title="Cloud Sync is future-ready"
-            >
+            <InfoBox icon={Cloud} title="Cloud Sync is future-ready">
               The interface is prepared for Firebase,
               Supabase or another backend later. The current
               app does not pretend to sync data online.
@@ -3276,44 +2665,27 @@ export default function Settings() {
                 icon={Cloud}
                 title="Enable Cloud Sync"
                 description="Prepare the application for future online synchronization."
-                value={
-                  settings.cloudSync
-                }
+                value={settings.cloudSync}
                 onChange={(value) =>
-                  updateSetting(
-                    "cloudSync",
-                    value
-                  )
+                  updateSetting("cloudSync", value)
                 }
               />
-
               <SettingRow
                 icon={RefreshCw}
                 title="Automatic Sync"
                 description="Automatically sync changes when a backend is connected."
-                value={
-                  settings.autoSync
-                }
+                value={settings.autoSync}
                 onChange={(value) =>
-                  updateSetting(
-                    "autoSync",
-                    value
-                  )
+                  updateSetting("autoSync", value)
                 }
               />
-
               <SettingRow
                 icon={Database}
                 title="Cloud Backup"
                 description="Prepare automatic backup to a connected cloud service."
-                value={
-                  settings.cloudBackup
-                }
+                value={settings.cloudBackup}
                 onChange={(value) =>
-                  updateSetting(
-                    "cloudBackup",
-                    value
-                  )
+                  updateSetting("cloudBackup", value)
                 }
                 last
               />
@@ -3327,23 +2699,16 @@ export default function Settings() {
                 <div className="future-feature-icon">
                   <Cloud size={20} />
                 </div>
-
                 <div className="future-feature-copy">
-                  <strong>
-                    Local mode active
-                  </strong>
-
+                  <strong>Local mode active</strong>
                   <span>
                     No cloud account or backend is connected.
                   </span>
                 </div>
-
                 <button
                   type="button"
                   className="settings-btn settings-btn-secondary"
-                  onClick={
-                    simulateCloudSync
-                  }
+                  onClick={simulateCloudSync}
                 >
                   <RefreshCw size={14} />
                   Sync Now
@@ -3375,21 +2740,13 @@ export default function Settings() {
                 <div className="account-avatar">
                   <Users size={20} />
                 </div>
-
                 <div className="account-mode-copy">
-                  <span>
-                    Current mode
-                  </span>
-
-                  <strong>
-                    Local Business Account
-                  </strong>
-
+                  <span>Current mode</span>
+                  <strong>Local Business Account</strong>
                   <small>
                     Data is stored locally in this browser.
                   </small>
                 </div>
-
                 <span className="status-badge-local">
                   Local
                 </span>
@@ -3403,39 +2760,26 @@ export default function Settings() {
               <div className="future-feature-list">
                 <div>
                   <KeyRound size={16} />
-                  <span>
-                    Sign In / Create Account
-                  </span>
+                  <span>Sign In / Create Account</span>
                 </div>
-
                 <div>
                   <Hash size={16} />
-                  <span>
-                    Business ID
-                  </span>
+                  <span>Business ID</span>
                 </div>
-
                 <div>
                   <Users size={16} />
-                  <span>
-                    Multi-device Access
-                  </span>
+                  <span>Multi-device Access</span>
                 </div>
-
                 <div>
                   <ShieldCheck size={16} />
-                  <span>
-                    Account Security
-                  </span>
+                  <span>Account Security</span>
                 </div>
               </div>
 
               <button
                 type="button"
                 className="settings-btn settings-btn-secondary"
-                onClick={
-                  simulateAccountAction
-                }
+                onClick={simulateAccountAction}
               >
                 <Sparkles size={14} />
                 Configure Later
@@ -3447,18 +2791,11 @@ export default function Settings() {
       case "security":
         return (
           <>
-            <InfoBox
-              icon={ShieldCheck}
-              title="Local app security"
-            >
+            <InfoBox icon={ShieldCheck} title="Local app security">
               Your App PIN and Login Password are stored
               locally in this browser and are never included
               in backups.
             </InfoBox>
-
-            {/* =================================================
-                LOGIN PASSWORD
-            ================================================== */}
 
             <SettingsCard
               title="Login Password"
@@ -3469,12 +2806,8 @@ export default function Settings() {
                   <div className="password-icon">
                     <KeyRound size={16} />
                   </div>
-
                   <div>
-                    <strong>
-                      Change Login Password
-                    </strong>
-
+                    <strong>Change Login Password</strong>
                     <p>
                       Use at least 4 characters. Your password
                       is stored locally in this browser.
@@ -3487,7 +2820,6 @@ export default function Settings() {
                     <label className="settings-label">
                       Current Password
                     </label>
-
                     <div className="pin-input-wrap">
                       <input
                         type={
@@ -3495,9 +2827,7 @@ export default function Settings() {
                             ? "text"
                             : "password"
                         }
-                        value={
-                          currentPassword
-                        }
+                        value={currentPassword}
                         onChange={(event) =>
                           setCurrentPassword(
                             event.target.value
@@ -3506,7 +2836,6 @@ export default function Settings() {
                         placeholder="Enter current password"
                         autoComplete="current-password"
                       />
-
                       <IconButton
                         title={
                           showCurrentPassword
@@ -3515,19 +2844,14 @@ export default function Settings() {
                         }
                         onClick={() =>
                           setShowCurrentPassword(
-                            (value) =>
-                              !value
+                            (value) => !value
                           )
                         }
                       >
                         {showCurrentPassword ? (
-                          <Unlock
-                            size={15}
-                          />
+                          <Unlock size={15} />
                         ) : (
-                          <Lock
-                            size={15}
-                          />
+                          <Lock size={15} />
                         )}
                       </IconButton>
                     </div>
@@ -3537,7 +2861,6 @@ export default function Settings() {
                     <label className="settings-label">
                       New Password
                     </label>
-
                     <div className="pin-input-wrap">
                       <input
                         type={
@@ -3545,18 +2868,13 @@ export default function Settings() {
                             ? "text"
                             : "password"
                         }
-                        value={
-                          newPassword
-                        }
+                        value={newPassword}
                         onChange={(event) =>
-                          setNewPassword(
-                            event.target.value
-                          )
+                          setNewPassword(event.target.value)
                         }
                         placeholder="Enter new password"
                         autoComplete="new-password"
                       />
-
                       <IconButton
                         title={
                           showNewPassword
@@ -3565,19 +2883,14 @@ export default function Settings() {
                         }
                         onClick={() =>
                           setShowNewPassword(
-                            (value) =>
-                              !value
+                            (value) => !value
                           )
                         }
                       >
                         {showNewPassword ? (
-                          <Unlock
-                            size={15}
-                          />
+                          <Unlock size={15} />
                         ) : (
-                          <Lock
-                            size={15}
-                          />
+                          <Lock size={15} />
                         )}
                       </IconButton>
                     </div>
@@ -3587,7 +2900,6 @@ export default function Settings() {
                     <label className="settings-label">
                       Confirm New Password
                     </label>
-
                     <div className="pin-input-wrap">
                       <input
                         type={
@@ -3595,9 +2907,7 @@ export default function Settings() {
                             ? "text"
                             : "password"
                         }
-                        value={
-                          confirmPassword
-                        }
+                        value={confirmPassword}
                         onChange={(event) =>
                           setConfirmPassword(
                             event.target.value
@@ -3606,7 +2916,6 @@ export default function Settings() {
                         placeholder="Confirm new password"
                         autoComplete="new-password"
                       />
-
                       <IconButton
                         title={
                           showConfirmPassword
@@ -3615,19 +2924,14 @@ export default function Settings() {
                         }
                         onClick={() =>
                           setShowConfirmPassword(
-                            (value) =>
-                              !value
+                            (value) => !value
                           )
                         }
                       >
                         {showConfirmPassword ? (
-                          <Unlock
-                            size={15}
-                          />
+                          <Unlock size={15} />
                         ) : (
-                          <Lock
-                            size={15}
-                          />
+                          <Lock size={15} />
                         )}
                       </IconButton>
                     </div>
@@ -3638,9 +2942,7 @@ export default function Settings() {
                   <button
                     type="button"
                     className="settings-btn settings-btn-primary"
-                    onClick={
-                      changeLoginPassword
-                    }
+                    onClick={changeLoginPassword}
                   >
                     <KeyRound size={14} />
                     Change Password
@@ -3648,10 +2950,6 @@ export default function Settings() {
                 </div>
               </div>
             </SettingsCard>
-
-            {/* =================================================
-                APP PIN
-            ================================================== */}
 
             <SettingsCard
               title="App Lock"
@@ -3661,19 +2959,12 @@ export default function Settings() {
                 icon={Lock}
                 title="Enable App Lock"
                 description="Require the app PIN when the application is locked."
-                value={
-                  settings.appLock
-                }
+                value={settings.appLock}
                 onChange={(value) => {
                   if (!value) {
                     removePin();
-                  } else if (
-                    hasPin
-                  ) {
-                    updateSetting(
-                      "appLock",
-                      true
-                    );
+                  } else if (hasPin) {
+                    updateSetting("appLock", true);
                   } else {
                     showMessage(
                       "Create a PIN below first.",
@@ -3688,17 +2979,13 @@ export default function Settings() {
                   <div className="pin-icon">
                     <KeyRound size={16} />
                   </div>
-
                   <div>
                     <strong>
                       {hasPin
                         ? "PIN is configured"
                         : "Create App PIN"}
                     </strong>
-
-                    <p>
-                      Use 4 to 6 digits.
-                    </p>
+                    <p>Use 4 to 6 digits.</p>
                   </div>
                 </div>
 
@@ -3706,11 +2993,7 @@ export default function Settings() {
                   <div className="pin-input-row">
                     <div className="pin-input-wrap">
                       <input
-                        type={
-                          showPin
-                            ? "text"
-                            : "password"
-                        }
+                        type={showPin ? "text" : "password"}
                         inputMode="numeric"
                         maxLength={6}
                         value={pin}
@@ -3724,28 +3007,18 @@ export default function Settings() {
                         }
                         placeholder="Enter PIN"
                       />
-
                       <IconButton
                         title={
-                          showPin
-                            ? "Hide PIN"
-                            : "Show PIN"
+                          showPin ? "Hide PIN" : "Show PIN"
                         }
                         onClick={() =>
-                          setShowPin(
-                            (value) =>
-                              !value
-                          )
+                          setShowPin((value) => !value)
                         }
                       >
                         {showPin ? (
-                          <Unlock
-                            size={15}
-                          />
+                          <Unlock size={15} />
                         ) : (
-                          <Lock
-                            size={15}
-                          />
+                          <Lock size={15} />
                         )}
                       </IconButton>
                     </div>
@@ -3753,9 +3026,7 @@ export default function Settings() {
                     <button
                       type="button"
                       className="settings-btn settings-btn-primary"
-                      onClick={
-                        savePin
-                      }
+                      onClick={savePin}
                     >
                       <KeyRound size={14} />
                       Save PIN
@@ -3767,9 +3038,7 @@ export default function Settings() {
                   <button
                     type="button"
                     className="settings-btn settings-btn-danger"
-                    onClick={
-                      removePin
-                    }
+                    onClick={removePin}
                   >
                     <Trash2 size={14} />
                     Remove PIN
@@ -3782,12 +3051,8 @@ export default function Settings() {
                   <div className="security-check">
                     <ShieldCheck size={15} />
                   </div>
-
                   <div>
-                    <strong>
-                      Security status
-                    </strong>
-
+                    <strong>Security status</strong>
                     <p>
                       {hasPin
                         ? "App PIN is configured."
@@ -3804,30 +3069,22 @@ export default function Settings() {
             >
               <Field
                 label="Auto Lock"
-                value={
-                  settings.autoLock
-                }
+                value={settings.autoLock}
                 onChange={(value) =>
-                  updateSetting(
-                    "autoLock",
-                    value
-                  )
+                  updateSetting("autoLock", value)
                 }
                 options={[
                   "Never",
                   "5",
                   "15",
                   "30",
-                ].map(
-                  (value) => ({
-                    value,
-                    label:
-                      value ===
-                      "Never"
-                        ? "Never"
-                        : `${value} minutes`,
-                  })
-                )}
+                ].map((value) => ({
+                  value,
+                  label:
+                    value === "Never"
+                      ? "Never"
+                      : `${value} minutes`,
+                }))}
                 hint="Automatic locking requires an enabled app PIN."
               />
             </SettingsCard>
@@ -3841,12 +3098,8 @@ export default function Settings() {
               <div className="about-logo">
                 {settings.companyLogo ? (
                   <img
-                    src={
-                      settings.companyLogo
-                    }
-                    alt={
-                      settings.companyName
-                    }
+                    src={settings.companyLogo}
+                    alt={settings.companyName}
                   />
                 ) : (
                   <Tractor size={33} />
@@ -3858,13 +3111,12 @@ export default function Settings() {
               </span>
 
               <h2>
-                {settings.companyName ||
-                  "SAO AUTO TRACTOR"}
+                {settings.companyName || "SAO AUTO TRACTOR"}
               </h2>
 
               <p>
-                Professional Transportation
-                Management System
+                Professional Transportation Management
+                System
               </p>
             </div>
 
@@ -3874,19 +3126,16 @@ export default function Settings() {
                 label="Application"
                 value="SAO AUTO TRACTOR"
               />
-
               <Credit
                 icon={Sparkles}
                 label="Development"
                 value="Prabin"
               />
-
               <Credit
                 icon={Code2}
                 label="Technology"
                 value="React + Vite"
               />
-
               <Credit
                 icon={ShieldCheck}
                 label="Data Mode"
@@ -3908,43 +3157,20 @@ export default function Settings() {
 
               <div className="about-tech-grid">
                 <div>
-                  <span>
-                    Version
-                  </span>
-
-                  <strong>
-                    {APP_VERSION}
-                  </strong>
+                  <span>Version</span>
+                  <strong>{APP_VERSION}</strong>
                 </div>
-
                 <div>
-                  <span>
-                    Storage
-                  </span>
-
-                  <strong>
-                    Browser Local Storage
-                  </strong>
+                  <span>Storage</span>
+                  <strong>Browser Local Storage</strong>
                 </div>
-
                 <div>
-                  <span>
-                    UI System
-                  </span>
-
-                  <strong>
-                    Responsive Business UI
-                  </strong>
+                  <span>UI System</span>
+                  <strong>Responsive Business UI</strong>
                 </div>
-
                 <div>
-                  <span>
-                    Development Assistance
-                  </span>
-
-                  <strong>
-                    ChatGPT by OpenAI
-                  </strong>
+                  <span>Development Assistance</span>
+                  <strong>ChatGPT by OpenAI</strong>
                 </div>
               </div>
             </SettingsCard>
@@ -3966,10 +3192,7 @@ export default function Settings() {
 
   return (
     <div className="settings-page">
-      {/* =========================
-          SETTINGS HEADER
-      ========================== */}
-
+      {/* HEADER */}
       <header className="settings-header">
         <div className="settings-header-left">
           <div className="settings-header-icon">
@@ -3980,16 +3203,14 @@ export default function Settings() {
             <div className="settings-breadcrumb">
               <span>Settings</span>
               <span>/</span>
-              <strong>
-                {current.title}
-              </strong>
+              <strong>{current.title}</strong>
             </div>
 
             <h1>Settings</h1>
 
             <p>
-              Configure your SAO AUTO TRACTOR
-              business system.
+              Configure your SAO AUTO TRACTOR business
+              system.
             </p>
           </div>
         </div>
@@ -4004,10 +3225,18 @@ export default function Settings() {
 
           <button
             type="button"
+            className="settings-icon-btn"
+            onClick={() => setShowShortcuts(true)}
+            title="Keyboard shortcuts (?)"
+            aria-label="Keyboard shortcuts"
+          >
+            <Keyboard size={16} />
+          </button>
+
+          <button
+            type="button"
             className="settings-btn settings-btn-secondary"
-            onClick={
-              resetSettings
-            }
+            onClick={resetSettings}
           >
             <RefreshCw size={14} />
             Reset
@@ -4015,10 +3244,18 @@ export default function Settings() {
 
           <button
             type="button"
+            className="settings-btn settings-btn-secondary"
+            onClick={saveAndReload}
+            disabled={!hasUnsavedChanges}
+          >
+            <RefreshCw size={14} />
+            Save & Reload
+          </button>
+
+          <button
+            type="button"
             className="settings-btn settings-btn-primary"
-            onClick={
-              saveSettings
-            }
+            onClick={saveSettings}
           >
             <Save size={14} />
             Save Settings
@@ -4026,10 +3263,7 @@ export default function Settings() {
         </div>
       </header>
 
-      {/* =========================
-          TOAST
-      ========================== */}
-
+      {/* TOAST */}
       {savedMessage && (
         <div
           className={`settings-toast ${
@@ -4039,23 +3273,16 @@ export default function Settings() {
           }`}
         >
           <div className="settings-toast-icon">
-            {messageType ===
-            "error" ? (
+            {messageType === "error" ? (
               <AlertCircle size={15} />
             ) : (
               <Check size={15} />
             )}
           </div>
-
-          <span>
-            {savedMessage}
-          </span>
-
+          <span>{savedMessage}</span>
           <button
             type="button"
-            onClick={() =>
-              setSavedMessage("")
-            }
+            onClick={() => setSavedMessage("")}
             aria-label="Close message"
           >
             <X size={14} />
@@ -4063,11 +3290,11 @@ export default function Settings() {
         </div>
       )}
 
-      {/* =========================
-          SEARCH
-      ========================== */}
-
-      <div className="settings-searchbar">
+      {/* SEARCH */}
+      <div
+        className="settings-searchbar"
+        ref={searchWrapRef}
+      >
         <div className="settings-search-icon">
           <Search size={17} />
         </div>
@@ -4075,12 +3302,14 @@ export default function Settings() {
         <input
           ref={searchInputRef}
           value={search}
-          onChange={(event) =>
-            setSearch(
-              event.target.value
-            )
-          }
-          placeholder="Search settings..."
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setSearchSuggestionsOpen(true);
+            setHighlightedSuggestionIndex(-1);
+          }}
+          onFocus={() => setSearchSuggestionsOpen(true)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder="Search settings... (Ctrl+K)"
           aria-label="Search settings"
         />
 
@@ -4088,9 +3317,10 @@ export default function Settings() {
           <button
             type="button"
             className="settings-search-clear"
-            onClick={() =>
-              setSearch("")
-            }
+            onClick={() => {
+              setSearch("");
+              setSearchSuggestionsOpen(false);
+            }}
             aria-label="Clear search"
           >
             <X size={14} />
@@ -4098,29 +3328,52 @@ export default function Settings() {
         )}
 
         <kbd>Ctrl K</kbd>
+
+        {searchSuggestionsOpen && suggestions.length > 0 && (
+          <div className="settings-search-suggestions">
+            {suggestions.map((item, index) => {
+              const ItemIcon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`settings-search-suggestion ${
+                    index === highlightedSuggestionIndex
+                      ? "highlighted"
+                      : ""
+                  }`}
+                  onMouseEnter={() =>
+                    setHighlightedSuggestionIndex(index)
+                  }
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    selectSection(item.id);
+                    setSearch("");
+                  }}
+                >
+                  <span className="settings-search-suggestion-icon">
+                    <ItemIcon size={15} />
+                  </span>
+                  <span className="settings-search-suggestion-copy">
+                    <strong>{item.title}</strong>
+                    <small>{item.subtitle}</small>
+                  </span>
+                  <ChevronRight size={13} />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* =========================
-          SETTINGS WORKSPACE
-      ========================== */}
-
+      {/* WORKSPACE */}
       <div className="settings-shell">
-        {/* =======================
-            SIDEBAR
-        ======================== */}
-
         <aside className="settings-sidebar">
           <div className="settings-sidebar-title">
             <div>
-              <span>
-                Settings
-              </span>
-
-              <small>
-                Manage your application
-              </small>
+              <span>Settings</span>
+              <small>Manage your application</small>
             </div>
-
             <span className="settings-sidebar-count">
               {menuItems.length}
             </span>
@@ -4128,104 +3381,58 @@ export default function Settings() {
 
           <nav className="settings-nav">
             {filteredGroups.length ? (
-              filteredGroups.map(
-                (group) => (
-                  <div
-                    className="settings-nav-group"
-                    key={group.id}
-                  >
-                    <div className="settings-nav-group-title">
-                      <span>
-                        {group.title}
-                      </span>
-
-                      <span>
-                        {group.items.length}
-                      </span>
-                    </div>
-
-                    <div className="settings-nav-group-items">
-                      {group.items.map(
-                        (item) => {
-                          const ItemIcon =
-                            item.icon;
-
-                          return (
-                            <button
-                              key={
-                                item.id
-                              }
-                              type="button"
-                              className={`settings-nav-item ${
-                                activeSection ===
-                                item.id
-                                  ? "active"
-                                  : ""
-                              }`}
-                              onClick={() =>
-                                selectSection(
-                                  item.id
-                                )
-                              }
-                              title={
-                                item.subtitle
-                              }
-                            >
-                              <div className="settings-nav-icon">
-                                <ItemIcon
-                                  size={16}
-                                />
-                              </div>
-
-                              <div className="settings-nav-copy">
-                                <strong>
-                                  {
-                                    item.title
-                                  }
-                                </strong>
-
-                                <small>
-                                  {
-                                    item.subtitle
-                                  }
-                                </small>
-                              </div>
-
-                              <div className="settings-nav-arrow">
-                                <ChevronRight
-                                  size={13}
-                                />
-                              </div>
-                            </button>
-                          );
-                        }
-                      )}
-                    </div>
+              filteredGroups.map((group) => (
+                <div
+                  className="settings-nav-group"
+                  key={group.id}
+                >
+                  <div className="settings-nav-group-title">
+                    <span>{group.title}</span>
+                    <span>{group.items.length}</span>
                   </div>
-                )
-              )
+
+                  <div className="settings-nav-group-items">
+                    {group.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`settings-nav-item ${
+                            activeSection === item.id
+                              ? "active"
+                              : ""
+                          }`}
+                          onClick={() => selectSection(item.id)}
+                          title={item.subtitle}
+                        >
+                          <div className="settings-nav-icon">
+                            <ItemIcon size={16} />
+                          </div>
+                          <div className="settings-nav-copy">
+                            <strong>{item.title}</strong>
+                            <small>{item.subtitle}</small>
+                          </div>
+                          <div className="settings-nav-arrow">
+                            <ChevronRight size={13} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="settings-no-results">
                 <div>
-                  <Search
-                    size={17}
-                  />
+                  <Search size={17} />
                 </div>
-
-                <strong>
-                  No settings found
-                </strong>
-
-                <span>
-                  Try another search.
-                </span>
-
+                <strong>No settings found</strong>
+                <span>Try another search.</span>
                 <button
                   type="button"
                   className="settings-btn settings-btn-secondary"
-                  onClick={() =>
-                    setSearch("")
-                  }
+                  onClick={() => setSearch("")}
                 >
                   Clear Search
                 </button>
@@ -4236,42 +3443,24 @@ export default function Settings() {
           <div className="settings-sidebar-footer">
             <div className="settings-sidebar-status">
               <span className="status-dot" />
-              <span>
-                Local system active
-              </span>
+              <span>Local system active</span>
             </div>
-
-            <small>
-              v{APP_VERSION}
-            </small>
+            <small>v{APP_VERSION}</small>
           </div>
         </aside>
-
-        {/* =======================
-            MAIN CONTENT
-        ======================== */}
 
         <main className="settings-main">
           <div className="settings-content-header">
             <div className="settings-content-heading">
               <div className="settings-section-icon">
-                <CurrentIcon
-                  size={20}
-                />
+                <CurrentIcon size={20} />
               </div>
-
               <div>
                 <span className="settings-content-eyebrow">
                   Configuration
                 </span>
-
-                <h2>
-                  {current.title}
-                </h2>
-
-                <p>
-                  {current.subtitle}
-                </p>
+                <h2>{current.title}</h2>
+                <p>{current.subtitle}</p>
               </div>
             </div>
           </div>
@@ -4282,35 +3471,26 @@ export default function Settings() {
         </main>
       </div>
 
-      {/* =========================
-          BOTTOM SAVE BAR
-      ========================== */}
-
+      {/* BOTTOM BAR */}
       <div className="settings-bottom-bar">
         <div className="bottom-status">
           <div
             className={`bottom-status-icon ${
-              hasUnsavedChanges
-                ? "pending"
-                : "saved"
+              hasUnsavedChanges ? "pending" : "saved"
             }`}
           >
             {hasUnsavedChanges ? (
-              <AlertCircle
-                size={15}
-              />
+              <AlertCircle size={15} />
             ) : (
               <Check size={15} />
             )}
           </div>
-
           <div>
             <strong>
               {hasUnsavedChanges
                 ? "Changes not saved"
                 : "All settings saved"}
             </strong>
-
             <small>
               {hasUnsavedChanges
                 ? "Save before leaving this page."
@@ -4323,20 +3503,15 @@ export default function Settings() {
           <button
             type="button"
             className="settings-btn settings-btn-secondary"
-            onClick={
-              resetSettings
-            }
+            onClick={resetSettings}
           >
             <RefreshCw size={14} />
             Reset
           </button>
-
           <button
             type="button"
             className="settings-btn settings-btn-primary"
-            onClick={
-              saveSettings
-            }
+            onClick={saveSettings}
           >
             <Save size={14} />
             Save Settings
@@ -4344,28 +3519,172 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* =========================
-          FOOTER
-      ========================== */}
-
+      {/* FOOTER */}
       <footer className="settings-footer">
         <span>
-          {settings.companyName ||
-            "SAO AUTO TRACTOR"}
+          {settings.companyName || "SAO AUTO TRACTOR"}
         </span>
-
         <span>•</span>
-
-        <strong>
-          Transportation Management System
-        </strong>
-
+        <strong>Transportation Management System</strong>
         <span>•</span>
-
-        <span>
-          v{APP_VERSION}
-        </span>
+        <span>v{APP_VERSION}</span>
       </footer>
+
+      {/* BACKUP PREVIEW MODAL */}
+      {backupPreview && (
+        <div
+          className="settings-modal-backdrop"
+          onMouseDown={() => setBackupPreview(null)}
+        >
+          <div
+            className="settings-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="settings-modal-header">
+              <div>
+                <span className="section-kicker">
+                  BACKUP PREVIEW
+                </span>
+                <h2>Restore this backup?</h2>
+                <p>
+                  Review the contents before restoring.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="settings-icon-btn"
+                onClick={() => setBackupPreview(null)}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="settings-modal-body">
+              <div className="backup-preview-info">
+                <div className="backup-preview-row">
+                  <span>Application</span>
+                  <strong>
+                    {backupPreview.application || "—"}
+                  </strong>
+                </div>
+                <div className="backup-preview-row">
+                  <span>Version</span>
+                  <strong>
+                    {backupPreview.version || "—"}
+                  </strong>
+                </div>
+                <div className="backup-preview-row">
+                  <span>Created</span>
+                  <strong>
+                    {formatDateTime(
+                      backupPreview.createdAt
+                    )}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="backup-preview-counts">
+                <h4>Data included</h4>
+                <div className="backup-preview-grid">
+                  {Object.entries(
+                    getBackupCounts(backupPreview)
+                  ).map(([key, value]) => (
+                    <div key={key}>
+                      <span>
+                        {key.charAt(0).toUpperCase() +
+                          key.slice(1)}
+                      </span>
+                      <strong>{value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="backup-preview-warning">
+                <AlertCircle size={16} />
+                <span>
+                  Restore will replace the current saved
+                  data for these modules. Your App PIN and
+                  Login Password will NOT be restored.
+                </span>
+              </div>
+            </div>
+
+            <div className="settings-modal-footer">
+              <button
+                type="button"
+                className="settings-btn settings-btn-secondary"
+                onClick={() => setBackupPreview(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="settings-btn settings-btn-primary"
+                onClick={confirmRestore}
+              >
+                <Upload size={14} />
+                Restore Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SHORTCUTS MODAL */}
+      {showShortcuts && (
+        <div
+          className="settings-modal-backdrop"
+          onMouseDown={() => setShowShortcuts(false)}
+        >
+          <div
+            className="settings-modal settings-shortcuts-modal"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="settings-modal-header">
+              <div>
+                <span className="section-kicker">
+                  KEYBOARD SHORTCUTS
+                </span>
+                <h2>Quick Actions</h2>
+                <p>Use these shortcuts anywhere in Settings.</p>
+              </div>
+              <button
+                type="button"
+                className="settings-icon-btn"
+                onClick={() => setShowShortcuts(false)}
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="settings-modal-body">
+              <div className="shortcuts-list">
+                <div className="shortcut-row">
+                  <span>Search settings</span>
+                  <kbd>Ctrl</kbd>
+                  <kbd>K</kbd>
+                </div>
+                <div className="shortcut-row">
+                  <span>Save settings</span>
+                  <kbd>Ctrl</kbd>
+                  <kbd>S</kbd>
+                </div>
+                <div className="shortcut-row">
+                  <span>Show shortcuts</span>
+                  <kbd>?</kbd>
+                </div>
+                <div className="shortcut-row">
+                  <span>Close modal</span>
+                  <kbd>Esc</kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

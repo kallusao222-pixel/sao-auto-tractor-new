@@ -1,53 +1,42 @@
 import "./Button.css";
 
-function Button({
+/**
+ * Reusable button.
+ * variants: "primary" | "secondary" | "ghost" | "danger"
+ * sizes:    "sm" | "md" | "lg"
+ */
+export default function Button({
   children,
-  type = "button",
   variant = "primary",
-  size = "medium",
-  icon = null,
-  iconRight = null,
-  disabled = false,
+  size = "md",
+  iconLeft,
+  iconRight,
   loading = false,
   fullWidth = false,
-  onClick,
   className = "",
+  disabled,
+  ...rest
 }) {
   const classes = [
-    "ui-button",
-    `ui-button-${variant}`,
-    `ui-button-${size}`,
-    fullWidth
-      ? "ui-button-full"
-      : "",
+    "btn",
+    `btn--${variant}`,
+    `btn--${size}`,
+    fullWidth && "btn--full",
+    loading && "btn--loading",
     className,
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <button
-      type={type}
-      className={classes}
-      disabled={disabled || loading}
-      onClick={onClick}
-    >
+    <button className={classes} disabled={disabled || loading} {...rest}>
       {loading ? (
-        <span
-          className="ui-button-spinner"
-          aria-hidden="true"
-        />
+        <span className="btn__spinner" aria-hidden="true" />
       ) : (
-        icon
+        iconLeft && <span className="btn__icon">{iconLeft}</span>
       )}
-
-      <span className="ui-button-label">
-        {children}
-      </span>
-
-      {!loading && iconRight}
+      <span className="btn__label">{children}</span>
+      {iconRight && !loading && <span className="btn__icon">{iconRight}</span>}
     </button>
   );
 }
-
-export default Button;

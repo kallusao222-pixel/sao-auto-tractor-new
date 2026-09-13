@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-
 import {
   CalendarDays,
   Printer,
@@ -13,8 +12,6 @@ import {
   Filter,
   ArrowUpRight,
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 import "./DailyReport.css";
@@ -23,7 +20,7 @@ const TRIPS_KEY = "saoAutoTractorTrips";
 
 /* ============================================================
    STORAGE
-   ============================================================ */
+============================================================ */
 
 function readStorage(key) {
   try {
@@ -42,9 +39,10 @@ function readStorage(key) {
   }
 }
 
+
 /* ============================================================
    DATE HELPERS
-   ============================================================ */
+============================================================ */
 
 function formatDate(dateStr) {
   if (!dateStr) return "-";
@@ -72,25 +70,10 @@ function todayISO() {
   return `${year}-${month}-${day}`;
 }
 
-function shiftDate(dateString, days) {
-  const date = new Date(`${dateString}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return todayISO();
-  }
-
-  date.setDate(date.getDate() + days);
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
 
 /* ============================================================
    DATA HELPERS
-   ============================================================ */
+============================================================ */
 
 function getVehicleNumber(trip) {
   return (
@@ -129,9 +112,10 @@ function getProduct(trip) {
   );
 }
 
+
 /* ============================================================
    TRIP TYPE
-   ============================================================ */
+============================================================ */
 
 function getTripType(trip) {
   return (
@@ -146,7 +130,7 @@ function normalizeTripTypeText(value) {
   return String(value ?? "")
     .trim()
     .toLowerCase()
-    .replace(/[_/-]+/g, " ")
+    .replace(/[_/\\-]+/g, " ")
     .replace(/\s+/g, " ");
 }
 
@@ -164,9 +148,19 @@ function getNormalizedTripType(trip) {
 
   if (
     raw === "site to site" ||
+    raw === "site-to-site" ||
     raw.includes("site to site")
   ) {
     return "siteToSite";
+  }
+
+  if (
+    raw === "other" ||
+    raw === "others" ||
+    raw === "misc" ||
+    raw === "miscellaneous"
+  ) {
+    return "other";
   }
 
   if (
@@ -192,17 +186,12 @@ function getDisplayTripType(trip) {
     return "Site to Site";
   }
 
+  if (type === "other") {
+    return "Other";
+  }
+
   return "Loading";
 }
-
-/*
-  SITE + TRIP TYPE
-
-  Examples:
-  B Block (Unloading)
-  Main Site (Loading)
-  Plant (Site to Site)
-*/
 
 function getDisplaySite(trip) {
   const site = String(getSite(trip) || "").trim();
@@ -215,9 +204,10 @@ function getDisplaySite(trip) {
   return `(${tripType})`;
 }
 
+
 /* ============================================================
    TRIP COUNT
-   ============================================================ */
+============================================================ */
 
 function getTripCount(trip) {
   const rawQuantity =
@@ -232,25 +222,31 @@ function getTripCount(trip) {
     : 1;
 }
 
+
 /*
-  BUSINESS RULE
+  IMPORTANT BUSINESS RULE:
 
-  Loading       = counted
-  Site to Site  = counted
-  Unloading     = NOT counted
+  Loading + Unloading = ONE actual trip.
 
-  Loading + Unloading = ONE ACTUAL TRIP
+  Therefore:
+  - Loading is counted
+  - Site to Site is counted
+  - Other is counted
+  - Unloading is NOT counted again
+
+  Unloading records still remain visible in the report.
 */
 
 function getCountedTripQuantity(trip) {
-  const type = getNormalizedTripType(trip);
+  const tripType = getNormalizedTripType(trip);
 
-  switch (type) {
+  switch (tripType) {
     case "unloading":
       return 0;
 
     case "loading":
     case "siteToSite":
+    case "other":
       return getTripCount(trip);
 
     default:
@@ -258,9 +254,10 @@ function getCountedTripQuantity(trip) {
   }
 }
 
+
 /* ============================================================
    CSV HELPERS
-   ============================================================ */
+============================================================ */
 
 function escapeCsvValue(value) {
   const text = String(value ?? "");
@@ -277,25 +274,34 @@ function escapeCsvValue(value) {
   return text;
 }
 
+
 /* ============================================================
    COMPONENT
-   ============================================================ */
+============================================================ */
 
 export default function DailyReport() {
   const [trips, setTrips] = useState([]);
+
   const [selectedDate, setSelectedDate] = useState(todayISO());
+
   const [searchQuery, setSearchQuery] = useState("");
+
   const [showFilters, setShowFilters] = useState(false);
+
   const [filterVehicle, setFilterVehicle] = useState("");
+
   const [filterParty, setFilterParty] = useState("");
+
   const [showFullReport, setShowFullReport] = useState(false);
+
 
   /* ==========================================================
      LOAD DATA
-     ========================================================== */
+  ========================================================== */
 
   const loadTrips = () => {
     const storedTrips = readStorage(TRIPS_KEY);
+
     setTrips(storedTrips);
   };
 
@@ -311,29 +317,10 @@ export default function DailyReport() {
     };
   }, []);
 
-  /* ==========================================================
-     QUICK DATE NAVIGATION
-     ========================================================== */
-
-  const goToYesterday = () => {
-    setSelectedDate((currentDate) =>
-      shiftDate(currentDate, -1)
-    );
-  };
-
-  const goToToday = () => {
-    setSelectedDate(todayISO());
-  };
-
-  const goToTomorrow = () => {
-    setSelectedDate((currentDate) =>
-      shiftDate(currentDate, 1)
-    );
-  };
 
   /* ==========================================================
      FILTER OPTIONS
-     ========================================================== */
+  ========================================================== */
 
   const vehicleOptions = useMemo(() => {
     const values = trips
@@ -349,6 +336,7 @@ export default function DailyReport() {
     );
   }, [trips]);
 
+
   const partyOptions = useMemo(() => {
     const values = trips
       .map((trip) => getPartyName(trip))
@@ -363,9 +351,10 @@ export default function DailyReport() {
     );
   }, [trips]);
 
+
   /* ==========================================================
-     DATE FILTER
-     ========================================================== */
+     DAY FILTER
+  ========================================================== */
 
   const dayTrips = useMemo(() => {
     return trips.filter((trip) => {
@@ -380,9 +369,10 @@ export default function DailyReport() {
     });
   }, [trips, selectedDate]);
 
+
   /* ==========================================================
      SEARCH + FILTER
-     ========================================================== */
+  ========================================================== */
 
   const filteredTrips = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -431,80 +421,103 @@ export default function DailyReport() {
     filterParty,
   ]);
 
+
   /* ==========================================================
      VEHICLE SUMMARY
-     ========================================================== */
+  ========================================================== */
 
   const vehicleSummary = useMemo(() => {
-    const map = new Map();
+  const map = new Map();
 
-    filteredTrips.forEach((trip) => {
-      const vehicle = String(
-        getVehicleNumber(trip) || "No Vehicle"
-      ).trim();
+  filteredTrips.forEach((trip) => {
+    const vehicle =
+      String(getVehicleNumber(trip) || "No Vehicle").trim();
 
-      const count = getTripCount(trip);
-      const type = getNormalizedTripType(trip);
+    const count = getTripCount(trip);
+    const type = getNormalizedTripType(trip);
 
-      if (!map.has(vehicle)) {
-        map.set(vehicle, {
-          vehicle,
-          loading: 0,
-          unloading: 0,
-          siteToSite: 0,
-          total: 0,
-        });
-      }
+    if (!map.has(vehicle)) {
+      map.set(vehicle, {
+        vehicle,
+        loading: 0,
+        unloading: 0,
+        siteToSite: 0,
+        other: 0,
+        total: 0,
+      });
+    }
 
-      const summary = map.get(vehicle);
+    const summary = map.get(vehicle);
 
-      switch (type) {
-        case "unloading":
-          summary.unloading += count;
-          break;
+    switch (type) {
+      case "unloading":
+        // Visible record, but NOT an additional trip.
+        summary.unloading += count;
+        break;
 
-        case "siteToSite":
-          summary.siteToSite += count;
-          summary.total += count;
-          break;
+      case "siteToSite":
+        summary.siteToSite += count;
+        summary.total += count;
+        break;
 
-        case "loading":
-        default:
-          summary.loading += count;
-          summary.total += count;
-          break;
-      }
-    });
+      case "other":
+        summary.other += count;
+        summary.total += count;
+        break;
 
-    return Array.from(map.values()).sort((a, b) =>
-      a.vehicle.localeCompare(b.vehicle, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      })
-    );
-  }, [filteredTrips]);
+      case "loading":
+      default:
+        summary.loading += count;
+        summary.total += count;
+        break;
+    }
+  });
+
+  return Array.from(map.values()).sort((a, b) =>
+    a.vehicle.localeCompare(b.vehicle, undefined, {
+      numeric: true,
+      sensitivity: "base",
+    })
+  );
+}, [filteredTrips]);
+
 
   /* ==========================================================
      KPI TOTALS
-     ========================================================== */
+  ========================================================== */
+
+  /*
+    Total Trips:
+    Unloading is deliberately excluded because it is already
+    part of the Loading trip.
+  */
 
   const totalTrips = useMemo(() => {
-    return filteredTrips.reduce(
-      (total, trip) =>
-        total + getCountedTripQuantity(trip),
-      0
-    );
-  }, [filteredTrips]);
+  return filteredTrips.reduce(
+    (total, trip) => total + getCountedTripQuantity(trip),
+    0
+  );
+}, [filteredTrips]);
+
+
+  /*
+    Vehicle-wise total should match the same business rule.
+  */
 
   const vehicleWiseTotalTrips = useMemo(() => {
-    return vehicleSummary.reduce(
-      (total, summary) =>
-        total + summary.total,
-      0
-    );
-  }, [vehicleSummary]);
+  return vehicleSummary.reduce(
+    (total, summary) => total + summary.total,
+    0
+  );
+}, [vehicleSummary]);
+
+
+  /*
+    Total Records counts every visible row, including unloading.
+  */
 
   const totalRecords = filteredTrips.length;
+
 
   const uniquePartyCount = useMemo(() => {
     return new Set(
@@ -514,6 +527,7 @@ export default function DailyReport() {
     ).size;
   }, [filteredTrips]);
 
+
   const uniqueVehicleCount = useMemo(() => {
     return new Set(
       filteredTrips
@@ -522,9 +536,10 @@ export default function DailyReport() {
     ).size;
   }, [filteredTrips]);
 
+
   /* ==========================================================
      FILTER RESET
-     ========================================================== */
+  ========================================================== */
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
@@ -537,17 +552,19 @@ export default function DailyReport() {
     setFilterParty("");
   };
 
+
   /* ==========================================================
      PRINT
-     ========================================================== */
+  ========================================================== */
 
   const handlePrint = () => {
     window.print();
   };
 
+
   /* ==========================================================
      CSV EXPORT
-     ========================================================== */
+  ========================================================== */
 
   const handleExportCsv = () => {
     if (!filteredTrips.length) {
@@ -599,26 +616,34 @@ export default function DailyReport() {
     );
 
     const url = URL.createObjectURL(blob);
+
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `daily-report-${selectedDate}.csv`;
+
+    link.download =
+      `daily-report-${selectedDate}.csv`;
 
     document.body.appendChild(link);
+
     link.click();
+
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
   };
 
+
   /* ==========================================================
      FULL REPORT
-     ========================================================== */
+  ========================================================== */
 
   if (showFullReport) {
     return (
       <div className="daily-full-report-page">
+
         <div className="daily-full-report-toolbar">
+
           <button
             type="button"
             className="daily-btn daily-btn-light"
@@ -636,10 +661,14 @@ export default function DailyReport() {
             <Printer size={15} />
             Print / Save PDF
           </button>
+
         </div>
 
+
         <main className="daily-print-report">
+
           <header className="daily-print-header">
+
             <div className="daily-print-company">
               SAO AUTO TRACTOR
             </div>
@@ -651,7 +680,9 @@ export default function DailyReport() {
             <div className="daily-print-date">
               {formatDate(selectedDate)}
             </div>
+
           </header>
+
 
           {!filteredTrips.length ? (
             <div className="daily-print-empty">
@@ -659,12 +690,10 @@ export default function DailyReport() {
             </div>
           ) : (
             <>
-              {/* ==================================================
-                  FULL REPORT TABLE
-              ================================================== */}
-
               <section className="daily-print-table-section">
+
                 <table className="daily-print-table">
+
                   <thead>
                     <tr>
                       <th>Date</th>
@@ -679,6 +708,7 @@ export default function DailyReport() {
                   </thead>
 
                   <tbody>
+
                     {filteredTrips.map((trip, index) => {
                       const tripDate =
                         trip?.date ??
@@ -686,12 +716,8 @@ export default function DailyReport() {
                         selectedDate;
 
                       return (
-                        <tr
-                          key={
-                            trip?.id ??
-                            `${tripDate}-${index}`
-                          }
-                        >
+                        <tr key={trip?.id ?? `${tripDate}-${index}`}>
+
                           <td>
                             {formatDate(tripDate)}
                           </td>
@@ -717,19 +743,22 @@ export default function DailyReport() {
                           <td className="daily-print-center">
                             {getTripCount(trip)}
                           </td>
+
                         </tr>
                       );
                     })}
+
                   </tbody>
+
                 </table>
+
               </section>
 
-              {/* ==================================================
-                  VEHICLE SUMMARY
-              ================================================== */}
 
               <section className="daily-print-summary">
+
                 <div className="daily-print-summary-heading">
+
                   <div>
                     <h2>
                       Vehicle-Wise Trip Summary
@@ -740,15 +769,20 @@ export default function DailyReport() {
                       and excluded from vehicle-wise total trips.
                     </p>
                   </div>
+
                 </div>
 
+
                 <div className="daily-print-summary-list">
+
                   {vehicleSummary.map((summary) => (
                     <div
                       className="daily-print-vehicle"
                       key={summary.vehicle}
                     >
+
                       <div className="daily-print-vehicle-main">
+
                         <strong>
                           {summary.vehicle}
                         </strong>
@@ -756,35 +790,42 @@ export default function DailyReport() {
                         <span>
                           Total: {summary.total}
                         </span>
+
                       </div>
 
+
                       <div className="daily-print-breakdown">
+
                         <span className="daily-print-chip-loading">
                           Loading
-                          <b>
-                            {summary.loading}
-                          </b>
+                          <b>{summary.loading}</b>
                         </span>
 
                         <span className="daily-print-chip-unloading">
                           Unloading
-                          <b>
-                            {summary.unloading}
-                          </b>
+                          <b>{summary.unloading}</b>
                         </span>
 
                         <span className="daily-print-chip-site">
                           Site to Site
-                          <b>
-                            {summary.siteToSite}
-                          </b>
+                          <b>{summary.siteToSite}</b>
                         </span>
+
+                        <span className="daily-print-chip-other">
+                          Other
+                          <b>{summary.other}</b>
+                        </span>
+
                       </div>
+
                     </div>
                   ))}
+
                 </div>
 
+
                 <div className="daily-print-total">
+
                   <span>
                     Total Trips
                   </span>
@@ -792,14 +833,14 @@ export default function DailyReport() {
                   <strong>
                     {vehicleWiseTotalTrips}
                   </strong>
+
                 </div>
+
               </section>
 
-              {/* ==================================================
-                  FOOTER
-              ================================================== */}
 
               <footer className="daily-print-footer">
+
                 <span>
                   Computer-generated report
                 </span>
@@ -807,31 +848,40 @@ export default function DailyReport() {
                 <span>
                   Thank you
                 </span>
+
               </footer>
+
             </>
           )}
+
         </main>
+
       </div>
     );
   }
 
-  /* ============================================================
+
+  /* ==========================================================
      NORMAL REPORT
-     ============================================================ */
+  ========================================================== */
 
   return (
     <div className="daily-report-page">
+
       {/* ======================================================
           HEADER
       ====================================================== */}
 
       <header className="daily-report-header">
+
         <div className="daily-report-title">
+
           <div className="daily-report-icon">
             <FileText size={22} />
           </div>
 
           <div>
+
             <span className="section-kicker">
               Daily Report
             </span>
@@ -843,10 +893,14 @@ export default function DailyReport() {
             <p>
               Complete trip summary for a single day.
             </p>
+
           </div>
+
         </div>
 
+
         <div className="daily-report-actions">
+
           <button
             type="button"
             className="daily-btn daily-btn-light"
@@ -882,16 +936,22 @@ export default function DailyReport() {
             <Printer size={14} />
             Print
           </button>
+
         </div>
+
       </header>
+
 
       {/* ======================================================
           CONTROLS
       ====================================================== */}
 
       <section className="daily-report-controls">
+
         <div className="daily-date-picker">
+
           <div className="daily-date-input-wrap">
+
             <CalendarDays size={15} />
 
             <input
@@ -902,56 +962,18 @@ export default function DailyReport() {
               }
               aria-label="Select report date"
             />
+
           </div>
 
           <div className="daily-date-display">
             {formatDate(selectedDate)}
           </div>
+
         </div>
 
-        {/* ==================================================
-            QUICK DATE NAVIGATION
-        ================================================== */}
-
-        <div className="daily-quick-date-controls">
-          <button
-            type="button"
-            className="daily-btn daily-btn-light"
-            onClick={goToYesterday}
-            title="Previous day"
-            aria-label="Go to yesterday"
-          >
-            <ChevronLeft size={14} />
-            Yesterday
-          </button>
-
-          <button
-            type="button"
-            className={`daily-btn ${
-              selectedDate === todayISO()
-                ? "daily-btn-primary"
-                : "daily-btn-light"
-            }`}
-            onClick={goToToday}
-            title="Go to today"
-            aria-label="Go to today"
-          >
-            Today
-          </button>
-
-          <button
-            type="button"
-            className="daily-btn daily-btn-light"
-            onClick={goToTomorrow}
-            title="Next day"
-            aria-label="Go to tomorrow"
-          >
-            Tomorrow
-            <ChevronRight size={14} />
-          </button>
-        </div>
 
         <div className="daily-search-box">
+
           <Search size={15} />
 
           <input
@@ -973,7 +995,9 @@ export default function DailyReport() {
               <X size={14} />
             </button>
           )}
+
         </div>
+
 
         <button
           type="button"
@@ -987,12 +1011,15 @@ export default function DailyReport() {
           }
         >
           <Filter size={14} />
+
           Filters
 
           {showFilters ? (
             <X size={13} />
           ) : null}
+
         </button>
+
 
         {hasActiveFilters && (
           <button
@@ -1003,7 +1030,9 @@ export default function DailyReport() {
             Reset
           </button>
         )}
+
       </section>
+
 
       {/* ======================================================
           FILTER PANEL
@@ -1011,7 +1040,9 @@ export default function DailyReport() {
 
       {showFilters && (
         <section className="daily-filters-panel">
+
           <div className="daily-filter-group">
+
             <label htmlFor="daily-filter-vehicle">
               Vehicle
             </label>
@@ -1036,9 +1067,12 @@ export default function DailyReport() {
                 </option>
               ))}
             </select>
+
           </div>
 
+
           <div className="daily-filter-group">
+
             <label htmlFor="daily-filter-party">
               Party
             </label>
@@ -1063,21 +1097,27 @@ export default function DailyReport() {
                 </option>
               ))}
             </select>
+
           </div>
+
         </section>
       )}
+
 
       {/* ======================================================
           KPI STATS
       ====================================================== */}
 
       <section className="daily-stats">
+
         <div className="daily-stat">
+
           <div className="daily-stat-icon">
             <FileText size={17} />
           </div>
 
           <div>
+
             <span>
               Total Records
             </span>
@@ -1085,15 +1125,20 @@ export default function DailyReport() {
             <strong>
               {totalRecords}
             </strong>
+
           </div>
+
         </div>
 
+
         <div className="daily-stat">
+
           <div className="daily-stat-icon">
             <Truck size={17} />
           </div>
 
           <div>
+
             <span>
               Total Trips
             </span>
@@ -1101,15 +1146,20 @@ export default function DailyReport() {
             <strong>
               {totalTrips}
             </strong>
+
           </div>
+
         </div>
 
+
         <div className="daily-stat">
+
           <div className="daily-stat-icon">
             <Users size={17} />
           </div>
 
           <div>
+
             <span>
               Unique Parties
             </span>
@@ -1117,15 +1167,20 @@ export default function DailyReport() {
             <strong>
               {uniquePartyCount}
             </strong>
+
           </div>
+
         </div>
 
+
         <div className="daily-stat">
+
           <div className="daily-stat-icon">
             <Truck size={17} />
           </div>
 
           <div>
+
             <span>
               Unique Vehicles
             </span>
@@ -1133,17 +1188,24 @@ export default function DailyReport() {
             <strong>
               {uniqueVehicleCount}
             </strong>
+
           </div>
+
         </div>
+
       </section>
+
 
       {/* ======================================================
           MAIN REPORT CARD
       ====================================================== */}
 
       <section className="daily-report-card">
+
         <div className="daily-report-card-header">
+
           <div>
+
             <h2>
               Trip Details
             </h2>
@@ -1152,15 +1214,20 @@ export default function DailyReport() {
               Loading, unloading and site movement records
               for the selected date.
             </p>
+
           </div>
 
           <div className="daily-record-count">
             {filteredTrips.length} Records
           </div>
+
         </div>
 
+
         {filteredTrips.length === 0 ? (
+
           <div className="daily-empty">
+
             <FileText size={30} />
 
             <strong>
@@ -1171,31 +1238,62 @@ export default function DailyReport() {
               There are no trip records matching the
               selected date and filters.
             </p>
+
           </div>
+
         ) : (
+
           <>
+
             {/* ==================================================
                 TRIP TABLE
             ================================================== */}
 
             <div className="daily-table-wrap">
+
               <table className="daily-table">
+
                 <thead>
+
                   <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th>Vehicle No.</th>
-                    <th>Party Name</th>
-                    <th>Site / Location</th>
-                    <th>Product</th>
+
+                    <th>
+                      #
+                    </th>
+
+                    <th>
+                      Date
+                    </th>
+
+                    <th>
+                      Vehicle No.
+                    </th>
+
+                    <th>
+                      Party Name
+                    </th>
+
+                    <th>
+                      Site / Location
+                    </th>
+
+                    <th>
+                      Product
+                    </th>
+
                     <th className="daily-col-center">
                       Trips
                     </th>
+
                   </tr>
+
                 </thead>
 
+
                 <tbody>
+
                   {filteredTrips.map((trip, index) => {
+
                     const tripDate =
                       trip?.date ??
                       trip?.createdAt ??
@@ -1208,6 +1306,7 @@ export default function DailyReport() {
                           `${tripDate}-${index}`
                         }
                       >
+
                         <td className="daily-row-num">
                           {index + 1}
                         </td>
@@ -1217,9 +1316,11 @@ export default function DailyReport() {
                         </td>
 
                         <td>
+
                           <strong>
                             {getVehicleNumber(trip) || "-"}
                           </strong>
+
                         </td>
 
                         <td>
@@ -1227,9 +1328,11 @@ export default function DailyReport() {
                         </td>
 
                         <td>
+
                           <span className="daily-site-location">
                             {getDisplaySite(trip)}
                           </span>
+
                         </td>
 
                         <td>
@@ -1237,22 +1340,31 @@ export default function DailyReport() {
                         </td>
 
                         <td className="daily-col-center">
+
                           <span className="daily-trip-badge">
                             {getTripCount(trip)}
                           </span>
+
                         </td>
+
                       </tr>
                     );
+
                   })}
+
                 </tbody>
+
               </table>
+
             </div>
+
 
             {/* ==================================================
                 VEHICLE SUMMARY
             ================================================== */}
 
             <section className="daily-summary-section">
+
               <h3>
                 Vehicle-Wise Trip Summary
               </h3>
@@ -1263,13 +1375,17 @@ export default function DailyReport() {
                 Unloading represents one actual trip.
               </p>
 
+
               <div className="daily-vehicle-summary-grid">
+
                 {vehicleSummary.map((summary) => (
                   <div
                     className="daily-vehicle-summary-item"
                     key={summary.vehicle}
                   >
+
                     <div className="daily-vehicle-summary-top">
+
                       <strong>
                         {summary.vehicle}
                       </strong>
@@ -1277,38 +1393,53 @@ export default function DailyReport() {
                       <span className="daily-vehicle-total">
                         Total: {summary.total}
                       </span>
+
                     </div>
 
+
                     <div className="daily-vehicle-breakdown">
+
                       <span className="daily-summary-chip daily-summary-chip-loading">
                         Loading
-
                         <strong>
                           {summary.loading}
                         </strong>
                       </span>
 
+
                       <span className="daily-summary-chip daily-summary-chip-unloading">
                         Unloading
-
                         <strong>
                           {summary.unloading}
                         </strong>
                       </span>
 
+
                       <span className="daily-summary-chip daily-summary-chip-site">
                         Site to Site
-
                         <strong>
                           {summary.siteToSite}
                         </strong>
                       </span>
+
+
+                      <span className="daily-summary-chip daily-summary-chip-other">
+                        Other
+                        <strong>
+                          {summary.other}
+                        </strong>
+                      </span>
+
                     </div>
+
                   </div>
                 ))}
+
               </div>
 
+
               <div className="daily-total-row">
+
                 <span>
                   Total Trips
                 </span>
@@ -1316,34 +1447,44 @@ export default function DailyReport() {
                 <strong>
                   {vehicleWiseTotalTrips}
                 </strong>
+
               </div>
+
             </section>
+
 
             {/* ==================================================
                 CARD FOOTER
             ================================================== */}
 
             <footer className="daily-report-footer">
+
               <span>
                 <span className="daily-company">
                   SAO AUTO TRACTOR
-                </span>{" "}
-                — Daily Trip Report
+                </span>
+                {" "}— Daily Trip Report
               </span>
 
               <span className="daily-footer-date">
                 {formatDate(selectedDate)}
               </span>
+
             </footer>
+
           </>
+
         )}
+
       </section>
+
 
       {/* ======================================================
           PAGE FOOTER
       ====================================================== */}
 
       <div className="daily-page-footer">
+
         <span>
           Daily Report
         </span>
@@ -1355,7 +1496,9 @@ export default function DailyReport() {
         <strong>
           SAO AUTO TRACTOR
         </strong>
+
       </div>
+
     </div>
   );
 }

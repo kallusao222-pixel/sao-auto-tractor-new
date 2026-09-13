@@ -6,8 +6,10 @@ import {
   Check,
   ChevronDown,
   CircleDollarSign,
+  Copy,
   Download,
   Eye,
+  FileDown,
   FileText,
   Filter,
   Fuel,
@@ -16,7 +18,11 @@ import {
   Printer,
   ReceiptText,
   RefreshCw,
+  RotateCcw,
   Search,
+  Store,
+  TrendingDown,
+  TrendingUp,
   Trash2,
   UserRound,
   WalletCards,
@@ -46,15 +52,48 @@ const EXPENSE_CATEGORIES = [
   "Other",
 ];
 
-const PAYMENT_MODES = [
-  "Cash",
-  "UPI",
-  "Bank",
-  "Other",
-];
+const PAYMENT_MODES = ["Cash", "UPI", "Bank", "Other"];
+
+/* FIX 1: Local timezone date */
+const todayISO = () => {
+  const d = new Date();
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
+};
+
+const shiftISO = (days) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
+};
+
+const monthStartISO = () => {
+  const d = new Date();
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const offset = first.getTimezoneOffset() * 60000;
+  return new Date(first.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
+};
+
+const weekStartISO = () => {
+  const d = new Date();
+  const day = d.getDay(); // 0 = Sunday
+  const diff = day === 0 ? 6 : day - 1; // treat Monday as start
+  d.setDate(d.getDate() - diff);
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
+};
 
 const EMPTY_EXPENSE = {
-  date: new Date().toISOString().slice(0, 10),
+  date: todayISO(),
   category: "Diesel / Fuel",
   amount: "",
   tractorNumber: "",
@@ -65,25 +104,16 @@ const EMPTY_EXPENSE = {
   description: "",
 };
 
-const clean = (value) =>
-  String(value ?? "").trim();
+const clean = (value) => String(value ?? "").trim();
 
 const normalize = (value) =>
-  clean(value)
-    .toLowerCase()
-    .replace(/\s+/g, " ");
+  clean(value).toLowerCase().replace(/\s+/g, " ");
 
 const money = (value) =>
-  `₹${Number(value || 0).toLocaleString(
-    "en-IN",
-    {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }
-  )}`;
-
-const todayISO = () =>
-  new Date().toISOString().slice(0, 10);
+  `₹${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 const getAmount = (item) =>
   Number(
@@ -115,11 +145,7 @@ const getTractor = (item) =>
   );
 
 const getDriver = (item) =>
-  clean(
-    item?.driverName ??
-      item?.driver ??
-      ""
-  );
+  clean(item?.driverName ?? item?.driver ?? "");
 
 const getVendor = (item) =>
   clean(
@@ -162,14 +188,11 @@ const formatDate = (value) => {
     return String(value);
   }
 
-  return date.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
-  );
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 const isSameDay = (value) => {
@@ -199,11 +222,35 @@ const isSameMonth = (value) => {
   );
 };
 
+const isLastMonth = (value) => {
+  if (!value) return false;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  const lastMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() - 1,
+    1
+  );
+
+  return (
+    date.getFullYear() === lastMonth.getFullYear() &&
+    date.getMonth() === lastMonth.getMonth()
+  );
+};
+
+const isDieselCategory = (category) => {
+  const normalized = normalize(category);
+  return (
+    normalized.includes("diesel") ||
+    normalized.includes("fuel")
+  );
+};
+
 const getCategoryIcon = (category) => {
-  if (
-    normalize(category).includes("diesel") ||
-    normalize(category).includes("fuel")
-  ) {
+  if (isDieselCategory(category)) {
     return <Fuel size={16} />;
   }
 
@@ -224,19 +271,12 @@ const getCategoryIcon = (category) => {
   return <ReceiptText size={16} />;
 };
 
-function ActionButton({
-  icon,
-  label,
-  onClick,
-  danger = false,
-}) {
+function ActionButton({ icon, label, onClick, danger = false, title }) {
   return (
     <button
       type="button"
-      className={`expenses-action-btn ${
-        danger ? "danger" : ""
-      }`}
-      title={label}
+      className={`expenses-action-btn ${danger ? "danger" : ""}`}
+      title={title || label}
       onClick={onClick}
     >
       {icon}
@@ -245,33 +285,26 @@ function ActionButton({
   );
 }
 
-function Modal({
-  title,
-  subtitle,
-  onClose,
-  children,
-  wide = false,
-}) {
+function Modal({ title, subtitle, onClose, children, wide = false }) {
+  useEffect(() => {
+    const handleKey = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () =>
+      window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
   return (
-    <div
-      className="expenses-modal-overlay"
-      onMouseDown={onClose}
-    >
+    <div className="expenses-modal-overlay" onMouseDown={onClose}>
       <div
-        className={`expenses-modal ${
-          wide ? "wide" : ""
-        }`}
-        onMouseDown={(event) =>
-          event.stopPropagation()
-        }
+        className={`expenses-modal ${wide ? "wide" : ""}`}
+        onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="expenses-modal-header">
           <div>
             <h2>{title}</h2>
-
-            {subtitle && (
-              <p>{subtitle}</p>
-            )}
+            {subtitle && <p>{subtitle}</p>}
           </div>
 
           <button
@@ -284,109 +317,101 @@ function Modal({
           </button>
         </div>
 
-        <div className="expenses-modal-body">
-          {children}
-        </div>
+        <div className="expenses-modal-body">{children}</div>
       </div>
     </div>
   );
 }
 
+/* Toast with Undo */
+function UndoToast({ message, onUndo, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="expenses-undo-toast" role="status" aria-live="polite">
+      <span className="undo-toast-icon">
+        <RotateCcw size={14} />
+      </span>
+      <span className="undo-toast-text">{message}</span>
+      <button
+        type="button"
+        className="undo-toast-btn"
+        onClick={onUndo}
+      >
+        Undo
+      </button>
+      <button
+        type="button"
+        className="undo-toast-close"
+        onClick={onClose}
+        aria-label="Close"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
+
 export default function Expenses() {
-  const [expenses, setExpenses] = useState(
-    []
-  );
-  const [tractors, setTractors] = useState(
-    []
-  );
-  const [parties, setParties] = useState(
-    []
-  );
+  const [expenses, setExpenses] = useState([]);
+  const [tractors, setTractors] = useState([]);
+  const [parties, setParties] = useState([]);
   const [staff, setStaff] = useState([]);
 
   const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] =
-    useState("");
-  const [dateTo, setDateTo] =
-    useState("");
-  const [categoryFilter, setCategoryFilter] =
-    useState("All");
-  const [tractorFilter, setTractorFilter] =
-    useState("All");
-  const [modeFilter, setModeFilter] =
-    useState("All");
-  const [showFilters, setShowFilters] =
-    useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [quickFilter, setQuickFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [tractorFilter, setTractorFilter] = useState("All");
+  const [modeFilter, setModeFilter] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
 
-  const [formOpen, setFormOpen] =
-    useState(false);
-  const [editing, setEditing] =
-    useState(null);
-  const [viewExpense, setViewExpense] =
-    useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [viewExpense, setViewExpense] = useState(null);
+  const [previewExpense, setPreviewExpense] = useState(null);
 
-  const [form, setForm] =
-    useState(EMPTY_EXPENSE);
+  /* Bulk selection */
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  /* Undo delete */
+  const [undoData, setUndoData] = useState(null);
+
+  const [form, setForm] = useState(EMPTY_EXPENSE);
 
   const loadData = () => {
     try {
-      const savedExpenses =
-        JSON.parse(
-          localStorage.getItem(
-            EXPENSES_KEY
-          ) || "[]"
-        );
-
-      const savedTractors =
-        JSON.parse(
-          localStorage.getItem(
-            TRACTORS_KEY
-          ) || "[]"
-        );
-
-      const savedParties =
-        JSON.parse(
-          localStorage.getItem(
-            PARTIES_KEY
-          ) || "[]"
-        );
-
-      const savedStaff =
-        JSON.parse(
-          localStorage.getItem(
-            STAFF_KEY
-          ) || "[]"
-        );
+      const savedExpenses = JSON.parse(
+        localStorage.getItem(EXPENSES_KEY) || "[]"
+      );
+      const savedTractors = JSON.parse(
+        localStorage.getItem(TRACTORS_KEY) || "[]"
+      );
+      const savedParties = JSON.parse(
+        localStorage.getItem(PARTIES_KEY) || "[]"
+      );
+      const savedStaff = JSON.parse(
+        localStorage.getItem(STAFF_KEY) || "[]"
+      );
 
       setExpenses(
-        Array.isArray(savedExpenses)
-          ? savedExpenses
-          : []
+        Array.isArray(savedExpenses) ? savedExpenses : []
       );
-
       setTractors(
-        Array.isArray(savedTractors)
-          ? savedTractors
-          : []
+        Array.isArray(savedTractors) ? savedTractors : []
       );
-
       setParties(
-        Array.isArray(savedParties)
-          ? savedParties
-          : []
+        Array.isArray(savedParties) ? savedParties : []
       );
-
-      setStaff(
-        Array.isArray(savedStaff)
-          ? savedStaff
-          : []
-      );
+      setStaff(Array.isArray(savedStaff) ? savedStaff : []);
     } catch (error) {
-      console.error(
-        "Expenses load error:",
-        error
-      );
-
+      console.error("Expenses load error:", error);
       setExpenses([]);
       setTractors([]);
       setParties([]);
@@ -399,159 +424,121 @@ export default function Expenses() {
 
     const sync = () => loadData();
 
-    window.addEventListener(
-      "storage",
-      sync
-    );
+    window.addEventListener("storage", sync);
+    window.addEventListener("saoAutoTractorDataChanged", sync);
 
-    window.addEventListener(
-      "saoAutoTractorDataChanged",
-      sync
-    );
-
-    const timer = setInterval(
-      loadData,
-      1500
-    );
+    const timer = setInterval(loadData, 1500);
 
     return () => {
-      window.removeEventListener(
-        "storage",
-        sync
-      );
-
+      window.removeEventListener("storage", sync);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         sync
       );
-
       clearInterval(timer);
     };
   }, []);
 
   const tractorOptions = useMemo(() => {
     const values = [
-      ...tractors.map(
-        (tractor) =>
-          clean(
-            tractor?.vehicleNumber ??
-              tractor?.tractorNumber ??
-              tractor?.vehicleNo
-          )
+      ...tractors.map((tractor) =>
+        clean(
+          tractor?.vehicleNumber ??
+            tractor?.tractorNumber ??
+            tractor?.vehicleNo
+        )
       ),
       ...expenses.map(getTractor),
     ];
 
-    return [
-      ...new Set(
-        values.filter(Boolean)
-      ),
-    ].sort();
+    return [...new Set(values.filter(Boolean))].sort();
   }, [tractors, expenses]);
 
   const driverOptions = useMemo(() => {
     const values = [
-      ...staff.map(
-        (item) =>
-          clean(
-            item?.name ??
-              item?.staffName ??
-              item?.employeeName
-          )
+      ...staff.map((item) =>
+        clean(
+          item?.name ??
+            item?.staffName ??
+            item?.employeeName
+        )
       ),
-      ...tractors.map(
-        (item) =>
-          clean(
-            item?.driverName ??
-              item?.driver
-          )
+      ...tractors.map((item) =>
+        clean(item?.driverName ?? item?.driver)
       ),
       ...expenses.map(getDriver),
     ];
 
-    return [
-      ...new Set(
-        values.filter(Boolean)
-      ),
-    ].sort();
+    return [...new Set(values.filter(Boolean))].sort();
   }, [staff, tractors, expenses]);
 
+  /* Quick date filter — sets dateFrom / dateTo */
+  const applyQuickFilter = (type) => {
+    const today = todayISO();
+
+    if (type === "today") {
+      setDateFrom(today);
+      setDateTo(today);
+    } else if (type === "yesterday") {
+      const y = shiftISO(-1);
+      setDateFrom(y);
+      setDateTo(y);
+    } else if (type === "tomorrow") {
+      const t = shiftISO(1);
+      setDateFrom(t);
+      setDateTo(t);
+    } else if (type === "week") {
+      setDateFrom(weekStartISO());
+      setDateTo(today);
+    } else if (type === "month") {
+      setDateFrom(monthStartISO());
+      setDateTo(today);
+    } else {
+      setDateFrom("");
+      setDateTo("");
+    }
+
+    setQuickFilter(type);
+  };
+
   const filteredExpenses = useMemo(() => {
-    const query =
-      normalize(search);
+    const query = normalize(search);
 
     return [...expenses]
       .filter((expense) => {
-        const category =
-          getCategory(expense);
-
-        const tractor =
-          getTractor(expense);
-
-        const driver =
-          getDriver(expense);
-
-        const vendor =
-          getVendor(expense);
-
-        const reference =
-          getReference(expense);
-
-        const description =
-          getDescription(expense);
-
-        const mode =
-          getMode(expense);
-
-        const date = String(
-          getDate(expense)
-        ).slice(0, 10);
+        const category = getCategory(expense);
+        const tractor = getTractor(expense);
+        const driver = getDriver(expense);
+        const vendor = getVendor(expense);
+        const reference = getReference(expense);
+        const description = getDescription(expense);
+        const mode = getMode(expense);
+        const date = String(getDate(expense)).slice(0, 10);
 
         const matchesSearch =
           !query ||
-          normalize(category).includes(
-            query
-          ) ||
-          normalize(tractor).includes(
-            query
-          ) ||
-          normalize(driver).includes(
-            query
-          ) ||
-          normalize(vendor).includes(
-            query
-          ) ||
-          normalize(reference).includes(
-            query
-          ) ||
-          normalize(description).includes(
-            query
-          );
+          normalize(category).includes(query) ||
+          normalize(tractor).includes(query) ||
+          normalize(driver).includes(query) ||
+          normalize(vendor).includes(query) ||
+          normalize(reference).includes(query) ||
+          normalize(description).includes(query);
 
         return (
           matchesSearch &&
-          (!dateFrom ||
-            date >= dateFrom) &&
-          (!dateTo ||
-            date <= dateTo) &&
+          (!dateFrom || date >= dateFrom) &&
+          (!dateTo || date <= dateTo) &&
           (categoryFilter === "All" ||
-            category ===
-              categoryFilter) &&
+            category === categoryFilter) &&
           (tractorFilter === "All" ||
-            tractor ===
-              tractorFilter) &&
-          (modeFilter === "All" ||
-            mode === modeFilter)
+            tractor === tractorFilter) &&
+          (modeFilter === "All" || mode === modeFilter)
         );
       })
       .sort(
         (a, b) =>
-          (new Date(
-            getDate(b)
-          ).getTime() || 0) -
-          (new Date(
-            getDate(a)
-          ).getTime() || 0)
+          (new Date(getDate(b)).getTime() || 0) -
+          (new Date(getDate(a)).getTime() || 0)
       );
   }, [
     expenses,
@@ -566,8 +553,7 @@ export default function Expenses() {
   const totalExpenses = useMemo(
     () =>
       expenses.reduce(
-        (sum, expense) =>
-          sum + getAmount(expense),
+        (sum, expense) => sum + getAmount(expense),
         0
       ),
     [expenses]
@@ -576,14 +562,9 @@ export default function Expenses() {
   const todayExpenses = useMemo(
     () =>
       expenses
-        .filter((expense) =>
-          isSameDay(
-            getDate(expense)
-          )
-        )
+        .filter((expense) => isSameDay(getDate(expense)))
         .reduce(
-          (sum, expense) =>
-            sum + getAmount(expense),
+          (sum, expense) => sum + getAmount(expense),
           0
         ),
     [expenses]
@@ -592,24 +573,36 @@ export default function Expenses() {
   const monthExpenses = useMemo(
     () =>
       expenses
-        .filter((expense) =>
-          isSameMonth(
-            getDate(expense)
-          )
-        )
+        .filter((expense) => isSameMonth(getDate(expense)))
         .reduce(
-          (sum, expense) =>
-            sum + getAmount(expense),
+          (sum, expense) => sum + getAmount(expense),
           0
         ),
     [expenses]
   );
 
+  const lastMonthExpenses = useMemo(
+    () =>
+      expenses
+        .filter((expense) => isLastMonth(getDate(expense)))
+        .reduce(
+          (sum, expense) => sum + getAmount(expense),
+          0
+        ),
+    [expenses]
+  );
+
+  const monthDelta = useMemo(() => {
+    if (lastMonthExpenses <= 0) return null;
+    const diff = monthExpenses - lastMonthExpenses;
+    const percent = (diff / lastMonthExpenses) * 100;
+    return { diff, percent };
+  }, [monthExpenses, lastMonthExpenses]);
+
   const filteredTotal = useMemo(
     () =>
       filteredExpenses.reduce(
-        (sum, expense) =>
-          sum + getAmount(expense),
+        (sum, expense) => sum + getAmount(expense),
         0
       ),
     [filteredExpenses]
@@ -619,49 +612,66 @@ export default function Expenses() {
     const map = {};
 
     expenses.forEach((expense) => {
-      const category =
-        getCategory(expense);
-
+      const category = getCategory(expense);
       map[category] =
-        (map[category] || 0) +
-        getAmount(expense);
+        (map[category] || 0) + getAmount(expense);
     });
 
     return Object.entries(map)
-      .map(([category, amount]) => ({
-        category,
-        amount,
-      }))
-      .sort(
-        (a, b) =>
-          b.amount - a.amount
-      );
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
   }, [expenses]);
 
   const tractorSummary = useMemo(() => {
     const map = {};
 
     expenses.forEach((expense) => {
-      const tractor =
-        getTractor(expense);
-
+      const tractor = getTractor(expense);
       if (!tractor) return;
-
       map[tractor] =
-        (map[tractor] || 0) +
-        getAmount(expense);
+        (map[tractor] || 0) + getAmount(expense);
     });
 
     return Object.entries(map)
-      .map(([tractor, amount]) => ({
-        tractor,
-        amount,
-      }))
-      .sort(
-        (a, b) =>
-          b.amount - a.amount
-      )
+      .map(([tractor, amount]) => ({ tractor, amount }))
+      .sort((a, b) => b.amount - a.amount)
       .slice(0, 6);
+  }, [expenses]);
+
+  const vendorSummary = useMemo(() => {
+    const map = {};
+
+    expenses.forEach((expense) => {
+      const vendor = getVendor(expense);
+      if (!vendor) return;
+      map[vendor] =
+        (map[vendor] || 0) + getAmount(expense);
+    });
+
+    return Object.entries(map)
+      .map(([vendor, amount]) => ({ vendor, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6);
+  }, [expenses]);
+
+  const fuelSplit = useMemo(() => {
+    let diesel = 0;
+    let nonDiesel = 0;
+
+    expenses.forEach((expense) => {
+      const amount = getAmount(expense);
+      if (isDieselCategory(getCategory(expense))) {
+        diesel += amount;
+      } else {
+        nonDiesel += amount;
+      }
+    });
+
+    const total = diesel + nonDiesel;
+    const dieselPercent =
+      total > 0 ? (diesel / total) * 100 : 0;
+
+    return { diesel, nonDiesel, total, dieselPercent };
   }, [expenses]);
 
   const activeFilters =
@@ -676,6 +686,7 @@ export default function Expenses() {
     setSearch("");
     setDateFrom("");
     setDateTo("");
+    setQuickFilter("all");
     setCategoryFilter("All");
     setTractorFilter("All");
     setModeFilter("All");
@@ -687,56 +698,46 @@ export default function Expenses() {
     setForm({
       ...EMPTY_EXPENSE,
       date: todayISO(),
-      tractorNumber:
-        tractorOptions[0] || "",
-      driverName:
-        driverOptions[0] || "",
+      tractorNumber: tractorOptions[0] || "",
+      driverName: driverOptions[0] || "",
     });
 
     setFormOpen(true);
   };
 
-  const openEdit = (
-    expense,
-    index
-  ) => {
-    setEditing({
-      index,
-      expense,
-    });
+  const openEdit = (expense, index) => {
+    setEditing({ index, expense });
 
     setForm({
       date:
-        String(
-          getDate(expense)
-        ).slice(0, 10) ||
+        String(getDate(expense)).slice(0, 10) ||
         todayISO(),
+      category: getCategory(expense),
+      amount: String(getAmount(expense)),
+      tractorNumber: getTractor(expense),
+      driverName: getDriver(expense),
+      vendorName: getVendor(expense),
+      paymentMode: getMode(expense),
+      reference: getReference(expense),
+      description: getDescription(expense),
+    });
 
-      category:
-        getCategory(expense),
+    setFormOpen(true);
+  };
 
-      amount:
-        String(
-          getAmount(expense)
-        ),
+  const cloneExpense = (expense) => {
+    setEditing(null);
 
-      tractorNumber:
-        getTractor(expense),
-
-      driverName:
-        getDriver(expense),
-
-      vendorName:
-        getVendor(expense),
-
-      paymentMode:
-        getMode(expense),
-
-      reference:
-        getReference(expense),
-
-      description:
-        getDescription(expense),
+    setForm({
+      date: todayISO(),
+      category: getCategory(expense),
+      amount: String(getAmount(expense)),
+      tractorNumber: getTractor(expense),
+      driverName: getDriver(expense),
+      vendorName: getVendor(expense),
+      paymentMode: getMode(expense),
+      reference: getReference(expense),
+      description: getDescription(expense),
     });
 
     setFormOpen(true);
@@ -745,23 +746,15 @@ export default function Expenses() {
   const saveExpense = (event) => {
     event.preventDefault();
 
-    const amount =
-      Number(form.amount);
+    const amount = Number(form.amount);
 
-    if (
-      !Number.isFinite(amount) ||
-      amount <= 0
-    ) {
-      alert(
-        "Please enter a valid expense amount."
-      );
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Please enter a valid expense amount.");
       return;
     }
 
     if (!form.category) {
-      alert(
-        "Please select an expense category."
-      );
+      alert("Please select an expense category.");
       return;
     }
 
@@ -772,76 +765,38 @@ export default function Expenses() {
           .toString(36)
           .slice(2, 8)}`,
 
-      date:
-        form.date || todayISO(),
+      date: form.date || todayISO(),
+      expenseDate: form.date || todayISO(),
 
-      expenseDate:
-        form.date || todayISO(),
-
-      category:
-        form.category,
-
-      expenseCategory:
-        form.category,
+      category: form.category,
+      expenseCategory: form.category,
 
       amount,
+      expenseAmount: amount,
 
-      expenseAmount:
-        amount,
+      tractorNumber: clean(form.tractorNumber),
+      vehicleNumber: clean(form.tractorNumber),
 
-      tractorNumber:
-        clean(
-          form.tractorNumber
-        ),
+      driverName: clean(form.driverName),
+      vendorName: clean(form.vendorName),
 
-      vehicleNumber:
-        clean(
-          form.tractorNumber
-        ),
+      paymentMode: form.paymentMode || "Cash",
+      reference: clean(form.reference),
 
-      driverName:
-        clean(
-          form.driverName
-        ),
-
-      vendorName:
-        clean(
-          form.vendorName
-        ),
-
-      paymentMode:
-        form.paymentMode ||
-        "Cash",
-
-      reference:
-        clean(
-          form.reference
-        ),
-
-      description:
-        clean(
-          form.description
-        ),
-
-      notes:
-        clean(
-          form.description
-        ),
+      description: clean(form.description),
+      notes: clean(form.description),
 
       createdAt:
-        editing?.expense
-          ?.createdAt ||
+        editing?.expense?.createdAt ||
         new Date().toISOString(),
 
-      updatedAt:
-        new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const next = [...expenses];
 
     if (editing) {
-      next[editing.index] =
-        expense;
+      next[editing.index] = expense;
     } else {
       next.push(expense);
     }
@@ -852,9 +807,7 @@ export default function Expenses() {
     );
 
     window.dispatchEvent(
-      new Event(
-        "saoAutoTractorDataChanged"
-      )
+      new Event("saoAutoTractorDataChanged")
     );
 
     setFormOpen(false);
@@ -864,30 +817,23 @@ export default function Expenses() {
     loadData();
   };
 
-  const deleteExpense = (
-    expense,
-    index
-  ) => {
-    const confirmed =
-      window.confirm(
-        `Delete ${money(
-          getAmount(expense)
-        )} expense${
-          getCategory(expense)
-            ? ` (${getCategory(
-                expense
-              )})`
-            : ""
-        }?`
-      );
+  const deleteExpense = (expense, index) => {
+    const confirmed = window.confirm(
+      `Delete ${money(getAmount(expense))} expense${
+        getCategory(expense)
+          ? ` (${getCategory(expense)})`
+          : ""
+      }?`
+    );
 
     if (!confirmed) return;
 
-    const next =
-      expenses.filter(
-        (_, itemIndex) =>
-          itemIndex !== index
-      );
+    /* Save for undo */
+    const deleted = expenses[index];
+
+    const next = expenses.filter(
+      (_, itemIndex) => itemIndex !== index
+    );
 
     localStorage.setItem(
       EXPENSES_KEY,
@@ -895,31 +841,116 @@ export default function Expenses() {
     );
 
     window.dispatchEvent(
-      new Event(
-        "saoAutoTractorDataChanged"
-      )
+      new Event("saoAutoTractorDataChanged")
     );
 
     setViewExpense(null);
 
+    /* Show undo toast */
+    setUndoData({
+      type: "single",
+      items: [deleted],
+      message: `Expense ${money(getAmount(deleted))} deleted`,
+    });
+
     loadData();
+  };
+
+  const undoDelete = () => {
+    if (!undoData) return;
+
+    const restored = [...expenses, ...undoData.items];
+
+    localStorage.setItem(
+      EXPENSES_KEY,
+      JSON.stringify(restored)
+    );
+
+    window.dispatchEvent(
+      new Event("saoAutoTractorDataChanged")
+    );
+
+    setUndoData(null);
+    loadData();
+  };
+
+  const bulkDeleteSelected = () => {
+    if (!selectedIds.length) return;
+
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} selected expense${
+        selectedIds.length === 1 ? "" : "s"
+      }?`
+    );
+
+    if (!confirmed) return;
+
+    const deletedItems = expenses.filter((e) =>
+      selectedIds.includes(e.id)
+    );
+
+    const next = expenses.filter(
+      (e) => !selectedIds.includes(e.id)
+    );
+
+    localStorage.setItem(
+      EXPENSES_KEY,
+      JSON.stringify(next)
+    );
+
+    window.dispatchEvent(
+      new Event("saoAutoTractorDataChanged")
+    );
+
+    setUndoData({
+      type: "bulk",
+      items: deletedItems,
+      message: `${deletedItems.length} expense${
+        deletedItems.length === 1 ? "" : "s"
+      } deleted`,
+    });
+
+    setSelectedIds([]);
+    loadData();
+  };
+
+  const toggleSelect = (id) => {
+    if (!id) return;
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((x) => x !== id)
+        : [...current, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const visibleIds = filteredExpenses
+      .map((e) => e.id)
+      .filter(Boolean);
+
+    const allSelected =
+      visibleIds.length > 0 &&
+      visibleIds.every((id) => selectedIds.includes(id));
+
+    if (allSelected) {
+      setSelectedIds((current) =>
+        current.filter((id) => !visibleIds.includes(id))
+      );
+    } else {
+      setSelectedIds((current) => [
+        ...new Set([...current, ...visibleIds]),
+      ]);
+    }
   };
 
   const exportCSV = () => {
     if (!filteredExpenses.length) {
-      alert(
-        "No expenses available to export."
-      );
+      alert("No expenses available to export.");
       return;
     }
 
     const escapeCSV = (value) =>
-      `"${String(
-        value ?? ""
-      ).replaceAll(
-        '"',
-        '""'
-      )}"`;
+      `"${String(value ?? "").replaceAll('"', '""')}"`;
 
     const rows = [
       [
@@ -934,60 +965,49 @@ export default function Expenses() {
         "Description",
       ],
 
-      ...filteredExpenses.map(
-        (expense) => [
-          formatDate(
-            getDate(expense)
-          ),
-          getCategory(expense),
-          getAmount(expense),
-          getTractor(expense),
-          getDriver(expense),
-          getVendor(expense),
-          getMode(expense),
-          getReference(expense),
-          getDescription(expense),
-        ]
-      ),
+      ...filteredExpenses.map((expense) => [
+        formatDate(getDate(expense)),
+        getCategory(expense),
+        getAmount(expense),
+        getTractor(expense),
+        getDriver(expense),
+        getVendor(expense),
+        getMode(expense),
+        getReference(expense),
+        getDescription(expense),
+      ]),
     ];
 
     const csv = rows
-      .map((row) =>
-        row
-          .map(escapeCSV)
-          .join(",")
-      )
+      .map((row) => row.map(escapeCSV).join(","))
       .join("\n");
 
-    const blob = new Blob(
-      ["\ufeff" + csv],
-      {
-        type:
-          "text/csv;charset=utf-8;",
-      }
-    );
+    const blob = new Blob(["\ufeff" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
 
-    const url =
-      URL.createObjectURL(blob);
-
-    const anchor =
-      document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
 
     anchor.href = url;
-
-    anchor.download =
-      `SAO-Expenses-${todayISO()}.csv`;
-
+    anchor.download = `SAO-Expenses-${todayISO()}.csv`;
     anchor.click();
 
     URL.revokeObjectURL(url);
   };
 
-  const printExpense = (
-    expense
-  ) => {
-    setViewExpense(expense);
+  const openPreview = (expense) => {
+    setPreviewExpense(expense);
+  };
 
+  const printPreview = () => {
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
+  const printExpense = (expense) => {
+    setPreviewExpense(expense);
     setTimeout(() => {
       window.print();
     }, 350);
@@ -1004,10 +1024,9 @@ export default function Expenses() {
           <h1>Expenses</h1>
 
           <p>
-            Track diesel, repairs,
-            maintenance, salaries and
-            every other business expense
-            from one place.
+            Track diesel, repairs, maintenance, salaries
+            and every other business expense from one
+            place.
           </p>
         </div>
 
@@ -1049,14 +1068,8 @@ export default function Expenses() {
 
           <div>
             <span>Total Expenses</span>
-
-            <strong>
-              {money(totalExpenses)}
-            </strong>
-
-            <small>
-              All recorded expenses
-            </small>
+            <strong>{money(totalExpenses)}</strong>
+            <small>All recorded expenses</small>
           </div>
         </div>
 
@@ -1067,14 +1080,8 @@ export default function Expenses() {
 
           <div>
             <span>Today</span>
-
-            <strong>
-              {money(todayExpenses)}
-            </strong>
-
-            <small>
-              Today's business cost
-            </small>
+            <strong>{money(todayExpenses)}</strong>
+            <small>Today's business cost</small>
           </div>
         </div>
 
@@ -1085,31 +1092,38 @@ export default function Expenses() {
 
           <div>
             <span>This Month</span>
+            <strong>{money(monthExpenses)}</strong>
 
-            <strong>
-              {money(monthExpenses)}
-            </strong>
-
-            <small>
-              Current month expenses
-            </small>
+            {monthDelta ? (
+              <small
+                className={
+                  monthDelta.diff > 0 ? "delta-up" : "delta-down"
+                }
+              >
+                {monthDelta.diff > 0 ? (
+                  <TrendingUp size={11} />
+                ) : (
+                  <TrendingDown size={11} />
+                )}
+                {monthDelta.diff > 0 ? "+" : ""}
+                {monthDelta.percent.toFixed(0)}% vs last month
+              </small>
+            ) : (
+              <small>Current month expenses</small>
+            )}
           </div>
         </div>
 
         <div className="expenses-overview-card">
           <div className="expenses-overview-icon">
-            <ReceiptText size={20} />
+            <Fuel size={20} />
           </div>
 
           <div>
-            <span>Entries</span>
-
-            <strong>
-              {expenses.length}
-            </strong>
-
+            <span>Diesel Share</span>
+            <strong>{fuelSplit.dieselPercent.toFixed(0)}%</strong>
             <small>
-              {filteredExpenses.length} shown
+              {money(fuelSplit.diesel)} of {money(fuelSplit.total)}
             </small>
           </div>
         </div>
@@ -1123,9 +1137,7 @@ export default function Expenses() {
             <input
               value={search}
               onChange={(event) =>
-                setSearch(
-                  event.target.value
-                )
+                setSearch(event.target.value)
               }
               placeholder="Search category, tractor, vendor..."
             />
@@ -1133,9 +1145,7 @@ export default function Expenses() {
             {search && (
               <button
                 type="button"
-                onClick={() =>
-                  setSearch("")
-                }
+                onClick={() => setSearch("")}
               >
                 <X size={15} />
               </button>
@@ -1146,24 +1156,17 @@ export default function Expenses() {
             <button
               type="button"
               className={`expenses-filter-btn ${
-                showFilters ||
-                activeFilters
-                  ? "active"
-                  : ""
+                showFilters || activeFilters ? "active" : ""
               }`}
               onClick={() =>
-                setShowFilters(
-                  (value) => !value
-                )
+                setShowFilters((value) => !value)
               }
             >
               <Filter size={16} />
               Filters
-
               {activeFilters && (
                 <span className="filter-dot" />
               )}
-
               <ChevronDown size={14} />
             </button>
 
@@ -1171,9 +1174,7 @@ export default function Expenses() {
               <button
                 type="button"
                 className="expenses-clear-btn"
-                onClick={
-                  clearFilters
-                }
+                onClick={clearFilters}
               >
                 Clear
               </button>
@@ -1181,164 +1182,183 @@ export default function Expenses() {
           </div>
         </div>
 
+        {/* Quick date chips — always visible */}
+        <div className="expenses-quick-dates">
+          <button
+            type="button"
+            className={`quick-date-chip ${
+              quickFilter === "all" ? "active" : ""
+            }`}
+            onClick={() => applyQuickFilter("all")}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className={`quick-date-chip ${
+              quickFilter === "today" ? "active" : ""
+            }`}
+            onClick={() => applyQuickFilter("today")}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            className={`quick-date-chip ${
+              quickFilter === "yesterday" ? "active" : ""
+            }`}
+            onClick={() => applyQuickFilter("yesterday")}
+          >
+            Yesterday
+          </button>
+          <button
+            type="button"
+            className={`quick-date-chip ${
+              quickFilter === "tomorrow" ? "active" : ""
+            }`}
+            onClick={() => applyQuickFilter("tomorrow")}
+          >
+            Tomorrow
+          </button>
+          <button
+            type="button"
+            className={`quick-date-chip ${
+              quickFilter === "week" ? "active" : ""
+            }`}
+            onClick={() => applyQuickFilter("week")}
+          >
+            This Week
+          </button>
+          <button
+            type="button"
+            className={`quick-date-chip ${
+              quickFilter === "month" ? "active" : ""
+            }`}
+            onClick={() => applyQuickFilter("month")}
+          >
+            This Month
+          </button>
+        </div>
+
         {showFilters && (
           <div className="expenses-filter-panel">
             <label>
               <span>From Date</span>
-
               <input
                 type="date"
                 value={dateFrom}
-                onChange={(event) =>
-                  setDateFrom(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => {
+                  setDateFrom(event.target.value);
+                  setQuickFilter("custom");
+                }}
               />
             </label>
 
             <label>
               <span>To Date</span>
-
               <input
                 type="date"
                 value={dateTo}
-                onChange={(event) =>
-                  setDateTo(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => {
+                  setDateTo(event.target.value);
+                  setQuickFilter("custom");
+                }}
               />
             </label>
 
             <label>
               <span>Category</span>
-
               <select
-                value={
-                  categoryFilter
-                }
+                value={categoryFilter}
                 onChange={(event) =>
-                  setCategoryFilter(
-                    event.target.value
-                  )
+                  setCategoryFilter(event.target.value)
                 }
               >
-                <option value="All">
-                  All Categories
-                </option>
-
-                {EXPENSE_CATEGORIES.map(
-                  (category) => (
-                    <option
-                      key={category}
-                      value={category}
-                    >
-                      {category}
-                    </option>
-                  )
-                )}
+                <option value="All">All Categories</option>
+                {EXPENSE_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </label>
 
             <label>
               <span>Tractor</span>
-
               <select
-                value={
-                  tractorFilter
-                }
+                value={tractorFilter}
                 onChange={(event) =>
-                  setTractorFilter(
-                    event.target.value
-                  )
+                  setTractorFilter(event.target.value)
                 }
               >
-                <option value="All">
-                  All Tractors
-                </option>
-
-                {tractorOptions.map(
-                  (tractor) => (
-                    <option
-                      key={tractor}
-                      value={tractor}
-                    >
-                      {tractor}
-                    </option>
-                  )
-                )}
+                <option value="All">All Tractors</option>
+                {tractorOptions.map((tractor) => (
+                  <option key={tractor} value={tractor}>
+                    {tractor}
+                  </option>
+                ))}
               </select>
             </label>
 
             <label>
               <span>Payment Mode</span>
-
               <select
                 value={modeFilter}
                 onChange={(event) =>
-                  setModeFilter(
-                    event.target.value
-                  )
+                  setModeFilter(event.target.value)
                 }
               >
-                <option value="All">
-                  All Modes
-                </option>
-
-                {PAYMENT_MODES.map(
-                  (mode) => (
-                    <option
-                      key={mode}
-                      value={mode}
-                    >
-                      {mode}
-                    </option>
-                  )
-                )}
+                <option value="All">All Modes</option>
+                {PAYMENT_MODES.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode}
+                  </option>
+                ))}
               </select>
             </label>
 
             <div className="expenses-filter-result">
-              <span>
-                Filtered Expense
-              </span>
-
-              <strong>
-                {money(filteredTotal)}
-              </strong>
+              <span>Filtered Expense</span>
+              <strong>{money(filteredTotal)}</strong>
             </div>
           </div>
         )}
 
         <div className="expenses-card-heading">
           <div>
-            <h2>
-              Expense Ledger
-            </h2>
-
+            <h2>Expense Ledger</h2>
             <p>
-              Complete record of business
-              expenses.
+              {selectedIds.length > 0
+                ? `${selectedIds.length} selected`
+                : "Complete record of business expenses."}
             </p>
           </div>
 
-          <span className="expenses-count-badge">
-            {filteredExpenses.length}{" "}
-            entries
-          </span>
+          <div className="expenses-heading-actions">
+            {selectedIds.length > 0 && (
+              <button
+                type="button"
+                className="expenses-btn expenses-btn-danger"
+                onClick={bulkDeleteSelected}
+              >
+                <Trash2 size={15} />
+                Delete ({selectedIds.length})
+              </button>
+            )}
+
+            <span className="expenses-count-badge">
+              {filteredExpenses.length} entries
+            </span>
+          </div>
         </div>
 
-        {filteredExpenses.length ===
-        0 ? (
+        {filteredExpenses.length === 0 ? (
           <div className="expenses-empty">
             <div className="expenses-empty-icon">
               <WalletCards size={24} />
             </div>
 
-            <h3>
-              No expenses found
-            </h3>
+            <h3>No expenses found</h3>
 
             <p>
               {activeFilters
@@ -1362,199 +1382,170 @@ export default function Expenses() {
             <table className="expenses-table">
               <thead>
                 <tr>
+                  <th className="checkbox-column">
+                    <input
+                      type="checkbox"
+                      checked={
+                        filteredExpenses.length > 0 &&
+                        filteredExpenses.every((e) =>
+                          selectedIds.includes(e.id)
+                        )
+                      }
+                      onChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th>Date</th>
                   <th>Category</th>
                   <th>Tractor</th>
                   <th>Vendor / Driver</th>
                   <th>Mode</th>
-                  <th className="amount-column">
-                    Amount
-                  </th>
-                  <th className="action-column">
-                    Actions
-                  </th>
+                  <th className="amount-column">Amount</th>
+                  <th className="action-column">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredExpenses.map(
-                  (expense) => {
-                    const originalIndex =
-                      expenses.indexOf(
-                        expense
-                      );
+                {filteredExpenses.map((expense) => {
+                  const originalIndex =
+                    expenses.indexOf(expense);
 
-                    return (
-                      <tr
-                        key={
-                          expense.id ||
-                          `${getDate(
-                            expense
-                          )}-${originalIndex}`
-                        }
-                      >
-                        <td>
-                          <span className="expense-date">
-                            {formatDate(
-                              getDate(
-                                expense
-                              )
+                  return (
+                    <tr
+                      key={
+                        expense.id ||
+                        `${getDate(expense)}-${originalIndex}`
+                      }
+                      className={
+                        selectedIds.includes(expense.id)
+                          ? "row-selected"
+                          : ""
+                      }
+                    >
+                      <td className="checkbox-column">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(expense.id)}
+                          onChange={() => toggleSelect(expense.id)}
+                          aria-label="Select expense"
+                        />
+                      </td>
+
+                      <td>
+                        <span className="expense-date">
+                          {formatDate(getDate(expense))}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="expense-category">
+                          <div className="expense-category-icon">
+                            {getCategoryIcon(
+                              getCategory(expense)
                             )}
-                          </span>
-                        </td>
-
-                        <td>
-                          <div className="expense-category">
-                            <div className="expense-category-icon">
-                              {getCategoryIcon(
-                                getCategory(
-                                  expense
-                                )
-                              )}
-                            </div>
-
-                            <strong>
-                              {getCategory(
-                                expense
-                              )}
-                            </strong>
                           </div>
-                        </td>
-
-                        <td>
-                          {getTractor(
-                            expense
-                          ) ? (
-                            <div className="expense-tractor">
-                              <Car
-                                size={13}
-                              />
-
-                              <span>
-                                {getTractor(
-                                  expense
-                                )}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="muted">
-                              Business
-                            </span>
-                          )}
-                        </td>
-
-                        <td>
-                          <div className="expense-person">
-                            <strong>
-                              {getVendor(
-                                expense
-                              ) ||
-                                getDriver(
-                                  expense
-                                ) ||
-                                "—"}
-                            </strong>
-
-                            {getVendor(
-                              expense
-                            ) &&
-                              getDriver(
-                                expense
-                              ) && (
-                                <small>
-                                  Driver:{" "}
-                                  {getDriver(
-                                    expense
-                                  )}
-                                </small>
-                              )}
-                          </div>
-                        </td>
-
-                        <td>
-                          <span className="expense-mode">
-                            {getMode(
-                              expense
-                            )}
-                          </span>
-                        </td>
-
-                        <td className="amount-column">
-                          <strong className="expense-amount">
-                            {money(
-                              getAmount(
-                                expense
-                              )
-                            )}
+                          <strong>
+                            {getCategory(expense)}
                           </strong>
-                        </td>
+                        </div>
+                      </td>
 
-                        <td className="action-column">
-                          <div className="expenses-row-actions">
-                            <ActionButton
-                              icon={
-                                <Eye
-                                  size={14}
-                                />
-                              }
-                              label="View"
-                              onClick={() =>
-                                setViewExpense(
-                                  expense
-                                )
-                              }
-                            />
-
-                            <ActionButton
-                              icon={
-                                <Pencil
-                                  size={14}
-                                />
-                              }
-                              label="Edit"
-                              onClick={() =>
-                                openEdit(
-                                  expense,
-                                  originalIndex
-                                )
-                              }
-                            />
-
-                            <ActionButton
-                              icon={
-                                <Printer
-                                  size={14}
-                                />
-                              }
-                              label="Print"
-                              onClick={() =>
-                                printExpense(
-                                  expense
-                                )
-                              }
-                            />
-
-                            <ActionButton
-                              icon={
-                                <Trash2
-                                  size={14}
-                                />
-                              }
-                              label="Delete"
-                              danger
-                              onClick={() =>
-                                deleteExpense(
-                                  expense,
-                                  originalIndex
-                                )
-                              }
-                            />
+                      <td>
+                        {getTractor(expense) ? (
+                          <div className="expense-tractor">
+                            <Car size={13} />
+                            <span>
+                              {getTractor(expense)}
+                            </span>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-                )}
+                        ) : (
+                          <span className="muted">Business</span>
+                        )}
+                      </td>
+
+                      <td>
+                        <div className="expense-person">
+                          <strong>
+                            {getVendor(expense) ||
+                              getDriver(expense) ||
+                              "—"}
+                          </strong>
+
+                          {getVendor(expense) &&
+                            getDriver(expense) && (
+                              <small>
+                                Driver: {getDriver(expense)}
+                              </small>
+                            )}
+                        </div>
+                      </td>
+
+                      <td>
+                        <span className="expense-mode">
+                          {getMode(expense)}
+                        </span>
+                      </td>
+
+                      <td className="amount-column">
+                        <strong className="expense-amount">
+                          {money(getAmount(expense))}
+                        </strong>
+                      </td>
+
+                      <td className="action-column">
+                        <div className="expenses-row-actions">
+                          <ActionButton
+                            icon={<Eye size={14} />}
+                            label="View"
+                            onClick={() =>
+                              setViewExpense(expense)
+                            }
+                          />
+
+                          <ActionButton
+                            icon={<FileText size={14} />}
+                            label="Preview"
+                            onClick={() => openPreview(expense)}
+                            title="Preview voucher"
+                          />
+
+                          <ActionButton
+                            icon={<Pencil size={14} />}
+                            label="Edit"
+                            onClick={() =>
+                              openEdit(expense, originalIndex)
+                            }
+                          />
+
+                          <ActionButton
+                            icon={<Copy size={14} />}
+                            label="Clone"
+                            onClick={() => cloneExpense(expense)}
+                            title="Clone as new expense"
+                          />
+
+                          <ActionButton
+                            icon={<Printer size={14} />}
+                            label="Print"
+                            onClick={() => printExpense(expense)}
+                          />
+
+                          <ActionButton
+                            icon={<Trash2 size={14} />}
+                            label="Delete"
+                            danger
+                            onClick={() =>
+                              deleteExpense(
+                                expense,
+                                originalIndex
+                              )
+                            }
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1565,46 +1556,27 @@ export default function Expenses() {
         <div className="expenses-card">
           <div className="expenses-card-heading compact">
             <div>
-              <h2>
-                Expense by Category
-              </h2>
-
-              <p>
-                Where your money is going.
-              </p>
+              <h2>Expense by Category</h2>
+              <p>Where your money is going.</p>
             </div>
           </div>
 
           <div className="expenses-analysis-list">
             {categorySummary.length ? (
-              categorySummary
-                .slice(0, 7)
-                .map((item) => (
-                  <div
-                    className="expenses-analysis-row"
-                    key={
-                      item.category
-                    }
-                  >
-                    <div>
-                      <span className="analysis-icon">
-                        {getCategoryIcon(
-                          item.category
-                        )}
-                      </span>
-
-                      <strong>
-                        {item.category}
-                      </strong>
-                    </div>
-
-                    <strong>
-                      {money(
-                        item.amount
-                      )}
-                    </strong>
+              categorySummary.slice(0, 7).map((item) => (
+                <div
+                  className="expenses-analysis-row"
+                  key={item.category}
+                >
+                  <div>
+                    <span className="analysis-icon">
+                      {getCategoryIcon(item.category)}
+                    </span>
+                    <strong>{item.category}</strong>
                   </div>
-                ))
+                  <strong>{money(item.amount)}</strong>
+                </div>
+              ))
             ) : (
               <div className="analysis-empty">
                 No category data yet.
@@ -1616,48 +1588,69 @@ export default function Expenses() {
         <div className="expenses-card">
           <div className="expenses-card-heading compact">
             <div>
-              <h2>
-                Tractor-wise Expense
-              </h2>
-
-              <p>
-                Highest expense by tractor.
-              </p>
+              <h2>Tractor-wise Expense</h2>
+              <p>Highest expense by tractor.</p>
             </div>
           </div>
 
           <div className="expenses-analysis-list">
             {tractorSummary.length ? (
-              tractorSummary.map(
-                (item) => (
-                  <div
-                    className="expenses-analysis-row"
-                    key={item.tractor}
-                  >
-                    <div>
-                      <span className="analysis-icon">
-                        <Car
-                          size={15}
-                        />
-                      </span>
-
-                      <strong>
-                        {item.tractor}
-                      </strong>
-                    </div>
-
-                    <strong>
-                      {money(
-                        item.amount
-                      )}
-                    </strong>
+              tractorSummary.map((item) => (
+                <div
+                  className="expenses-analysis-row"
+                  key={item.tractor}
+                >
+                  <div>
+                    <span className="analysis-icon">
+                      <Car size={15} />
+                    </span>
+                    <strong>{item.tractor}</strong>
                   </div>
-                )
-              )
+                  <strong>{money(item.amount)}</strong>
+                </div>
+              ))
             ) : (
               <div className="analysis-empty">
-                No tractor-wise expense
-                data yet.
+                No tractor-wise expense data yet.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="expenses-vendor-card">
+        <div className="expenses-card">
+          <div className="expenses-card-heading compact">
+            <div>
+              <h2>Top Vendors by Expense</h2>
+              <p>Where the biggest payments went.</p>
+            </div>
+          </div>
+
+          <div className="expenses-vendor-list">
+            {vendorSummary.length ? (
+              vendorSummary.map((item, index) => (
+                <div
+                  className="expenses-vendor-row"
+                  key={item.vendor}
+                >
+                  <span className="vendor-rank">
+                    #{index + 1}
+                  </span>
+
+                  <div className="vendor-info">
+                    <Store size={14} />
+                    <strong>{item.vendor}</strong>
+                  </div>
+
+                  <strong className="vendor-amount">
+                    {money(item.amount)}
+                  </strong>
+                </div>
+              ))
+            ) : (
+              <div className="analysis-empty">
+                No vendor data yet.
               </div>
             )}
           </div>
@@ -1666,39 +1659,25 @@ export default function Expenses() {
 
       {formOpen && (
         <Modal
-          title={
-            editing
-              ? "Edit Expense"
-              : "Add Expense"
-          }
+          title={editing ? "Edit Expense" : "Add Expense"}
           subtitle={
             editing
               ? "Update the existing expense entry."
               : "Record a new business expense."
           }
-          onClose={() =>
-            setFormOpen(false)
-          }
+          onClose={() => setFormOpen(false)}
         >
-          <form
-            className="expenses-form"
-            onSubmit={saveExpense}
-          >
+          <form className="expenses-form" onSubmit={saveExpense}>
             <div className="expenses-form-grid">
               <label className="expenses-field">
-                <span>
-                  Expense Date *
-                </span>
-
+                <span>Expense Date *</span>
                 <input
                   type="date"
                   value={form.date}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      date:
-                        event.target
-                          .value,
+                      date: event.target.value,
                     })
                   }
                   required
@@ -1706,58 +1685,38 @@ export default function Expenses() {
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Category *
-                </span>
-
+                <span>Category *</span>
                 <select
-                  value={
-                    form.category
-                  }
+                  value={form.category}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      category:
-                        event.target
-                          .value,
+                      category: event.target.value,
                     })
                   }
                   required
                 >
-                  {EXPENSE_CATEGORIES.map(
-                    (category) => (
-                      <option
-                        key={category}
-                        value={category}
-                      >
-                        {category}
-                      </option>
-                    )
-                  )}
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
                 </select>
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Amount *
-                </span>
-
+                <span>Amount *</span>
                 <div className="expenses-input-prefix">
                   <span>₹</span>
-
                   <input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={
-                      form.amount
-                    }
+                    value={form.amount}
                     onChange={(event) =>
                       setForm({
                         ...form,
-                        amount:
-                          event.target
-                            .value,
+                        amount: event.target.value,
                       })
                     }
                     placeholder="0.00"
@@ -1767,88 +1726,53 @@ export default function Expenses() {
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Tractor
-                </span>
-
+                <span>Tractor</span>
                 <select
-                  value={
-                    form.tractorNumber
-                  }
+                  value={form.tractorNumber}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      tractorNumber:
-                        event.target
-                          .value,
+                      tractorNumber: event.target.value,
                     })
                   }
                 >
-                  <option value="">
-                    General / Business
-                  </option>
-
-                  {tractorOptions.map(
-                    (tractor) => (
-                      <option
-                        key={tractor}
-                        value={tractor}
-                      >
-                        {tractor}
-                      </option>
-                    )
-                  )}
+                  <option value="">General / Business</option>
+                  {tractorOptions.map((tractor) => (
+                    <option key={tractor} value={tractor}>
+                      {tractor}
+                    </option>
+                  ))}
                 </select>
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Driver
-                </span>
-
+                <span>Driver</span>
                 <input
                   list="expense-driver-options"
-                  value={
-                    form.driverName
-                  }
+                  value={form.driverName}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      driverName:
-                        event.target
-                          .value,
+                      driverName: event.target.value,
                     })
                   }
                   placeholder="Driver name"
                 />
-
                 <datalist id="expense-driver-options">
-                  {driverOptions.map(
-                    (driver) => (
-                      <option
-                        key={driver}
-                        value={driver}
-                      />
-                    )
-                  )}
+                  {driverOptions.map((driver) => (
+                    <option key={driver} value={driver} />
+                  ))}
                 </datalist>
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Vendor / Supplier
-                </span>
-
+                <span>Vendor / Supplier</span>
                 <input
-                  value={
-                    form.vendorName
-                  }
+                  value={form.vendorName}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      vendorName:
-                        event.target
-                          .value,
+                      vendorName: event.target.value,
                     })
                   }
                   placeholder="Petrol pump, garage, supplier..."
@@ -1856,51 +1780,32 @@ export default function Expenses() {
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Payment Mode
-                </span>
-
+                <span>Payment Mode</span>
                 <select
-                  value={
-                    form.paymentMode
-                  }
+                  value={form.paymentMode}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      paymentMode:
-                        event.target
-                          .value,
+                      paymentMode: event.target.value,
                     })
                   }
                 >
-                  {PAYMENT_MODES.map(
-                    (mode) => (
-                      <option
-                        key={mode}
-                        value={mode}
-                      >
-                        {mode}
-                      </option>
-                    )
-                  )}
+                  {PAYMENT_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {mode}
+                    </option>
+                  ))}
                 </select>
               </label>
 
               <label className="expenses-field">
-                <span>
-                  Bill / Reference No.
-                </span>
-
+                <span>Bill / Reference No.</span>
                 <input
-                  value={
-                    form.reference
-                  }
+                  value={form.reference}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      reference:
-                        event.target
-                          .value,
+                      reference: event.target.value,
                     })
                   }
                   placeholder="Bill / voucher / UTR"
@@ -1908,21 +1813,14 @@ export default function Expenses() {
               </label>
 
               <label className="expenses-field full">
-                <span>
-                  Description / Notes
-                </span>
-
+                <span>Description / Notes</span>
                 <textarea
                   rows="3"
-                  value={
-                    form.description
-                  }
+                  value={form.description}
                   onChange={(event) =>
                     setForm({
                       ...form,
-                      description:
-                        event.target
-                          .value,
+                      description: event.target.value,
                     })
                   }
                   placeholder="Enter expense details..."
@@ -1934,9 +1832,7 @@ export default function Expenses() {
               <button
                 type="button"
                 className="expenses-btn expenses-btn-secondary"
-                onClick={() =>
-                  setFormOpen(false)
-                }
+                onClick={() => setFormOpen(false)}
               >
                 Cancel
               </button>
@@ -1946,10 +1842,7 @@ export default function Expenses() {
                 className="expenses-btn expenses-btn-primary"
               >
                 <Check size={16} />
-
-                {editing
-                  ? "Update Expense"
-                  : "Save Expense"}
+                {editing ? "Update Expense" : "Save Expense"}
               </button>
             </div>
           </form>
@@ -1960,131 +1853,74 @@ export default function Expenses() {
         <Modal
           title="Expense Details"
           subtitle="Business expense information"
-          onClose={() =>
-            setViewExpense(null)
-          }
+          onClose={() => setViewExpense(null)}
         >
           <div className="expense-detail-card">
             <div className="expense-detail-hero">
               <div className="expense-detail-icon">
                 {getCategoryIcon(
-                  getCategory(
-                    viewExpense
-                  )
+                  getCategory(viewExpense)
                 )}
               </div>
 
               <div>
-                <span>
-                  Expense Amount
-                </span>
-
+                <span>Expense Amount</span>
                 <strong>
-                  {money(
-                    getAmount(
-                      viewExpense
-                    )
-                  )}
+                  {money(getAmount(viewExpense))}
                 </strong>
               </div>
             </div>
 
             <div className="expense-detail-grid">
               <div>
-                <span>
-                  Category
-                </span>
+                <span>Category</span>
+                <strong>{getCategory(viewExpense)}</strong>
+              </div>
 
+              <div>
+                <span>Date</span>
                 <strong>
-                  {getCategory(
-                    viewExpense
-                  )}
+                  {formatDate(getDate(viewExpense))}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Date
-                </span>
-
+                <span>Tractor</span>
                 <strong>
-                  {formatDate(
-                    getDate(
-                      viewExpense
-                    )
-                  )}
+                  {getTractor(viewExpense) || "Business"}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Tractor
-                </span>
-
+                <span>Driver</span>
                 <strong>
-                  {getTractor(
-                    viewExpense
-                  ) || "Business"}
+                  {getDriver(viewExpense) || "—"}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Driver
-                </span>
-
+                <span>Vendor</span>
                 <strong>
-                  {getDriver(
-                    viewExpense
-                  ) || "—"}
+                  {getVendor(viewExpense) || "—"}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Vendor
-                </span>
-
-                <strong>
-                  {getVendor(
-                    viewExpense
-                  ) || "—"}
-                </strong>
+                <span>Payment Mode</span>
+                <strong>{getMode(viewExpense)}</strong>
               </div>
 
               <div>
-                <span>
-                  Payment Mode
-                </span>
-
+                <span>Reference</span>
                 <strong>
-                  {getMode(
-                    viewExpense
-                  )}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Reference
-                </span>
-
-                <strong>
-                  {getReference(
-                    viewExpense
-                  ) || "—"}
+                  {getReference(viewExpense) || "—"}
                 </strong>
               </div>
 
               <div className="full">
-                <span>
-                  Description
-                </span>
-
+                <span>Description</span>
                 <strong>
-                  {getDescription(
-                    viewExpense
-                  ) || "—"}
+                  {getDescription(viewExpense) || "—"}
                 </strong>
               </div>
             </div>
@@ -2093,22 +1929,28 @@ export default function Expenses() {
               <button
                 type="button"
                 className="expenses-btn expenses-btn-secondary"
-                onClick={() =>
-                  printExpense(
-                    viewExpense
-                  )
-                }
+                onClick={() => {
+                  setViewExpense(null);
+                  openPreview(viewExpense);
+                }}
+              >
+                <FileText size={16} />
+                Preview
+              </button>
+
+              <button
+                type="button"
+                className="expenses-btn expenses-btn-secondary"
+                onClick={() => printExpense(viewExpense)}
               >
                 <Printer size={16} />
-                Print Voucher
+                Print / Save PDF
               </button>
 
               <button
                 type="button"
                 className="expenses-btn expenses-btn-primary"
-                onClick={() =>
-                  setViewExpense(null)
-                }
+                onClick={() => setViewExpense(null)}
               >
                 Close
               </button>
@@ -2117,7 +1959,118 @@ export default function Expenses() {
         </Modal>
       )}
 
-      {viewExpense && (
+      {/* Preview modal — print-friendly paper view */}
+      {previewExpense && (
+        <Modal
+          title="Expense Voucher Preview"
+          subtitle="Print-ready voucher"
+          onClose={() => setPreviewExpense(null)}
+          wide
+        >
+          <div className="expenses-preview-card">
+            <div className="expenses-preview-paper">
+              <div className="print-voucher-inner">
+                <div className="print-voucher-header">
+                  <div>
+                    <div className="print-voucher-eyebrow">
+                      EXPENSE VOUCHER
+                    </div>
+                    <h1>SAO AUTO TRACTOR</h1>
+                    <p>Business Expense Record</p>
+                  </div>
+
+                  <ReceiptText size={38} />
+                </div>
+
+                <div className="print-voucher-meta">
+                  Date: {formatDate(getDate(previewExpense))}
+                </div>
+
+                <div className="print-voucher-grid">
+                  <div>
+                    <span>Category</span>
+                    <strong>{getCategory(previewExpense)}</strong>
+                  </div>
+
+                  <div>
+                    <span>Amount</span>
+                    <strong>
+                      {money(getAmount(previewExpense))}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Tractor</span>
+                    <strong>
+                      {getTractor(previewExpense) || "Business"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Payment Mode</span>
+                    <strong>{getMode(previewExpense)}</strong>
+                  </div>
+
+                  <div>
+                    <span>Vendor</span>
+                    <strong>
+                      {getVendor(previewExpense) || "—"}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Reference</span>
+                    <strong>
+                      {getReference(previewExpense) || "—"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="print-voucher-total">
+                  <span>Total Expense</span>
+                  <strong>
+                    {money(getAmount(previewExpense))}
+                  </strong>
+                </div>
+
+                {getDescription(previewExpense) && (
+                  <div className="print-voucher-notes">
+                    <span>Description</span>
+                    <p>{getDescription(previewExpense)}</p>
+                  </div>
+                )}
+
+                <div className="print-voucher-footer">
+                  <span>SAO AUTO TRACTOR</span>
+                  <span>Authorized Signature</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="expenses-preview-actions">
+              <button
+                type="button"
+                className="expenses-btn expenses-btn-secondary"
+                onClick={() => setPreviewExpense(null)}
+              >
+                Close
+              </button>
+
+              <button
+                type="button"
+                className="expenses-btn expenses-btn-primary"
+                onClick={printPreview}
+              >
+                <Printer size={16} />
+                Print / Save PDF
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Print-only voucher block */}
+      {previewExpense && (
         <div className="expenses-print-voucher">
           <div className="print-voucher-inner">
             <div className="print-voucher-header">
@@ -2126,144 +2079,87 @@ export default function Expenses() {
                   EXPENSE VOUCHER
                 </div>
 
-                <h1>
-                  SAO AUTO TRACTOR
-                </h1>
+                <h1>SAO AUTO TRACTOR</h1>
 
-                <p>
-                  Business Expense Record
-                </p>
+                <p>Business Expense Record</p>
               </div>
 
               <ReceiptText size={38} />
             </div>
 
             <div className="print-voucher-meta">
-              Date:{" "}
-              {formatDate(
-                getDate(
-                  viewExpense
-                )
-              )}
+              Date: {formatDate(getDate(previewExpense))}
             </div>
 
             <div className="print-voucher-grid">
               <div>
-                <span>
-                  Category
-                </span>
+                <span>Category</span>
+                <strong>{getCategory(previewExpense)}</strong>
+              </div>
 
+              <div>
+                <span>Amount</span>
                 <strong>
-                  {getCategory(
-                    viewExpense
-                  )}
+                  {money(getAmount(previewExpense))}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Amount
-                </span>
-
+                <span>Tractor</span>
                 <strong>
-                  {money(
-                    getAmount(
-                      viewExpense
-                    )
-                  )}
+                  {getTractor(previewExpense) || "Business"}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Tractor
-                </span>
+                <span>Payment Mode</span>
+                <strong>{getMode(previewExpense)}</strong>
+              </div>
 
+              <div>
+                <span>Vendor</span>
                 <strong>
-                  {getTractor(
-                    viewExpense
-                  ) || "Business"}
+                  {getVendor(previewExpense) || "—"}
                 </strong>
               </div>
 
               <div>
-                <span>
-                  Payment Mode
-                </span>
-
+                <span>Reference</span>
                 <strong>
-                  {getMode(
-                    viewExpense
-                  )}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Vendor
-                </span>
-
-                <strong>
-                  {getVendor(
-                    viewExpense
-                  ) || "—"}
-                </strong>
-              </div>
-
-              <div>
-                <span>
-                  Reference
-                </span>
-
-                <strong>
-                  {getReference(
-                    viewExpense
-                  ) || "—"}
+                  {getReference(previewExpense) || "—"}
                 </strong>
               </div>
             </div>
 
             <div className="print-voucher-total">
-              <span>
-                Total Expense
-              </span>
-
+              <span>Total Expense</span>
               <strong>
-                {money(
-                  getAmount(
-                    viewExpense
-                  )
-                )}
+                {money(getAmount(previewExpense))}
               </strong>
             </div>
 
-            {getDescription(
-              viewExpense
-            ) && (
+            {getDescription(previewExpense) && (
               <div className="print-voucher-notes">
-                <span>
-                  Description
-                </span>
-
-                <p>
-                  {getDescription(
-                    viewExpense
-                  )}
-                </p>
+                <span>Description</span>
+                <p>{getDescription(previewExpense)}</p>
               </div>
             )}
 
             <div className="print-voucher-footer">
-              <span>
-                SAO AUTO TRACTOR
-              </span>
-
-              <span>
-                Authorized Signature
-              </span>
+              <span>SAO AUTO TRACTOR</span>
+              <span>Authorized Signature</span>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Undo toast */}
+      {undoData && (
+        <UndoToast
+          message={undoData.message}
+          onUndo={undoDelete}
+          onClose={() => setUndoData(null)}
+        />
       )}
     </div>
   );

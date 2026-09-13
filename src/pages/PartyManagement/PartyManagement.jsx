@@ -13,10 +13,6 @@ import {
   Users,
   X,
   CalendarDays,
-  Truck,
-  Package,
-  ArrowDownToLine,
-  ArrowUpFromLine,
 } from "lucide-react";
 
 import { useAppData } from "../../context/AppDataContext";
@@ -86,11 +82,19 @@ function getTripAmount(trip) {
 
 function getTripQuantity(trip) {
   const quantity = Number(trip?.quantity ?? trip?.qty ?? 0);
-  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+
+  return Number.isFinite(quantity) && quantity > 0
+    ? quantity
+    : 0;
 }
 
 function getTripMaterial(trip) {
-  return trip?.materialName || trip?.material || trip?.product || "Unknown";
+  return (
+    trip?.materialName ||
+    trip?.material ||
+    trip?.product ||
+    "Unknown"
+  );
 }
 
 function getTripType(trip) {
@@ -104,6 +108,7 @@ function getTripType(trip) {
 
   if (raw === "loading") return "Loading";
   if (raw === "unloading") return "Unloading";
+
   if (
     raw === "site to site" ||
     raw === "site-to-site" ||
@@ -112,6 +117,7 @@ function getTripType(trip) {
   ) {
     return "Site to Site";
   }
+
   return "";
 }
 
@@ -132,7 +138,9 @@ function getPaymentAmount(payment) {
       0,
   );
 
-  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+  return Number.isFinite(amount) && amount > 0
+    ? amount
+    : 0;
 }
 
 function getInitials(name, fallback = "PT") {
@@ -153,12 +161,14 @@ function getPartyStats(party, trips, payments) {
   const partyName = normalize(party?.partyName);
 
   const partyTrips = trips.filter(
-    (trip) => normalize(getPartyName(trip)) === partyName,
+    (trip) =>
+      normalize(getPartyName(trip)) === partyName,
   );
 
   const partyPayments = payments.filter(
     (payment) =>
-      normalize(getPaymentPartyName(payment)) === partyName,
+      normalize(getPaymentPartyName(payment)) ===
+      partyName,
   );
 
   const billing = partyTrips.reduce(
@@ -195,7 +205,9 @@ function PartyForm({ initialValue, onCancel, onSave }) {
       [name]: value,
     }));
 
-    if (error) setError("");
+    if (error) {
+      setError("");
+    }
   };
 
   const handleSubmit = (event) => {
@@ -248,14 +260,23 @@ function PartyForm({ initialValue, onCancel, onSave }) {
           className="party-form-close"
           onClick={onCancel}
           aria-label="Close form"
+          title="Close"
         >
           <X size={18} strokeWidth={1.8} />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="party-form">
+      <form
+        onSubmit={handleSubmit}
+        className="party-form"
+        noValidate
+      >
         {error && (
-          <div className="party-form-error" role="alert">
+          <div
+            className="party-form-error"
+            role="alert"
+            aria-live="polite"
+          >
             {error}
           </div>
         )}
@@ -263,17 +284,23 @@ function PartyForm({ initialValue, onCancel, onSave }) {
         <div className="party-form-grid">
           <label className="party-field">
             <span>Party Name *</span>
+
             <input
               name="partyName"
               value={form.partyName}
               onChange={handleChange}
               placeholder="Enter party name"
               autoComplete="organization"
+              autoFocus={!initialValue}
+              required
+              aria-required="true"
+              aria-invalid={Boolean(error && !form.partyName.trim())}
             />
           </label>
 
           <label className="party-field">
             <span>Party Code</span>
+
             <input
               name="partyCode"
               value={form.partyCode}
@@ -285,19 +312,31 @@ function PartyForm({ initialValue, onCancel, onSave }) {
 
           <label className="party-field">
             <span>Contact</span>
+
             <input
               name="contact"
               value={form.contact}
               onChange={handleChange}
               placeholder="10-digit mobile number"
               inputMode="numeric"
+              type="tel"
               maxLength={10}
+              pattern="[0-9]{10}"
               autoComplete="tel"
+              aria-describedby="party-contact-hint"
             />
+
+            <small
+              id="party-contact-hint"
+              className="party-field-hint"
+            >
+              Optional • 10 digits
+            </small>
           </label>
 
           <label className="party-field">
             <span>Site Information</span>
+
             <input
               name="siteInfo"
               value={form.siteInfo}
@@ -308,6 +347,7 @@ function PartyForm({ initialValue, onCancel, onSave }) {
 
           <label className="party-field party-field-full">
             <span>Address</span>
+
             <textarea
               name="address"
               value={form.address}
@@ -319,6 +359,7 @@ function PartyForm({ initialValue, onCancel, onSave }) {
 
           <label className="party-field party-field-full">
             <span>Payment / QR Information</span>
+
             <input
               name="paymentQr"
               value={form.paymentQr}
@@ -329,6 +370,7 @@ function PartyForm({ initialValue, onCancel, onSave }) {
 
           <label className="party-field">
             <span>Status</span>
+
             <select
               name="status"
               value={form.status}
@@ -377,33 +419,44 @@ function PartyDetails({
 
   const partyTrips = useMemo(() => {
     return trips.filter(
-      (trip) => normalize(getPartyName(trip)) === partyName,
+      (trip) =>
+        normalize(getPartyName(trip)) === partyName,
     );
   }, [trips, partyName]);
 
-  // Filter trips by selected date
   const dateTrips = useMemo(() => {
     return partyTrips.filter((trip) => {
-      const tripDate = trip?.date || trip?.createdAt?.split('T')[0] || "";
+      const tripDate =
+        trip?.date ||
+        trip?.createdAt?.split("T")[0] ||
+        "";
+
       return tripDate === selectedDate;
     });
   }, [partyTrips, selectedDate]);
 
   const dateSummary = useMemo(() => {
-    let totalTrips = dateTrips.length;
+    const totalTrips = dateTrips.length;
+
     let totalQuantity = 0;
     let totalBilling = 0;
+
     const materialMap = new Map();
 
     dateTrips.forEach((trip) => {
       const qty = getTripQuantity(trip);
       const amt = getTripAmount(trip);
+
       totalQuantity += qty;
       totalBilling += amt;
 
       const material = getTripMaterial(trip);
+
       if (material) {
-        materialMap.set(material, (materialMap.get(material) || 0) + qty);
+        materialMap.set(
+          material,
+          (materialMap.get(material) || 0) + qty,
+        );
       }
     });
 
@@ -411,7 +464,12 @@ function PartyDetails({
       totalTrips,
       totalQuantity,
       totalBilling,
-      materials: Array.from(materialMap.entries()).map(([name, qty]) => ({ name, qty })),
+      materials: Array.from(materialMap.entries()).map(
+        ([name, qty]) => ({
+          name,
+          qty,
+        }),
+      ),
     };
   }, [dateTrips]);
 
@@ -425,16 +483,23 @@ function PartyDetails({
 
   const setYesterday = () => {
     const yesterday = new Date();
+
     yesterday.setDate(yesterday.getDate() - 1);
-    setSelectedDate(yesterday.toISOString().split('T')[0]);
+
+    setSelectedDate(
+      yesterday.toISOString().split("T")[0],
+    );
   };
 
   const history = useMemo(() => {
-    const tripHistory = partyTrips
-      .map((trip, index) => ({
+    const tripHistory = partyTrips.map(
+      (trip, index) => ({
         id: trip?.id || `trip-${index}`,
         date: trip?.date,
-        type: trip?.tripType || trip?.type || "Trip",
+        type:
+          trip?.tripType ||
+          trip?.type ||
+          "Trip",
         amount: getTripAmount(trip),
         label: "Trip",
         description:
@@ -442,7 +507,8 @@ function PartyDetails({
           trip?.site ||
           trip?.location ||
           "Transport trip",
-      }));
+      }),
+    );
 
     const paymentHistory = payments
       .filter(
@@ -467,24 +533,37 @@ function PartyDetails({
 
     return [...tripHistory, ...paymentHistory]
       .sort((a, b) => {
-        const dateA = new Date(a?.date || 0).getTime();
-        const dateB = new Date(b?.date || 0).getTime();
+        const dateA = new Date(
+          a?.date || 0,
+        ).getTime();
+
+        const dateB = new Date(
+          b?.date || 0,
+        ).getTime();
 
         return dateB - dateA;
       })
       .slice(0, 10);
-  }, [party, trips, payments, partyName]);
+  }, [partyTrips, payments, partyName]);
 
   return (
-    <div className="party-details-overlay">
-      <div
+    <div
+      className="party-details-overlay"
+      role="presentation"
+    >
+      <button
+        type="button"
         className="party-details-backdrop"
         onClick={onClose}
+        aria-label="Close party details"
+        tabIndex={-1}
       />
 
       <aside
         className="party-details-drawer"
-        aria-label="Party details"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${party?.partyName || "Party"} details`}
       >
         <div className="party-details-header">
           <div>
@@ -502,6 +581,7 @@ function PartyDetails({
             className="party-details-close"
             onClick={onClose}
             aria-label="Close party details"
+            title="Close"
           >
             <X size={19} strokeWidth={1.8} />
           </button>
@@ -546,11 +626,13 @@ function PartyDetails({
               <span>Site / Address</span>
 
               <strong>
-                {party?.siteInfo || "Site not specified"}
+                {party?.siteInfo ||
+                  "Site not specified"}
               </strong>
 
               <small>
-                {party?.address || "Address not specified"}
+                {party?.address ||
+                  "Address not specified"}
               </small>
             </div>
           </div>
@@ -583,38 +665,46 @@ function PartyDetails({
             </div>
           </div>
 
-          {/* ===================================================
-              DAILY ACTIVITY SECTION
-              =================================================== */}
-
           <div className="party-daily-activity">
             <div className="party-daily-header">
               <div className="party-daily-title">
-                <CalendarDays size={17} />
+                <CalendarDays
+                  size={17}
+                  strokeWidth={1.8}
+                />
+
                 <span>Daily Activity</span>
               </div>
 
               <div className="party-daily-date-controls">
                 <button
                   type="button"
-                  className={`party-date-btn ${selectedDate === today ? 'active' : ''}`}
+                  className={`party-date-btn ${
+                    selectedDate === today
+                      ? "active"
+                      : ""
+                  }`}
                   onClick={setToday}
+                  aria-pressed={selectedDate === today}
                 >
                   Today
                 </button>
+
                 <button
                   type="button"
                   className="party-date-btn"
                   onClick={setYesterday}
+                  aria-pressed={false}
                 >
                   Yesterday
                 </button>
+
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={handleDateChange}
                   className="party-date-input"
-                  aria-label="Select date"
+                  aria-label="Select activity date"
                 />
               </div>
             </div>
@@ -622,26 +712,46 @@ function PartyDetails({
             <div className="party-daily-summary">
               <div className="party-daily-stat">
                 <span>Trips</span>
-                <strong>{dateSummary.totalTrips}</strong>
+                <strong>
+                  {dateSummary.totalTrips}
+                </strong>
               </div>
+
               <div className="party-daily-stat">
                 <span>Materials</span>
-                <strong>{dateSummary.materials.length}</strong>
+                <strong>
+                  {dateSummary.materials.length}
+                </strong>
               </div>
+
               <div className="party-daily-stat">
                 <span>Total Qty</span>
-                <strong>{dateSummary.totalQuantity}</strong>
+                <strong>
+                  {dateSummary.totalQuantity}
+                </strong>
               </div>
+
               <div className="party-daily-stat party-daily-finance">
                 <span>Billing</span>
-                <strong>{formatCurrency(dateSummary.totalBilling)}</strong>
+                <strong>
+                  {formatCurrency(
+                    dateSummary.totalBilling,
+                  )}
+                </strong>
               </div>
             </div>
 
             {dateTrips.length === 0 ? (
               <div className="party-daily-empty">
-                <Activity size={18} />
-                <span>No trips on {formatDate(selectedDate)}</span>
+                <Activity
+                  size={18}
+                  strokeWidth={1.8}
+                />
+
+                <span>
+                  No trips on{" "}
+                  {formatDate(selectedDate)}
+                </span>
               </div>
             ) : (
               <>
@@ -650,12 +760,22 @@ function PartyDetails({
                     <span className="party-daily-materials-label">
                       Materials Used
                     </span>
+
                     <div className="party-daily-material-tags">
-                      {dateSummary.materials.map(({ name, qty }) => (
-                        <span key={name} className="party-daily-material-tag">
-                          {name} <small>{qty} qty</small>
-                        </span>
-                      ))}
+                      {dateSummary.materials.map(
+                        ({ name, qty }) => (
+                          <span
+                            key={name}
+                            className="party-daily-material-tag"
+                          >
+                            {name}
+
+                            <small>
+                              {qty} qty
+                            </small>
+                          </span>
+                        ),
+                      )}
                     </div>
                   </div>
                 )}
@@ -667,37 +787,66 @@ function PartyDetails({
                     <span>Qty</span>
                     <span>Amount</span>
                   </div>
-                  {dateTrips.map((trip, idx) => {
-                    const type = getTripType(trip);
-                    const material = getTripMaterial(trip);
-                    const qty = getTripQuantity(trip);
-                    const amount = getTripAmount(trip);
-                    const time = trip?.time || trip?.createdAt || "";
 
-                    return (
-                      <div key={trip?.id || idx} className="party-daily-trip-row">
-                        <span className="party-daily-trip-time">
-                          {formatDate(time, { timeOnly: true }) || "N/A"}
-                        </span>
-                        <span className="party-daily-trip-material">
-                          {material}
-                          <StatusBadge status={type} label={type} size="small" />
-                        </span>
-                        <span className="party-daily-trip-qty">{qty}</span>
-                        <span className="party-daily-trip-amount">
-                          {formatCurrency(amount)}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {dateTrips.map(
+                    (trip, idx) => {
+                      const type =
+                        getTripType(trip);
+
+                      const material =
+                        getTripMaterial(trip);
+
+                      const qty =
+                        getTripQuantity(trip);
+
+                      const amount =
+                        getTripAmount(trip);
+
+                      const time =
+                        trip?.time ||
+                        trip?.createdAt ||
+                        "";
+
+                      return (
+                        <div
+                          key={
+                            trip?.id || idx
+                          }
+                          className="party-daily-trip-row"
+                        >
+                          <span className="party-daily-trip-time">
+                            {formatDate(time, {
+                              timeOnly: true,
+                            }) || "N/A"}
+                          </span>
+
+                          <span className="party-daily-trip-material">
+                            {material}
+
+                            <StatusBadge
+                              status={type}
+                              label={type}
+                              size="small"
+                            />
+                          </span>
+
+                          <span className="party-daily-trip-qty">
+                            {qty}
+                          </span>
+
+                          <span className="party-daily-trip-amount">
+                            {formatCurrency(
+                              amount,
+                            )}
+                          </span>
+                        </div>
+                      );
+                    },
+                  )}
                 </div>
               </>
             )}
           </div>
-
-          {/* ===================================================
-              END DAILY ACTIVITY
-              =================================================== */}
 
           <div className="party-payment-info">
             <span>PAYMENT INFORMATION</span>
@@ -712,10 +861,13 @@ function PartyDetails({
             <div className="party-history-title">
               <div>
                 <span>RECENT ACTIVITY</span>
+
                 <strong>Party History</strong>
               </div>
 
-              <span>{history.length} records</span>
+              <span>
+                {history.length} records
+              </span>
             </div>
 
             {history.length === 0 ? (
@@ -749,7 +901,8 @@ function PartyDetails({
                     <div className="party-history-type">
                       <StatusBadge
                         status={
-                          item.label === "Received"
+                          item.label ===
+                          "Received"
                             ? "paid"
                             : item.type
                         }
@@ -764,7 +917,9 @@ function PartyDetails({
                           : "party-history-amount"
                       }
                     >
-                      {formatCurrency(item.amount)}
+                      {formatCurrency(
+                        item.amount,
+                      )}
                     </div>
                   </div>
                 ))}
@@ -786,7 +941,10 @@ function PartyDetails({
             type="button"
             onClick={() => onEdit(party)}
           >
-            <Edit3 size={16} strokeWidth={1.8} />
+            <Edit3
+              size={16}
+              strokeWidth={1.8}
+            />
             Edit Party
           </Button>
         </div>
@@ -816,39 +974,53 @@ function PartyManagement({ onViewParty }) {
     : [];
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("name");
+  const [statusFilter, setStatusFilter] =
+    useState("all");
+  const [sortBy, setSortBy] =
+    useState("name");
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingParty, setEditingParty] = useState(null);
-  const [selectedParty, setSelectedParty] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showForm, setShowForm] =
+    useState(false);
+  const [editingParty, setEditingParty] =
+    useState(null);
+  const [selectedParty, setSelectedParty] =
+    useState(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState(null);
+
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    statusFilter !== "all" ||
+    sortBy !== "name";
 
   const summary = useMemo(() => {
     const total = safeParties.length;
 
     const active = safeParties.filter(
       (party) =>
-        normalize(party?.status) !== "inactive",
+        normalize(party?.status) !==
+        "inactive",
     ).length;
 
     const inactive = safeParties.filter(
       (party) =>
-        normalize(party?.status) === "inactive",
+        normalize(party?.status) ===
+        "inactive",
     ).length;
 
-    const totalBilling = calculateTotalBilling(
-      safeTrips,
-    );
+    const totalBilling =
+      calculateTotalBilling(safeTrips);
 
-    const totalReceived = calculateTotalReceived(
-      safePayments,
-    );
+    const totalReceived =
+      calculateTotalReceived(
+        safePayments,
+      );
 
-    const outstanding = calculateOutstanding(
-      totalBilling,
-      totalReceived,
-    );
+    const outstanding =
+      calculateOutstanding(
+        totalBilling,
+        totalReceived,
+      );
 
     return {
       total,
@@ -859,70 +1031,113 @@ function PartyManagement({ onViewParty }) {
       totalReceived,
       outstanding,
     };
-  }, [safeParties, safeTrips, safePayments]);
+  }, [
+    safeParties,
+    safeTrips,
+    safePayments,
+  ]);
 
   const filteredParties = useMemo(() => {
     const query = normalize(search);
 
-    const result = safeParties.filter((party) => {
-      const matchesSearch =
-        !query ||
-        normalize(party?.partyName).includes(query) ||
-        normalize(party?.partyCode).includes(query) ||
-        normalize(party?.contact).includes(query) ||
-        normalize(party?.address).includes(query) ||
-        normalize(party?.siteInfo).includes(query);
+    const result = safeParties.filter(
+      (party) => {
+        const matchesSearch =
+          !query ||
+          normalize(
+            party?.partyName,
+          ).includes(query) ||
+          normalize(
+            party?.partyCode,
+          ).includes(query) ||
+          normalize(
+            party?.contact,
+          ).includes(query) ||
+          normalize(
+            party?.address,
+          ).includes(query) ||
+          normalize(
+            party?.siteInfo,
+          ).includes(query);
 
-      const partyStatus =
-        normalize(party?.status) === "inactive"
-          ? "inactive"
-          : "active";
+        const partyStatus =
+          normalize(
+            party?.status,
+          ) === "inactive"
+            ? "inactive"
+            : "active";
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        partyStatus === statusFilter;
+        const matchesStatus =
+          statusFilter === "all" ||
+          partyStatus === statusFilter;
 
-      return matchesSearch && matchesStatus;
-    });
+        return (
+          matchesSearch &&
+          matchesStatus
+        );
+      },
+    );
 
-    return [...result].sort((a, b) => {
-      const statsA = getPartyStats(
-        a,
-        safeTrips,
-        safePayments,
-      );
+    return [...result].sort(
+      (a, b) => {
+        const statsA =
+          getPartyStats(
+            a,
+            safeTrips,
+            safePayments,
+          );
 
-      const statsB = getPartyStats(
-        b,
-        safeTrips,
-        safePayments,
-      );
+        const statsB =
+          getPartyStats(
+            b,
+            safeTrips,
+            safePayments,
+          );
 
-      if (sortBy === "trips") {
-        return statsB.trips - statsA.trips;
-      }
+        if (sortBy === "trips") {
+          return (
+            statsB.trips -
+            statsA.trips
+          );
+        }
 
-      if (sortBy === "billing") {
-        return statsB.billing - statsA.billing;
-      }
+        if (sortBy === "billing") {
+          return (
+            statsB.billing -
+            statsA.billing
+          );
+        }
 
-      if (sortBy === "received") {
-        return statsB.received - statsA.received;
-      }
+        if (sortBy === "received") {
+          return (
+            statsB.received -
+            statsA.received
+          );
+        }
 
-      if (sortBy === "outstanding") {
-        return statsB.outstanding - statsA.outstanding;
-      }
+        if (
+          sortBy === "outstanding"
+        ) {
+          return (
+            statsB.outstanding -
+            statsA.outstanding
+          );
+        }
 
-      return String(a?.partyName || "").localeCompare(
-        String(b?.partyName || ""),
-        undefined,
-        {
-          numeric: true,
-          sensitivity: "base",
-        },
-      );
-    });
+        return String(
+          a?.partyName || "",
+        ).localeCompare(
+          String(
+            b?.partyName || "",
+          ),
+          undefined,
+          {
+            numeric: true,
+            sensitivity: "base",
+          },
+        );
+      },
+    );
   }, [
     safeParties,
     safeTrips,
@@ -932,23 +1147,34 @@ function PartyManagement({ onViewParty }) {
     sortBy,
   ]);
 
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setSortBy("name");
+  };
+
   const saveParty = (formData) => {
-    const existingParties = readStorage(
-      STORAGE_KEYS.parties,
-      [],
-    );
+    const existingParties =
+      readStorage(
+        STORAGE_KEYS.parties,
+        [],
+      );
 
-    const list = Array.isArray(existingParties)
-      ? existingParties
-      : [];
+    const list =
+      Array.isArray(existingParties)
+        ? existingParties
+        : [];
 
-    const normalizedName = normalize(
-      formData.partyName,
-    );
+    const normalizedName =
+      normalize(
+        formData.partyName,
+      );
 
     const duplicate = list.find(
       (party) =>
-        normalize(party?.partyName) === normalizedName &&
+        normalize(
+          party?.partyName,
+        ) === normalizedName &&
         party?.id !== formData?.id,
     );
 
@@ -956,22 +1182,26 @@ function PartyManagement({ onViewParty }) {
       window.alert(
         "This party name is already registered.",
       );
+
       return;
     }
 
-    const now = new Date().toISOString();
+    const now =
+      new Date().toISOString();
 
     if (editingParty) {
-      const updatedList = list.map((party) =>
-        party?.id === editingParty?.id
-          ? {
-              ...party,
-              ...formData,
-              id: party.id,
-              updatedAt: now,
-            }
-          : party,
-      );
+      const updatedList =
+        list.map((party) =>
+          party?.id ===
+          editingParty?.id
+            ? {
+                ...party,
+                ...formData,
+                id: party.id,
+                updatedAt: now,
+              }
+            : party,
+        );
 
       writeStorage(
         STORAGE_KEYS.parties,
@@ -985,10 +1215,13 @@ function PartyManagement({ onViewParty }) {
         updatedAt: now,
       };
 
-      writeStorage(STORAGE_KEYS.parties, [
-        ...list,
-        newParty,
-      ]);
+      writeStorage(
+        STORAGE_KEYS.parties,
+        [
+          ...list,
+          newParty,
+        ],
+      );
     }
 
     refreshData?.();
@@ -1004,21 +1237,27 @@ function PartyManagement({ onViewParty }) {
   };
 
   const handleDelete = () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      return;
+    }
 
-    const existingParties = readStorage(
-      STORAGE_KEYS.parties,
-      [],
-    );
+    const existingParties =
+      readStorage(
+        STORAGE_KEYS.parties,
+        [],
+      );
 
-    const list = Array.isArray(existingParties)
-      ? existingParties
-      : [];
+    const list =
+      Array.isArray(existingParties)
+        ? existingParties
+        : [];
 
-    const updatedList = list.filter(
-      (party) =>
-        party?.id !== deleteTarget?.id,
-    );
+    const updatedList =
+      list.filter(
+        (party) =>
+          party?.id !==
+          deleteTarget?.id,
+      );
 
     writeStorage(
       STORAGE_KEYS.parties,
@@ -1029,7 +1268,8 @@ function PartyManagement({ onViewParty }) {
 
     if (
       selectedParty?.id &&
-      selectedParty.id === deleteTarget.id
+      selectedParty.id ===
+        deleteTarget.id
     ) {
       setSelectedParty(null);
     }
@@ -1057,28 +1297,61 @@ function PartyManagement({ onViewParty }) {
 
   return (
     <div className="party-management-page">
+      {/* ===================================================
+          PAGE HEADER
+          =================================================== */}
+
       <div className="party-page-header">
-        <div>
-          <span className="party-page-eyebrow">
-            CUSTOMER MANAGEMENT
-          </span>
+        <div className="party-page-header-content">
+          <div className="party-page-header-icon">
+            <Users
+              size={25}
+              strokeWidth={1.8}
+            />
+          </div>
 
-          <h2>Party Management</h2>
+          <div className="party-page-header-copy">
+            <span className="party-page-eyebrow">
+              CUSTOMER MANAGEMENT
+            </span>
 
-          <p>
-            Manage customers, trip activity, billing,
-            payments and outstanding balances.
-          </p>
+            <h2>Party Management</h2>
+
+            <p>
+              Manage customers, trip activity,
+              billing, payments and outstanding
+              balances from one place.
+            </p>
+          </div>
         </div>
 
-        <Button
-          type="button"
-          onClick={openAddForm}
-        >
-          <Plus size={17} strokeWidth={1.9} />
-          Add Party
-        </Button>
+        <div className="party-page-header-accent">
+          <Users
+            size={17}
+            strokeWidth={1.8}
+          />
+
+          <span>PARTIES</span>
+        </div>
+
+        <div className="party-page-header-action">
+          <Button
+            type="button"
+            onClick={openAddForm}
+          >
+            <Plus
+              size={17}
+              strokeWidth={1.9}
+            />
+
+            Add Party
+          </Button>
+        </div>
       </div>
+
+      {/* ===================================================
+          SUMMARY
+          =================================================== */}
 
       <section
         className="party-summary-grid"
@@ -1094,7 +1367,9 @@ function PartyManagement({ onViewParty }) {
 
           <div>
             <span>Total Parties</span>
-            <strong>{summary.total}</strong>
+            <strong>
+              {summary.total}
+            </strong>
           </div>
         </Card>
 
@@ -1108,7 +1383,9 @@ function PartyManagement({ onViewParty }) {
 
           <div>
             <span>Active</span>
-            <strong>{summary.active}</strong>
+            <strong>
+              {summary.active}
+            </strong>
           </div>
         </Card>
 
@@ -1122,7 +1399,9 @@ function PartyManagement({ onViewParty }) {
 
           <div>
             <span>Inactive</span>
-            <strong>{summary.inactive}</strong>
+            <strong>
+              {summary.inactive}
+            </strong>
           </div>
         </Card>
 
@@ -1136,7 +1415,9 @@ function PartyManagement({ onViewParty }) {
 
           <div>
             <span>Total Trips</span>
-            <strong>{summary.totalTrips}</strong>
+            <strong>
+              {summary.totalTrips}
+            </strong>
           </div>
         </Card>
 
@@ -1151,7 +1432,9 @@ function PartyManagement({ onViewParty }) {
           <div>
             <span>Total Billing</span>
             <strong>
-              {formatCurrency(summary.totalBilling)}
+              {formatCurrency(
+                summary.totalBilling,
+              )}
             </strong>
           </div>
         </Card>
@@ -1167,7 +1450,9 @@ function PartyManagement({ onViewParty }) {
           <div>
             <span>Received</span>
             <strong>
-              {formatCurrency(summary.totalReceived)}
+              {formatCurrency(
+                summary.totalReceived,
+              )}
             </strong>
           </div>
         </Card>
@@ -1183,11 +1468,17 @@ function PartyManagement({ onViewParty }) {
           <div>
             <span>Outstanding</span>
             <strong>
-              {formatCurrency(summary.outstanding)}
+              {formatCurrency(
+                summary.outstanding,
+              )}
             </strong>
           </div>
         </Card>
       </section>
+
+      {/* ===================================================
+          FORM
+          =================================================== */}
 
       {showForm && (
         <Card className="party-form-card">
@@ -1199,26 +1490,54 @@ function PartyManagement({ onViewParty }) {
         </Card>
       )}
 
+      {/* ===================================================
+          TOOLBAR
+          =================================================== */}
+
       <Card className="party-toolbar-card">
         <div className="party-toolbar">
           <div className="party-search">
             <Search
               size={17}
               strokeWidth={1.8}
+              aria-hidden="true"
             />
 
             <input
               type="search"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value,
+                )
               }
               placeholder="Search party, code, contact or site..."
               aria-label="Search parties"
             />
+
+            {search && (
+              <button
+                type="button"
+                className="party-search-clear"
+                onClick={() =>
+                  setSearch("")
+                }
+                aria-label="Clear party search"
+                title="Clear search"
+              >
+                <X
+                  size={15}
+                  strokeWidth={1.9}
+                />
+              </button>
+            )}
           </div>
 
-          <div className="party-filter-tabs">
+          <div
+            className="party-filter-tabs"
+            role="group"
+            aria-label="Party status filter"
+          >
             <button
               type="button"
               className={
@@ -1228,6 +1547,9 @@ function PartyManagement({ onViewParty }) {
               }
               onClick={() =>
                 setStatusFilter("all")
+              }
+              aria-pressed={
+                statusFilter === "all"
               }
             >
               All
@@ -1243,6 +1565,9 @@ function PartyManagement({ onViewParty }) {
               onClick={() =>
                 setStatusFilter("active")
               }
+              aria-pressed={
+                statusFilter === "active"
+              }
             >
               Active
             </button>
@@ -1255,7 +1580,12 @@ function PartyManagement({ onViewParty }) {
                   : ""
               }
               onClick={() =>
-                setStatusFilter("inactive")
+                setStatusFilter(
+                  "inactive",
+                )
+              }
+              aria-pressed={
+                statusFilter === "inactive"
               }
             >
               Inactive
@@ -1268,8 +1598,11 @@ function PartyManagement({ onViewParty }) {
             <select
               value={sortBy}
               onChange={(event) =>
-                setSortBy(event.target.value)
+                setSortBy(
+                  event.target.value,
+                )
               }
+              aria-label="Sort parties"
             >
               <option value="name">
                 Party Name
@@ -1292,13 +1625,34 @@ function PartyManagement({ onViewParty }) {
               </option>
             </select>
           </label>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="party-clear-filters"
+              onClick={clearFilters}
+              title="Reset search, filter and sorting"
+            >
+              <X
+                size={14}
+                strokeWidth={1.9}
+              />
+
+              Clear Filters
+            </button>
+          )}
         </div>
       </Card>
+
+      {/* ===================================================
+          PARTY TABLE
+          =================================================== */}
 
       <Card className="party-table-card">
         <div className="party-table-header">
           <div>
             <span>PARTY REGISTER</span>
+
             <strong>All Parties</strong>
           </div>
 
@@ -1326,10 +1680,10 @@ function PartyManagement({ onViewParty }) {
             <p>
               {safeParties.length === 0
                 ? "Add your first customer to start managing party-wise business."
-                : "Try changing the search or status filter."}
+                : "Try changing your search or status filter."}
             </p>
 
-            {safeParties.length === 0 && (
+            {safeParties.length === 0 ? (
               <Button
                 type="button"
                 onClick={openAddForm}
@@ -1338,9 +1692,23 @@ function PartyManagement({ onViewParty }) {
                   size={16}
                   strokeWidth={1.9}
                 />
+
                 Add First Party
               </Button>
-            )}
+            ) : hasActiveFilters ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={clearFilters}
+              >
+                <X
+                  size={16}
+                  strokeWidth={1.9}
+                />
+
+                Clear Filters
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div className="party-table-wrap">
@@ -1359,167 +1727,198 @@ function PartyManagement({ onViewParty }) {
               </thead>
 
               <tbody>
-                {filteredParties.map((party) => {
-                  const stats = getPartyStats(
-                    party,
-                    safeTrips,
-                    safePayments,
-                  );
+                {filteredParties.map(
+                  (party) => {
+                    const stats =
+                      getPartyStats(
+                        party,
+                        safeTrips,
+                        safePayments,
+                      );
 
-                  return (
-                    <tr key={party?.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className="party-identity"
-                          onClick={() =>
-                            openPartyDetails(party)
-                          }
-                        >
-                          <span className="party-avatar">
-                            {getInitials(
-                              party?.partyName,
-                            )}
-                          </span>
-
-                          <span>
-                            <strong>
-                              {party?.partyName ||
-                                "Unnamed Party"}
-                            </strong>
-
-                            <small>
-                              {party?.partyCode ||
-                                "No party code"}
-                            </small>
-                          </span>
-                        </button>
-                      </td>
-
-                      <td>
-                        <div className="party-contact-cell">
-                          <strong>
-                            {party?.contact ||
-                              "Not provided"}
-                          </strong>
-
-                          <small>
-                            {party?.siteInfo ||
-                              party?.address ||
-                              "No site information"}
-                          </small>
-                        </div>
-                      </td>
-
-                      <td>
-                        <strong className="party-number">
-                          {stats.trips}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <strong className="party-money">
-                          {formatCurrency(
-                            stats.billing,
-                          )}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <strong className="party-money">
-                          {formatCurrency(
-                            stats.received,
-                          )}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <strong
-                          className={
-                            stats.outstanding > 0
-                              ? "party-money party-money-due"
-                              : "party-money"
-                          }
-                        >
-                          {formatCurrency(
-                            stats.outstanding,
-                          )}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <StatusBadge
-                          status={
-                            party?.status ||
-                            "active"
-                          }
-                          label={
-                            normalize(
-                              party?.status,
-                            ) === "inactive"
-                              ? "Inactive"
-                              : "Active"
-                          }
-                        />
-                      </td>
-
-                      <td>
-                        <div className="party-row-actions">
+                    return (
+                      <tr
+                        key={party?.id}
+                      >
+                        <td>
                           <button
                             type="button"
-                            title="View details"
-                            aria-label={`View ${party?.partyName || "party"} details`}
+                            className="party-identity"
                             onClick={() =>
                               openPartyDetails(
                                 party,
                               )
                             }
+                            title={`View ${party?.partyName || "party"} details`}
                           >
-                            <MoreVertical
-                              size={17}
-                              strokeWidth={1.8}
-                            />
-                          </button>
+                            <span className="party-avatar">
+                              {getInitials(
+                                party?.partyName,
+                              )}
+                            </span>
 
-                          <button
-                            type="button"
-                            title="Edit party"
-                            aria-label={`Edit ${party?.partyName || "party"}`}
-                            onClick={() =>
-                              handleEdit(party)
+                            <span>
+                              <strong>
+                                {party?.partyName ||
+                                  "Unnamed Party"}
+                              </strong>
+
+                              <small>
+                                {party?.partyCode ||
+                                  "No party code"}
+                              </small>
+                            </span>
+                          </button>
+                        </td>
+
+                        <td>
+                          <div className="party-contact-cell">
+                            <strong>
+                              {party?.contact ||
+                                "Not provided"}
+                            </strong>
+
+                            <small>
+                              {party?.siteInfo ||
+                                party?.address ||
+                                "No site information"}
+                            </small>
+                          </div>
+                        </td>
+
+                        <td>
+                          <strong className="party-number">
+                            {stats.trips}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong className="party-money">
+                            {formatCurrency(
+                              stats.billing,
+                            )}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong className="party-money">
+                            {formatCurrency(
+                              stats.received,
+                            )}
+                          </strong>
+                        </td>
+
+                        <td>
+                          <strong
+                            className={
+                              stats.outstanding >
+                              0
+                                ? "party-money party-money-due"
+                                : "party-money"
                             }
                           >
-                            <Edit3
-                              size={16}
-                              strokeWidth={1.8}
-                            />
-                          </button>
+                            {formatCurrency(
+                              stats.outstanding,
+                            )}
+                          </strong>
+                        </td>
 
-                          <button
-                            type="button"
-                            title="Delete party"
-                            aria-label={`Delete ${party?.partyName || "party"}`}
-                            onClick={() =>
-                              setDeleteTarget(
-                                party,
-                              )
+                        <td>
+                          <StatusBadge
+                            status={
+                              party?.status ||
+                              "active"
                             }
-                          >
-                            <Trash2
-                              size={16}
-                              strokeWidth={1.8}
-                            />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                            label={
+                              normalize(
+                                party?.status,
+                              ) ===
+                              "inactive"
+                                ? "Inactive"
+                                : "Active"
+                            }
+                          />
+                        </td>
+
+                        <td>
+                          <div className="party-row-actions">
+                            <button
+                              type="button"
+                              title="View details"
+                              aria-label={`View ${
+                                party?.partyName ||
+                                "party"
+                              } details`}
+                              onClick={() =>
+                                openPartyDetails(
+                                  party,
+                                )
+                              }
+                            >
+                              <MoreVertical
+                                size={17}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Edit party"
+                              aria-label={`Edit ${
+                                party?.partyName ||
+                                "party"
+                              }`}
+                              onClick={() =>
+                                handleEdit(
+                                  party,
+                                )
+                              }
+                            >
+                              <Edit3
+                                size={16}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Delete party"
+                              aria-label={`Delete ${
+                                party?.partyName ||
+                                "party"
+                              }`}
+                              onClick={() =>
+                                setDeleteTarget(
+                                  party,
+                                )
+                              }
+                            >
+                              <Trash2
+                                size={16}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
               </tbody>
             </table>
           </div>
         )}
       </Card>
+
+      {/* ===================================================
+          PARTY DETAILS
+          =================================================== */}
 
       {selectedParty && (
         <PartyDetails
@@ -1533,12 +1932,19 @@ function PartyManagement({ onViewParty }) {
         />
       )}
 
+      {/* ===================================================
+          DELETE CONFIRMATION
+          =================================================== */}
+
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Delete party?"
         message={
           deleteTarget
-            ? `Are you sure you want to delete ${deleteTarget.partyName || "this party"}? Existing trip and payment records will not be deleted.`
+            ? `Are you sure you want to delete ${
+                deleteTarget.partyName ||
+                "this party"
+              }? Existing trip and payment records will not be deleted.`
             : ""
         }
         confirmLabel="Delete Party"

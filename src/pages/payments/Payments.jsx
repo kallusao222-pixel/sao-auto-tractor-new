@@ -160,6 +160,21 @@ function Modal({
   children,
   wide = false,
 }) {
+  // UPDATED: Esc key close support
+  useEffect(() => {
+    const handleKey = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose]);
+
   return (
     <div
       className="payments-modal-overlay"
@@ -777,6 +792,18 @@ export default function Payments() {
     }, 350);
   };
 
+  // ============================================================
+  // UPDATED: Print full party statement
+  // ============================================================
+
+  const printStatement = () => {
+    if (!statementParty) return;
+
+    setTimeout(() => {
+      window.print();
+    }, 120);
+  };
+
   const statementPayments =
     useMemo(() => {
       if (!statementParty) {
@@ -1376,27 +1403,25 @@ export default function Payments() {
               )}
             </select>
 
+            {/* UPDATED: View Statement → Print Statement */}
             <button
               type="button"
               className="payments-btn payments-btn-secondary"
               disabled={
                 !statementParty
               }
-              onClick={() =>
-                setStatementParty(
-                  statementParty
-                )
-              }
+              onClick={printStatement}
+              title="Print party payment statement"
             >
-              <FileText size={16} />
-              View Statement
+              <Printer size={16} />
+              Print Statement
             </button>
           </div>
         </div>
       </section>
 
       {/* ============================================================
-          ADD / EDIT PAYMENT MODAL (UPDATED)
+          ADD / EDIT PAYMENT MODAL
       ============================================================ */}
 
       {formOpen && (
@@ -1998,6 +2023,91 @@ export default function Payments() {
               <span>
                 Authorized Signature
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          PRINT STATEMENT (only visible during print of a statement)
+      ============================================================ */}
+
+      {statementParty && (
+        <div className="payments-print-statement">
+          <div className="print-statement-inner">
+            <div className="print-statement-header">
+              <div>
+                <div className="print-statement-eyebrow">
+                  PAYMENT STATEMENT
+                </div>
+
+                <h1>SAO AUTO TRACTOR</h1>
+
+                <p>Party-wise Payment History</p>
+              </div>
+
+              <ReceiptText size={38} />
+            </div>
+
+            <div className="print-statement-party">
+              <span>Party</span>
+              <strong>{statementParty}</strong>
+            </div>
+
+            <div className="print-statement-grid">
+              <div>
+                <span>Total Received</span>
+                <strong>
+                  {money(
+                    statementPayments.reduce(
+                      (sum, payment) =>
+                        sum + getAmount(payment),
+                      0
+                    )
+                  )}
+                </strong>
+              </div>
+
+              <div>
+                <span>Entries</span>
+                <strong>{statementPayments.length}</strong>
+              </div>
+
+              <div>
+                <span>Generated</span>
+                <strong>{formatDate(todayISO())}</strong>
+              </div>
+            </div>
+
+            <table className="print-statement-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Mode</th>
+                  <th>Reference</th>
+                  <th>Notes</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {statementPayments.map((payment, index) => (
+                  <tr key={payment.id || index}>
+                    <td>{formatDate(getDate(payment))}</td>
+                    <td>{getMode(payment)}</td>
+                    <td>{getReference(payment) || "—"}</td>
+                    <td>{getNotes(payment) || "—"}</td>
+                    <td className="align-right">
+                      {money(getAmount(payment))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="print-statement-footer">
+              <span>Computer generated statement.</span>
+              <span>Authorized Signature</span>
             </div>
           </div>
         </div>

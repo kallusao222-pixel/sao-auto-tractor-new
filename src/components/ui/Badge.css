@@ -1,68 +1,56 @@
-.ui-badge {
+.badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  width: fit-content;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-family: var(--font-body);
-  font-weight: 600;
-  line-height: 1;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
   white-space: nowrap;
 }
 
-.ui-badge-small {
-  min-height: 22px;
-  padding: 0 8px;
-  font-size: 10px;
-}
+.badge--sm { padding: 2px 8px; font-size: 0.68rem; }
+.badge--md { padding: 4px 10px; font-size: 0.74rem; }
 
-.ui-badge-medium {
-  min-height: 26px;
-  padding: 0 10px;
-  font-size: 11px;
-}
-
-.ui-badge-dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.ui-badge-neutral {
+.badge--neutral {
+  background: var(--color-surface-muted);
   color: var(--color-text-secondary);
-  background: var(--color-surface-soft);
   border-color: var(--color-border);
 }
 
-.ui-badge-primary {
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
-}
-
-.ui-badge-success {
-  color: var(--color-success);
+.badge--success {
   background: var(--color-success-soft);
-  border-color: var(--color-success-border);
+  color: var(--color-success);
+  border-color: rgba(40, 122, 82, 0.2);
 }
 
-.ui-badge-warning {
-  color: var(--color-warning);
+.badge--warning {
   background: var(--color-warning-soft);
-  border-color: var(--color-warning-border);
+  color: var(--color-warning);
+  border-color: rgba(166, 111, 25, 0.2);
 }
 
-.ui-badge-danger {
-  color: var(--color-danger);
+.badge--danger {
   background: var(--color-danger-soft);
-  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+  border-color: rgba(181, 77, 77, 0.2);
 }
 
-.ui-badge-info {
-  color: var(--color-info);
+.badge--info {
   background: var(--color-info-soft);
-  border-color: var(--color-info-border);
+  color: var(--color-info);
+  border-color: rgba(53, 107, 143, 0.2);
+}
+
+.badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

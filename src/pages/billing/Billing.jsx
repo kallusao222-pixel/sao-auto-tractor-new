@@ -1246,8 +1246,8 @@ function Billing() {
             </div>
           </div>
 
-          {dueParties.length === 0 ? (
-            <div className="payment-error">
+                    {dueParties.length === 0 ? (
+            <div role="status" aria-live="polite" className="payment-error">
               <AlertCircle size={15} />
               <span>No party currently has any outstanding due.</span>
             </div>
@@ -1329,11 +1329,13 @@ function Billing() {
                 </div>
               )}
 
-              {paymentError && (
-                <div className="payment-error">
-                  <AlertCircle size={15} /> {paymentError}
-                </div>
-              )}
+                            <div role="status" aria-live="polite" className="payment-status-region">
+                {paymentError && (
+                  <div className="payment-error">
+                    <AlertCircle size={15} /> {paymentError}
+                  </div>
+                )}
+              </div>
 
               <div className="payment-form-actions">
                 <button

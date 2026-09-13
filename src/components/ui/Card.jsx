@@ -1,49 +1,24 @@
 import "./Card.css";
 
-function Card({
+export default function Card({
   children,
-  title = "",
-  description = "",
-  actions = null,
-  padding = "medium",
+  padding = "md",
+  interactive = false,
   className = "",
-  as: Component = "section",
+  ...rest
 }) {
   const classes = [
-    "ui-card",
-    `ui-card-padding-${padding}`,
+    "card",
+    `card--pad-${padding}`,
+    interactive && "card--interactive",
     className,
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <Component className={classes}>
-      {(title || description || actions) && (
-        <div className="ui-card-header">
-          <div className="ui-card-heading">
-            {title && (
-              <h2>{title}</h2>
-            )}
-
-            {description && (
-              <p>{description}</p>
-            )}
-          </div>
-
-          {actions && (
-            <div className="ui-card-actions">
-              {actions}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="ui-card-body">
-        {children}
-      </div>
-    </Component>
+    <div className={classes} {...rest}>
+      {children}
+    </div>
   );
 }
-
-export default Card;

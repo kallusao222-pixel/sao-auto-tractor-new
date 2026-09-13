@@ -1,0 +1,2934 @@
+/* ============================================================
+   SAO AUTO TRACTOR
+   DAILY REPORT — MASTER PREMIUM UI / UX
+   FINAL REPLACEMENT
+   ============================================================ */
+
+/* ============================================================
+   ROOT / PAGE
+============================================================ */
+
+.daily-report-page,
+.daily-full-report-page {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 28px 24px 44px;
+
+  color: #152033;
+  font-family: "Outfit", sans-serif;
+
+  box-sizing: border-box;
+}
+
+.daily-report-page *,
+.daily-report-page *::before,
+.daily-report-page *::after,
+.daily-full-report-page *,
+.daily-full-report-page *::before,
+.daily-full-report-page *::after {
+  box-sizing: border-box;
+}
+
+
+/* ============================================================
+   COMMON BUTTON SYSTEM
+============================================================ */
+
+.daily-btn {
+  min-height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+  padding: 0 14px;
+
+  border: 1px solid transparent;
+  border-radius: 9px;
+
+  font-family: "Outfit", sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.daily-btn svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.daily-btn:hover {
+  transform: translateY(-1px);
+}
+
+.daily-btn:active {
+  transform: translateY(0);
+}
+
+.daily-btn:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(27, 75, 115, 0.13);
+}
+
+.daily-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* PRIMARY */
+
+.daily-btn-primary {
+  color: #fff;
+
+  background: #1b4b73;
+  border-color: #1b4b73;
+
+  box-shadow:
+    0 5px 15px rgba(27, 75, 115, 0.17);
+}
+
+.daily-btn-primary:hover {
+  color: #fff;
+
+  background: #143a59;
+  border-color: #143a59;
+
+  box-shadow:
+    0 7px 18px rgba(27, 75, 115, 0.22);
+}
+
+
+/* LIGHT */
+
+.daily-btn-light {
+  color: #34445a;
+
+  background: rgba(255, 252, 247, 0.98);
+  border-color: #dcd5ca;
+
+  box-shadow:
+    0 2px 7px rgba(21, 32, 51, 0.025);
+}
+
+.daily-btn-light:hover {
+  color: #1b4b73;
+
+  background: #fff;
+  border-color: #c9c0b3;
+
+  box-shadow:
+    0 4px 11px rgba(21, 32, 51, 0.06);
+}
+
+
+/* GHOST */
+
+.daily-btn-ghost {
+  color: #716b63;
+
+  background: transparent;
+  border-color: transparent;
+
+  box-shadow: none;
+}
+
+.daily-btn-ghost:hover {
+  color: #1b4b73;
+
+  background: #f3efe6;
+  border-color: #e3dacd;
+}
+
+
+/* SMALL */
+
+.daily-btn-small {
+  min-height: 35px;
+
+  padding: 0 11px;
+
+  font-size: 10.5px;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.daily-report-header {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 28px;
+
+  margin-bottom: 18px;
+  padding: 22px 24px;
+
+  overflow: hidden;
+
+  border: 1px solid #ddd6ca;
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 252, 247, 0.99) 0%,
+      rgba(248, 244, 236, 0.97) 100%
+    );
+
+  box-shadow:
+    0 9px 28px rgba(21, 32, 51, 0.043),
+    0 1px 2px rgba(21, 32, 51, 0.025);
+}
+
+.daily-report-header::before {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 3px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #1b4b73,
+      #9c7349
+    );
+
+  pointer-events: none;
+}
+
+.daily-report-header::after {
+  content: "";
+
+  position: absolute;
+
+  width: 260px;
+  height: 260px;
+
+  right: -100px;
+  top: -130px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(27, 75, 115, 0.055) 0%,
+      rgba(27, 75, 115, 0) 70%
+    );
+
+  pointer-events: none;
+}
+
+
+/* TITLE */
+
+.daily-report-title {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  min-width: 0;
+}
+
+.daily-report-icon {
+  width: 47px;
+  height: 47px;
+  flex: 0 0 47px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #d7e1e8;
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #f2f6f8,
+      #e7eff4
+    );
+
+  color: #1b4b73;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.daily-report-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.daily-report-title > div:last-child {
+  min-width: 0;
+}
+
+.daily-report-title h1 {
+  margin: 3px 0 0;
+
+  color: #152033;
+
+  font-family: "Fraunces", serif;
+  font-size: 29px;
+  line-height: 1.08;
+  font-weight: 650;
+
+  letter-spacing: -0.6px;
+}
+
+.daily-report-title p {
+  margin: 5px 0 0;
+
+  color: #6d675e;
+
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.section-kicker {
+  display: block;
+
+  color: #9c7349;
+
+  font-size: 9px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+}
+
+
+/* ACTIONS */
+
+.daily-report-actions {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 7px;
+  flex-wrap: wrap;
+
+  flex: 0 0 auto;
+}
+
+
+/* ============================================================
+   CONTROL BAR
+============================================================ */
+
+.daily-report-controls {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+  flex-wrap: wrap;
+
+  margin-bottom: 12px;
+  padding: 10px 11px;
+
+  border: 1px solid #ddd6ca;
+  border-radius: 12px;
+
+  background: rgba(255, 252, 247, 0.95);
+
+  box-shadow:
+    0 5px 18px rgba(21, 32, 51, 0.032);
+}
+
+
+/* DATE */
+
+.daily-date-picker {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  flex: 0 0 auto;
+}
+
+.daily-date-input-wrap {
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 10px;
+
+  border: 1px solid #dcd5ca;
+  border-radius: 9px;
+
+  background: #fff;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.daily-date-input-wrap:hover {
+  border-color: #cfc6b9;
+}
+
+.daily-date-input-wrap:focus-within {
+  border-color: #1b4b73;
+
+  box-shadow:
+    0 0 0 3px rgba(27, 75, 115, 0.08);
+}
+
+.daily-date-input-wrap svg {
+  width: 15px;
+  height: 15px;
+
+  flex: 0 0 auto;
+
+  color: #1b4b73;
+}
+
+.daily-date-input-wrap input {
+  width: 132px;
+  min-width: 0;
+  height: 100%;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+  color: #152033;
+
+  font-family: "Outfit", sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.daily-date-input-wrap input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.62;
+}
+
+.daily-date-display {
+  color: #1b4b73;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+/* SEARCH */
+
+.daily-search-box {
+  flex: 1 1 260px;
+  min-width: 190px;
+
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 10px;
+
+  border: 1px solid #dcd5ca;
+  border-radius: 9px;
+
+  background: #fff;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.daily-search-box:hover {
+  border-color: #cfc6b9;
+}
+
+.daily-search-box:focus-within {
+  border-color: #1b4b73;
+
+  box-shadow:
+    0 0 0 3px rgba(27, 75, 115, 0.08);
+}
+
+.daily-search-box > svg {
+  width: 15px;
+  height: 15px;
+
+  flex: 0 0 auto;
+
+  color: #8a8379;
+}
+
+.daily-search-box input {
+  flex: 1 1 auto;
+
+  min-width: 0;
+  height: 100%;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+  color: #152033;
+
+  font-family: "Outfit", sans-serif;
+  font-size: 11.5px;
+}
+
+.daily-search-box input::placeholder {
+  color: #aaa49a;
+}
+
+.daily-search-box > button {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+  color: #8a8379;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.daily-search-box > button:hover {
+  background: #f3efe6;
+  color: #1b4b73;
+}
+
+.daily-search-box > button:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 2px rgba(27, 75, 115, 0.14);
+}
+
+
+/* ============================================================
+   FILTERS
+============================================================ */
+
+.daily-filters-panel {
+  display: flex;
+  align-items: flex-end;
+
+  gap: 13px;
+  flex-wrap: wrap;
+
+  margin-bottom: 13px;
+  padding: 14px 15px;
+
+  border: 1px solid #e0d8cc;
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f9f6f0,
+      #f4efe6
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.daily-filter-group {
+  width: min(240px, 100%);
+  min-width: 170px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.daily-filter-group label {
+  color: #6d675e;
+
+  font-size: 9px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 0.75px;
+  text-transform: uppercase;
+}
+
+.daily-filter-group select {
+  width: 100%;
+  height: 36px;
+
+  padding: 0 10px;
+
+  border: 1px solid #d9d2c7;
+  border-radius: 8px;
+
+  background: #fffdf9;
+  color: #152033;
+
+  font-family: "Outfit", sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+
+  outline: none;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.daily-filter-group select:hover {
+  border-color: #c8c0b4;
+}
+
+.daily-filter-group select:focus {
+  border-color: #1b4b73;
+
+  box-shadow:
+    0 0 0 3px rgba(27, 75, 115, 0.08);
+}
+
+
+/* ============================================================
+   KPI STATS
+============================================================ */
+
+.daily-stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-bottom: 15px;
+}
+
+.daily-stat {
+  position: relative;
+
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+
+  padding: 13px 14px;
+
+  overflow: hidden;
+
+  border: 1px solid #ddd6ca;
+  border-radius: 12px;
+
+  background: #fffcf7;
+
+  box-shadow:
+    0 5px 17px rgba(21, 32, 51, 0.033);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.daily-stat:hover {
+  border-color: #d1c8bb;
+
+  box-shadow:
+    0 8px 21px rgba(21, 32, 51, 0.055);
+
+  transform: translateY(-1px);
+}
+
+.daily-stat::after {
+  content: "";
+
+  position: absolute;
+
+  right: -38px;
+  bottom: -48px;
+
+  width: 115px;
+  height: 115px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(27, 75, 115, 0.045),
+      rgba(27, 75, 115, 0) 70%
+    );
+
+  pointer-events: none;
+}
+
+.daily-stat-icon {
+  position: relative;
+  z-index: 1;
+
+  width: 37px;
+  height: 37px;
+  flex: 0 0 37px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid #d8e2e9;
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #f0f5f8,
+      #e8f0f4
+    );
+
+  color: #1b4b73;
+}
+
+.daily-stat-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.daily-stat > div:last-child {
+  position: relative;
+  z-index: 1;
+
+  min-width: 0;
+}
+
+.daily-stat span {
+  display: block;
+
+  margin-bottom: 2px;
+
+  color: #70695f;
+
+  font-size: 9.5px;
+  line-height: 1.3;
+
+  font-weight: 650;
+}
+
+.daily-stat strong {
+  display: block;
+
+  color: #152033;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 18px;
+  line-height: 1.15;
+
+  font-weight: 700;
+
+  letter-spacing: -0.2px;
+}
+
+
+/* ============================================================
+   MAIN REPORT CARD
+============================================================ */
+
+.daily-report-card {
+  position: relative;
+
+  overflow: hidden;
+
+  border: 1px solid #ddd6ca;
+  border-radius: 15px;
+
+  background: #fffcf7;
+
+  box-shadow:
+    0 10px 30px rgba(21, 32, 51, 0.045);
+}
+
+
+/* HEADER */
+
+.daily-report-card-header {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 18px;
+
+  padding: 16px 19px 15px;
+
+  border-bottom: 1px solid #e4ded5;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 252, 247, 0.99),
+      rgba(249, 246, 240, 0.96)
+    );
+}
+
+.daily-report-card-header::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 3px;
+
+  background: #1b4b73;
+}
+
+.daily-report-card-header h2 {
+  margin: 0;
+
+  color: #152033;
+
+  font-family: "Fraunces", serif;
+  font-size: 18px;
+  line-height: 1.15;
+
+  font-weight: 650;
+
+  letter-spacing: -0.2px;
+}
+
+.daily-report-card-header p {
+  margin: 4px 0 0;
+
+  color: #6d675e;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.daily-record-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 29px;
+
+  padding: 0 11px;
+
+  border: 1px solid #d8e2e9;
+  border-radius: 8px;
+
+  background: #edf3f7;
+  color: #1b4b73;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   MAIN TABLE
+============================================================ */
+
+.daily-table-wrap {
+  width: 100%;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  -webkit-overflow-scrolling: touch;
+
+  scrollbar-width: thin;
+  scrollbar-color: #cfc7bb transparent;
+}
+
+.daily-table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.daily-table-wrap::-webkit-scrollbar-track {
+  background: #f6f2eb;
+}
+
+.daily-table-wrap::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+
+  background: #cfc7bb;
+}
+
+.daily-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #b7aea0;
+}
+
+.daily-table {
+  width: 100%;
+  min-width: 790px;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  table-layout: auto;
+}
+
+.daily-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
+  padding: 10px 13px;
+
+  border-bottom: 1px solid #d9d2c8;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f7f3ed,
+      #f2eee7
+    );
+
+  color: #686259;
+
+  font-size: 8.5px;
+  line-height: 1.2;
+
+  font-weight: 800;
+
+  letter-spacing: 0.65px;
+  text-transform: uppercase;
+
+  text-align: left;
+
+  white-space: nowrap;
+}
+
+.daily-table td {
+  padding: 11px 13px;
+
+  border-bottom: 1px solid #eee9e1;
+
+  color: #465264;
+
+  font-size: 11.5px;
+  line-height: 1.4;
+
+  vertical-align: middle;
+}
+
+.daily-table th:first-child,
+.daily-table td:first-child {
+  padding-left: 17px;
+}
+
+.daily-table th:last-child,
+.daily-table td:last-child {
+  padding-right: 17px;
+}
+
+.daily-table tbody tr {
+  transition:
+    background-color 0.14s ease;
+}
+
+.daily-table tbody tr:hover {
+  background: rgba(237, 243, 247, 0.54);
+}
+
+.daily-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.daily-table td strong {
+  color: #152033;
+  font-weight: 700;
+}
+
+.daily-row-num {
+  width: 42px;
+
+  color: #a29b91 !important;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px !important;
+}
+
+.daily-table th:nth-child(2),
+.daily-table td:nth-child(2) {
+  min-width: 105px;
+}
+
+.daily-table th:nth-child(3),
+.daily-table td:nth-child(3) {
+  min-width: 112px;
+}
+
+.daily-table th:nth-child(4),
+.daily-table td:nth-child(4) {
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.daily-table th:nth-child(5),
+.daily-table td:nth-child(5) {
+  min-width: 185px;
+  max-width: 310px;
+}
+
+.daily-table th:nth-child(6),
+.daily-table td:nth-child(6) {
+  min-width: 120px;
+  max-width: 220px;
+}
+
+.daily-table th:nth-child(7),
+.daily-table td:nth-child(7) {
+  width: 70px;
+  min-width: 70px;
+}
+
+.daily-site-location {
+  display: inline;
+
+  color: #465264;
+
+  line-height: 1.45;
+
+  overflow-wrap: anywhere;
+}
+
+.daily-col-center {
+  text-align: center !important;
+}
+
+.daily-trip-badge {
+  min-width: 34px;
+  height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 8px;
+
+  border: 1px solid #174566;
+  border-radius: 7px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #1d527c,
+      #19466b
+    );
+
+  color: #fff;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+
+  box-shadow:
+    0 2px 6px rgba(27, 75, 115, 0.12);
+}
+
+
+/* ============================================================
+   VEHICLE SUMMARY
+============================================================ */
+
+.daily-summary-section {
+  padding: 18px 20px 17px;
+
+  border-top: 1px solid #e3ddd3;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f9f6f0,
+      #f4efe6
+    );
+}
+
+.daily-summary-section h3 {
+  margin: 0;
+
+  color: #152033;
+
+  font-family: "Fraunces", serif;
+  font-size: 15.5px;
+  line-height: 1.2;
+
+  font-weight: 650;
+}
+
+.daily-summary-note {
+  margin: 4px 0 13px;
+
+  color: #898278;
+
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+
+/* VEHICLE GRID */
+
+.daily-vehicle-summary-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(260px, 1fr));
+
+  gap: 9px;
+
+  margin-bottom: 15px;
+}
+
+.daily-vehicle-summary-item {
+  min-width: 0;
+
+  padding: 12px 13px;
+
+  border: 1px solid #ddd5c9;
+  border-radius: 10px;
+
+  background: rgba(255, 252, 247, 0.92);
+
+  box-shadow:
+    0 2px 8px rgba(21, 32, 51, 0.025);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.daily-vehicle-summary-item:hover {
+  border-color: #d0c7ba;
+
+  box-shadow:
+    0 5px 13px rgba(21, 32, 51, 0.045);
+
+  transform: translateY(-1px);
+}
+
+.daily-vehicle-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  min-width: 0;
+
+  margin-bottom: 9px;
+}
+
+.daily-vehicle-summary-top > strong {
+  min-width: 0;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #152033;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  line-height: 1.2;
+
+  font-weight: 700;
+}
+
+.daily-vehicle-total {
+  flex: 0 0 auto;
+
+  color: #1b4b73;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.daily-vehicle-breakdown {
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.daily-summary-chip {
+  min-height: 23px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  padding: 0 7px;
+
+  border: 1px solid transparent;
+  border-radius: 6px;
+
+  font-size: 9px;
+  line-height: 1;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.daily-summary-chip strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+/* LOADING */
+
+.daily-summary-chip-loading {
+  color: #1b4b73;
+
+  background: #edf3f7;
+  border-color: #d6e2e9;
+}
+
+
+/* UNLOADING */
+
+.daily-summary-chip-unloading {
+  color: #8a6036;
+
+  background: #f6eee4;
+  border-color: #e6d7c6;
+}
+
+
+/* SITE TO SITE */
+
+.daily-summary-chip-site {
+  color: #5e665f;
+
+  background: #f0f1ed;
+  border-color: #dcdfd8;
+}
+
+
+/* OTHER */
+
+.daily-summary-chip-other {
+  color: #6d675e;
+
+  background: #f1eee8;
+  border-color: #ded8cd;
+}
+
+
+/* TOTAL */
+
+.daily-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 17px;
+
+  padding: 10px 2px 2px;
+
+  border-top: 1px solid #cec5b8;
+}
+
+.daily-total-row span {
+  color: #394454;
+
+  font-size: 12px;
+  line-height: 1.2;
+
+  font-weight: 700;
+}
+
+.daily-total-row strong {
+  min-width: 44px;
+
+  color: #1b4b73;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 19px;
+  line-height: 1.1;
+
+  font-weight: 700;
+
+  text-align: right;
+}
+
+
+/* ============================================================
+   REPORT FOOTER
+============================================================ */
+
+.daily-report-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  padding: 12px 20px;
+
+  border-top: 1px solid #e5dfd6;
+
+  background: #fffcf7;
+
+  color: #8a8379;
+
+  font-size: 9.5px;
+  line-height: 1.35;
+}
+
+.daily-company {
+  color: #1b4b73;
+  font-weight: 800;
+}
+
+.daily-footer-date {
+  white-space: nowrap;
+}
+
+
+/* ============================================================
+   PAGE FOOTER
+============================================================ */
+
+.daily-page-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding-top: 18px;
+
+  color: #8a8379;
+
+  font-size: 9.5px;
+}
+
+.daily-page-footer strong {
+  color: #1b4b73;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+============================================================ */
+
+.daily-empty {
+  min-height: 255px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 45px 20px;
+
+  text-align: center;
+}
+
+.daily-empty svg {
+  width: 38px;
+  height: 38px;
+
+  margin-bottom: 12px;
+
+  color: #1b4b73;
+  opacity: 0.42;
+}
+
+.daily-empty strong {
+  color: #152033;
+
+  font-family: "Fraunces", serif;
+  font-size: 16px;
+  line-height: 1.2;
+
+  font-weight: 600;
+}
+
+.daily-empty p {
+  max-width: 370px;
+
+  margin: 6px auto 0;
+
+  color: #6d675e;
+
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+
+/* ============================================================
+   FULL REPORT SCREEN
+============================================================ */
+
+.daily-full-report-page {
+  max-width: 1220px;
+  min-height: 100vh;
+
+  padding-top: 21px;
+}
+
+
+/* TOOLBAR */
+
+.daily-full-report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  margin-bottom: 15px;
+}
+
+
+/* PRINT REPORT */
+
+.daily-print-report {
+  width: 100%;
+  max-width: 1060px;
+
+  margin: 0 auto;
+
+  padding: 38px 43px;
+
+  border: 1px solid #ddd6ca;
+  border-radius: 13px;
+
+  background: #fff;
+
+  box-shadow:
+    0 12px 34px rgba(21, 32, 51, 0.065);
+}
+
+
+/* PRINT HEADER */
+
+.daily-print-header {
+  padding-bottom: 18px;
+
+  text-align: center;
+
+  border-bottom: 2px solid #152033;
+}
+
+.daily-print-company {
+  color: #152033;
+
+  font-family: "Fraunces", serif;
+  font-size: 24px;
+  line-height: 1.1;
+
+  font-weight: 700;
+
+  letter-spacing: 0.25px;
+}
+
+.daily-print-kicker {
+  margin-top: 8px;
+
+  color: #1b4b73;
+
+  font-size: 10.5px;
+  line-height: 1.2;
+
+  font-weight: 800;
+
+  letter-spacing: 1.6px;
+}
+
+.daily-print-date {
+  margin-top: 5px;
+
+  color: #6d675e;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  line-height: 1.2;
+
+  font-weight: 600;
+}
+
+
+/* PRINT TABLE */
+
+.daily-print-table-section {
+  margin-top: 22px;
+
+  overflow-x: auto;
+}
+
+.daily-print-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  /* Changed from "fixed" to "auto" so the Site / Location
+     column can grow to fit "B Block (Unloading)" instead of
+     being forced to 27% of the table width and wrapping or
+     clipping the parenthesised trip type. */
+  table-layout: auto;
+}
+
+.daily-print-table th {
+  padding: 9px 8px;
+
+  background: #f1eee8;
+  color: #152033;
+
+  border: 1px solid #cfc7bb;
+
+  font-size: 8.5px;
+  line-height: 1.25;
+
+  font-weight: 800;
+
+  text-align: left;
+
+  text-transform: uppercase;
+  letter-spacing: 0.45px;
+}
+
+.daily-print-table td {
+  padding: 9px 8px;
+
+  color: #394454;
+
+  border: 1px solid #ddd6ca;
+
+  font-size: 10px;
+  line-height: 1.4;
+
+  vertical-align: middle;
+
+  overflow-wrap: anywhere;
+}
+
+.daily-print-table td strong {
+  color: #152033;
+  font-weight: 700;
+}
+
+.daily-print-table th:nth-child(1),
+.daily-print-table td:nth-child(1) {
+  width: 13%;
+}
+
+.daily-print-table th:nth-child(2),
+.daily-print-table td:nth-child(2) {
+  width: 14%;
+}
+
+.daily-print-table th:nth-child(3),
+.daily-print-table td:nth-child(3) {
+  width: 18%;
+}
+
+.daily-print-table th:nth-child(4),
+.daily-print-table td:nth-child(4) {
+  /* Site / Location: give it the largest share and let it
+     breathe, so "(Unloading)", "(Site to Site)" and "(Other)"
+     always sit on the same line as the site name. */
+  width: 27%;
+  min-width: 200px;
+}
+
+.daily-print-table th:nth-child(5),
+.daily-print-table td:nth-child(5) {
+  width: 18%;
+}
+
+.daily-print-table th:nth-child(6),
+.daily-print-table td:nth-child(6) {
+  width: 10%;
+}
+
+.daily-print-center {
+  text-align: center !important;
+}
+
+.daily-print-site {
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: normal;
+  hyphens: none;
+}
+
+
+/* ============================================================
+   FULL REPORT VEHICLE SUMMARY
+============================================================ */
+
+.daily-print-summary {
+  margin-top: 24px;
+
+  padding: 17px 18px;
+
+  border: 1px solid #d9d1c5;
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #faf7f1,
+      #f5f0e7
+    );
+}
+
+
+/* SUMMARY HEADING */
+
+.daily-print-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-bottom: 12px;
+}
+
+.daily-print-summary-heading h2 {
+  margin: 0;
+
+  color: #152033;
+
+  font-family: "Fraunces", serif;
+  font-size: 15px;
+  line-height: 1.2;
+
+  font-weight: 650;
+}
+
+.daily-print-summary-heading p {
+  margin: 4px 0 0;
+
+  color: #817a70;
+
+  font-size: 8.5px;
+  line-height: 1.45;
+}
+
+
+/* SUMMARY LIST */
+
+.daily-print-summary-list {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 8px;
+}
+
+
+/* VEHICLE */
+
+.daily-print-vehicle {
+  min-width: 0;
+
+  padding: 10px 11px;
+
+  border: 1px solid #ddd6ca;
+  border-radius: 7px;
+
+  background: #fff;
+
+  box-shadow:
+    0 1px 4px rgba(21, 32, 51, 0.018);
+}
+
+.daily-print-vehicle-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  min-width: 0;
+}
+
+.daily-print-vehicle-main strong {
+  min-width: 0;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #152033;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.daily-print-vehicle-main span {
+  flex: 0 0 auto;
+
+  color: #1b4b73;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+/* BREAKDOWN */
+
+.daily-print-breakdown {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+  flex-wrap: wrap;
+
+  margin-top: 7px;
+}
+
+.daily-print-breakdown span {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 3px;
+
+  padding: 4px 6px;
+
+  border: 1px solid #e0d9cf;
+  border-radius: 4px;
+
+  background: #f1eee8;
+  color: #536170;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 7.5px;
+  line-height: 1.1;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.daily-print-breakdown b {
+  margin-left: 2px;
+
+  font-weight: 800;
+}
+
+
+/* PRINT BREAKDOWN COLORS */
+
+.daily-print-chip-loading {
+  color: #1b4b73 !important;
+  background: #edf3f7 !important;
+  border-color: #d6e2e9 !important;
+}
+
+.daily-print-chip-unloading {
+  color: #8a6036 !important;
+  background: #f6eee4 !important;
+  border-color: #e6d7c6 !important;
+}
+
+.daily-print-chip-site {
+  color: #5e665f !important;
+  background: #f0f1ed !important;
+  border-color: #dcdfd8 !important;
+}
+
+.daily-print-chip-other {
+  color: #6d675e !important;
+  background: #f1eee8 !important;
+  border-color: #ded8cd !important;
+}
+
+
+/* PRINT TOTAL */
+
+.daily-print-total {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 16px;
+
+  margin-top: 13px;
+  padding-top: 10px;
+
+  border-top: 1px solid #c9c0b4;
+}
+
+.daily-print-total span {
+  color: #394454;
+
+  font-size: 10.5px;
+  line-height: 1.2;
+
+  font-weight: 700;
+}
+
+.daily-print-total strong {
+  color: #1b4b73;
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 17px;
+  line-height: 1.1;
+
+  font-weight: 700;
+}
+
+
+/* PRINT FOOTER */
+
+.daily-print-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-top: 24px;
+  padding-top: 11px;
+
+  border-top: 1px solid #ddd6ca;
+
+  color: #8a8379;
+
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
+
+/* EMPTY FULL REPORT */
+
+.daily-print-empty {
+  padding: 60px 20px;
+
+  color: #6d675e;
+
+  text-align: center;
+
+  font-size: 11px;
+}
+
+
+/* ============================================================
+   PRINT / PDF
+============================================================ */
+
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #fff !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+
+  /* NORMAL REPORT */
+
+  .daily-report-page {
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #fff !important;
+  }
+
+  .daily-report-header {
+    margin-bottom: 11px !important;
+    padding: 0 0 9px !important;
+
+    border: 0 !important;
+    border-bottom: 1px solid #bdb7ae !important;
+    border-radius: 0 !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+  }
+
+  .daily-report-header::before,
+  .daily-report-header::after,
+  .daily-report-card-header::before,
+  .daily-stat::after {
+    display: none !important;
+  }
+
+  .daily-report-icon {
+    width: 34px !important;
+    height: 34px !important;
+    flex-basis: 34px !important;
+
+    border-radius: 7px !important;
+
+    background: #f1eee8 !important;
+    box-shadow: none !important;
+  }
+
+  .daily-report-title {
+    gap: 9px !important;
+  }
+
+  .daily-report-title h1 {
+    font-size: 22px !important;
+  }
+
+  .daily-report-title p {
+    font-size: 8.5px !important;
+  }
+
+  .section-kicker {
+    font-size: 7px !important;
+  }
+
+
+  /* HIDE CONTROLS */
+
+  .daily-report-actions,
+  .daily-report-controls,
+  .daily-filters-panel,
+  .daily-page-footer {
+    display: none !important;
+  }
+
+
+  /* STATS */
+
+  .daily-stats {
+    grid-template-columns:
+      repeat(4, 1fr) !important;
+
+    gap: 6px !important;
+
+    margin-bottom: 10px !important;
+  }
+
+  .daily-stat {
+    padding: 8px 9px !important;
+
+    border-color: #c8c2b9 !important;
+    border-radius: 5px !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+
+    transform: none !important;
+  }
+
+  .daily-stat:hover {
+    transform: none !important;
+  }
+
+  .daily-stat-icon {
+    width: 27px !important;
+    height: 27px !important;
+    flex-basis: 27px !important;
+
+    border-radius: 6px !important;
+
+    background: #f1eee8 !important;
+  }
+
+  .daily-stat span {
+    font-size: 6.5px !important;
+  }
+
+  .daily-stat strong {
+    font-size: 13px !important;
+  }
+
+
+  /* REPORT CARD */
+
+  .daily-report-card {
+    overflow: visible !important;
+
+    border: 1px solid #aaa49b !important;
+    border-radius: 0 !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+  }
+
+  .daily-report-card-header {
+    padding: 9px 11px !important;
+
+    border-bottom-color: #c8c2b9 !important;
+
+    background: #fff !important;
+  }
+
+  .daily-report-card-header h2 {
+    font-size: 13px !important;
+  }
+
+  .daily-report-card-header p {
+    font-size: 7px !important;
+  }
+
+  .daily-record-count {
+    min-height: 21px !important;
+
+    padding: 0 7px !important;
+
+    border-color: #c8c2b9 !important;
+    border-radius: 4px !important;
+
+    background: #f1eee8 !important;
+
+    font-size: 7px !important;
+  }
+
+
+  /* TABLE */
+
+  .daily-table-wrap {
+    overflow: visible !important;
+  }
+
+  .daily-table {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    table-layout: fixed !important;
+  }
+
+  .daily-table thead {
+    display: table-header-group !important;
+  }
+
+  .daily-table tbody {
+    display: table-row-group !important;
+  }
+
+  .daily-table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .daily-table th {
+    position: static !important;
+
+    padding: 6px 5px !important;
+
+    background: #e9e4dc !important;
+    color: #152033 !important;
+
+    border-color: #bbb4aa !important;
+
+    font-size: 6.8px !important;
+  }
+
+  .daily-table td {
+    padding: 6px 5px !important;
+
+    color: #152033 !important;
+
+    border-color: #d7d1c8 !important;
+
+    font-size: 7.8px !important;
+  }
+
+  .daily-table th:first-child,
+  .daily-table td:first-child {
+    padding-left: 5px !important;
+  }
+
+  .daily-table th:last-child,
+  .daily-table td:last-child {
+    padding-right: 5px !important;
+  }
+
+  .daily-table th:nth-child(1),
+  .daily-table td:nth-child(1) {
+    width: 5% !important;
+  }
+
+  .daily-table th:nth-child(2),
+  .daily-table td:nth-child(2) {
+    width: 12% !important;
+  }
+
+  .daily-table th:nth-child(3),
+  .daily-table td:nth-child(3) {
+    width: 14% !important;
+  }
+
+  .daily-table th:nth-child(4),
+  .daily-table td:nth-child(4) {
+    width: 18% !important;
+  }
+
+  .daily-table th:nth-child(5),
+  .daily-table td:nth-child(5) {
+    width: 25% !important;
+  }
+
+  .daily-table th:nth-child(6),
+  .daily-table td:nth-child(6) {
+    width: 16% !important;
+  }
+
+  .daily-table th:nth-child(7),
+  .daily-table td:nth-child(7) {
+    width: 10% !important;
+  }
+
+  .daily-trip-badge {
+    min-width: 25px !important;
+    height: 22px !important;
+
+    padding: 0 5px !important;
+
+    border-radius: 4px !important;
+
+    font-size: 8px !important;
+
+    box-shadow: none !important;
+  }
+
+
+  /* SUMMARY */
+
+  .daily-summary-section {
+    padding: 10px 11px !important;
+
+    border-top-color: #bbb4aa !important;
+
+    background: #f7f4ee !important;
+
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .daily-summary-section h3 {
+    font-size: 11px !important;
+  }
+
+  .daily-summary-note {
+    margin-bottom: 7px !important;
+
+    font-size: 6.5px !important;
+  }
+
+  .daily-vehicle-summary-grid {
+    grid-template-columns:
+      repeat(2, 1fr) !important;
+
+    gap: 5px !important;
+
+    margin-bottom: 8px !important;
+  }
+
+  .daily-vehicle-summary-item {
+    padding: 6px 7px !important;
+
+    border-color: #c8c2b9 !important;
+    border-radius: 4px !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+
+    transform: none !important;
+  }
+
+  .daily-vehicle-summary-item:hover {
+    transform: none !important;
+  }
+
+  .daily-vehicle-summary-top {
+    margin-bottom: 5px !important;
+  }
+
+  .daily-vehicle-summary-top > strong {
+    font-size: 8px !important;
+  }
+
+  .daily-vehicle-total {
+    font-size: 7.5px !important;
+  }
+
+  .daily-summary-chip {
+    min-height: 18px !important;
+
+    padding: 0 5px !important;
+
+    border-radius: 3px !important;
+
+    font-size: 6px !important;
+  }
+
+  .daily-summary-chip strong {
+    font-size: 6.2px !important;
+  }
+
+  .daily-total-row {
+    padding-top: 7px !important;
+  }
+
+  .daily-total-row span {
+    font-size: 8px !important;
+  }
+
+  .daily-total-row strong {
+    font-size: 13px !important;
+  }
+
+
+  /* FOOTER */
+
+  .daily-report-footer {
+    padding: 7px 10px !important;
+
+    border-top-color: #c8c2b9 !important;
+
+    font-size: 6.5px !important;
+  }
+
+
+  /* FULL REPORT PRINT */
+
+  .daily-full-report-page {
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #fff !important;
+  }
+
+  .daily-full-report-toolbar {
+    display: none !important;
+  }
+
+  .daily-print-report {
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: none !important;
+    border-radius: 0 !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+  }
+
+
+  /* PRINT HEADER */
+
+  .daily-print-header {
+    padding-bottom: 9px !important;
+
+    border-bottom: 1.5px solid #152033 !important;
+  }
+
+  .daily-print-company {
+    font-size: 20px !important;
+  }
+
+  .daily-print-kicker {
+    margin-top: 4px !important;
+
+    font-size: 8px !important;
+  }
+
+  .daily-print-date {
+    margin-top: 3px !important;
+
+    font-size: 8px !important;
+  }
+
+
+  /* PRINT TABLE */
+
+  .daily-print-table-section {
+    margin-top: 12px !important;
+
+    overflow: visible !important;
+  }
+
+  .daily-print-table {
+    width: 100% !important;
+
+    /* Keep "auto" in print too, otherwise the same fixed-layout
+       clipping bug reproduces in the PDF. */
+    table-layout: auto !important;
+  }
+
+  .daily-print-table thead {
+    display: table-header-group !important;
+  }
+
+  .daily-print-table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .daily-print-table th {
+    padding: 6px 5px !important;
+
+    background: #e9e4dc !important;
+
+    font-size: 6.7px !important;
+  }
+
+  .daily-print-table td {
+    padding: 6px 5px !important;
+
+    font-size: 7.7px !important;
+  }
+
+  /* Explicitly keep the Site / Location cell readable in the PDF. */
+  .daily-print-table td.daily-print-site {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+
+  /* PRINT SUMMARY */
+
+  .daily-print-summary {
+    margin-top: 13px !important;
+
+    padding: 9px 10px !important;
+
+    border-color: #c8c2b9 !important;
+    border-radius: 5px !important;
+
+    background: #f7f4ee !important;
+
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  .daily-print-summary-heading {
+    margin-bottom: 7px !important;
+  }
+
+  .daily-print-summary-heading h2 {
+    font-size: 10.5px !important;
+  }
+
+  .daily-print-summary-heading p {
+    margin-top: 3px !important;
+
+    font-size: 6px !important;
+  }
+
+  .daily-print-summary-list {
+    grid-template-columns:
+      repeat(2, 1fr) !important;
+
+    gap: 5px !important;
+  }
+
+  .daily-print-vehicle {
+    padding: 6px 7px !important;
+
+    border-color: #c8c2b9 !important;
+    border-radius: 4px !important;
+
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+
+    box-shadow: none !important;
+  }
+
+  .daily-print-vehicle-main strong {
+    font-size: 7.7px !important;
+  }
+
+  .daily-print-vehicle-main span {
+    font-size: 7px !important;
+  }
+
+  .daily-print-breakdown {
+    gap: 3px !important;
+
+    margin-top: 4px !important;
+  }
+
+  .daily-print-breakdown span {
+    padding: 3px 4px !important;
+
+    font-size: 5.7px !important;
+  }
+
+  .daily-print-total {
+    margin-top: 7px !important;
+
+    padding-top: 6px !important;
+  }
+
+  .daily-print-total span {
+    font-size: 7.5px !important;
+  }
+
+  .daily-print-total strong {
+    font-size: 12px !important;
+  }
+
+
+  /* PRINT FOOTER */
+
+  .daily-print-footer {
+    margin-top: 11px !important;
+
+    padding-top: 6px !important;
+
+    font-size: 6px !important;
+  }
+
+
+  /* PRINT EMPTY */
+
+  .daily-print-empty {
+    padding: 45px 15px !important;
+
+    font-size: 8px !important;
+  }
+}
+
+
+/* ============================================================
+   LARGE TABLET
+============================================================ */
+
+@media (max-width: 1100px) {
+
+  .daily-report-page,
+  .daily-full-report-page {
+    padding-left: 19px;
+    padding-right: 19px;
+  }
+
+  .daily-report-header {
+    align-items: flex-start;
+  }
+
+  .daily-report-actions {
+    max-width: 440px;
+  }
+
+  .daily-stats {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* ============================================================
+   TABLET
+============================================================ */
+
+@media (max-width: 850px) {
+
+  .daily-report-page,
+  .daily-full-report-page {
+    padding: 20px 15px 34px;
+  }
+
+  .daily-report-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 17px;
+
+    padding: 19px 18px;
+  }
+
+  .daily-report-actions {
+    width: 100%;
+    max-width: none;
+
+    justify-content: stretch;
+  }
+
+  .daily-report-actions .daily-btn {
+    flex: 1 1 0;
+  }
+
+  .daily-report-controls {
+    align-items: stretch;
+  }
+
+  .daily-date-picker {
+    flex: 1 1 auto;
+  }
+
+  .daily-search-box {
+    flex: 1 1 260px;
+  }
+
+  .daily-vehicle-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .daily-print-report {
+    padding: 29px 25px;
+  }
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media (max-width: 640px) {
+
+  .daily-report-page,
+  .daily-full-report-page {
+    padding: 15px 10px 28px;
+  }
+
+  .daily-report-header {
+    margin-bottom: 13px;
+
+    padding: 16px 14px;
+
+    border-radius: 13px;
+  }
+
+  .daily-report-title {
+    gap: 11px;
+  }
+
+  .daily-report-icon {
+    width: 41px;
+    height: 41px;
+    flex-basis: 41px;
+
+    border-radius: 11px;
+  }
+
+  .daily-report-title h1 {
+    font-size: 23px;
+    letter-spacing: -0.45px;
+  }
+
+  .daily-report-title p {
+    font-size: 10.5px;
+  }
+
+  .daily-report-actions {
+    display: grid;
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 6px;
+  }
+
+  .daily-report-actions .daily-btn {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0 7px;
+  }
+
+  .daily-report-controls {
+    display: grid;
+
+    grid-template-columns: 1fr auto;
+
+    gap: 8px;
+
+    padding: 10px;
+  }
+
+  .daily-date-picker {
+    grid-column: 1 / -1;
+
+    width: 100%;
+
+    justify-content: space-between;
+  }
+
+  .daily-date-input-wrap {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+  .daily-date-input-wrap input {
+    width: 100%;
+  }
+
+  .daily-date-display {
+    font-size: 10.5px;
+  }
+
+  .daily-search-box {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .daily-stats {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+  }
+
+  .daily-stat {
+    padding: 11px 10px;
+
+    gap: 9px;
+  }
+
+  .daily-stat-icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .daily-stat strong {
+    font-size: 16px;
+  }
+
+  .daily-report-card-header {
+    align-items: flex-start;
+
+    padding: 14px;
+  }
+
+  .daily-table {
+    min-width: 790px;
+  }
+
+  .daily-table th {
+    padding: 9px 10px;
+  }
+
+  .daily-table td {
+    padding: 10px;
+
+    font-size: 10.5px;
+  }
+
+  .daily-vehicle-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-summary-section {
+    padding: 15px 14px;
+  }
+
+  .daily-summary-chip {
+    min-height: 23px;
+  }
+
+  .daily-report-footer {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 4px;
+  }
+
+  .daily-full-report-toolbar .daily-btn {
+    min-height: 37px;
+  }
+
+  .daily-print-report {
+    padding: 22px 16px;
+  }
+
+  .daily-print-summary-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ============================================================
+   SMALL MOBILE
+============================================================ */
+
+@media (max-width: 420px) {
+
+  .daily-report-page,
+  .daily-full-report-page {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .daily-report-title h1 {
+    font-size: 21px;
+  }
+
+  .daily-report-title p {
+    font-size: 10px;
+  }
+
+  .daily-report-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-report-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-date-picker {
+    grid-column: auto;
+
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-date-input-wrap {
+    width: 100%;
+  }
+
+  .daily-date-display {
+    align-self: flex-start;
+
+    padding-left: 2px;
+  }
+
+  .daily-search-box {
+    grid-column: auto;
+  }
+
+  .daily-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-report-card-header {
+    flex-direction: column;
+
+    gap: 9px;
+  }
+
+  .daily-record-count {
+    align-self: flex-start;
+  }
+
+  .daily-table {
+    min-width: 760px;
+  }
+
+  .daily-print-report {
+    padding: 18px 12px;
+  }
+
+  .daily-print-company {
+    font-size: 20px;
+  }
+
+  .daily-full-report-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .daily-full-report-toolbar .daily-btn {
+    width: 100%;
+  }
+}
+
+
+/* ============================================================
+   VERY SMALL DEVICES
+============================================================ */
+
+@media (max-width: 340px) {
+
+  .daily-report-title {
+    gap: 8px;
+  }
+
+  .daily-report-title h1 {
+    font-size: 19px;
+  }
+
+  .daily-report-icon {
+    width: 35px;
+    height: 35px;
+    flex-basis: 35px;
+
+    border-radius: 9px;
+  }
+
+  .daily-report-title p {
+    font-size: 9px;
+  }
+
+  .daily-table {
+    min-width: 740px;
+  }
+
+  .daily-summary-chip {
+    font-size: 8px;
+  }
+
+  .daily-summary-chip strong {
+    font-size: 8px;
+  }
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+============================================================ */
+
+.daily-report-page button,
+.daily-report-page input,
+.daily-report-page select,
+.daily-full-report-page button,
+.daily-full-report-page input,
+.daily-full-report-page select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.daily-report-page button:focus-visible,
+.daily-report-page input:focus-visible,
+.daily-report-page select:focus-visible,
+.daily-full-report-page button:focus-visible,
+.daily-full-report-page input:focus-visible,
+.daily-full-report-page select:focus-visible {
+  outline: none;
+}
+
+.daily-report-page ::selection,
+.daily-full-report-page ::selection {
+  background: rgba(27, 75, 115, 0.15);
+  color: #152033;
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .daily-report-page *,
+  .daily-report-page *::before,
+  .daily-report-page *::after,
+  .daily-full-report-page *,
+  .daily-full-report-page *::before,
+  .daily-full-report-page *::after {
+    scroll-behavior: auto !important;
+
+    transition-duration: 0.01ms !important;
+
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .daily-btn:hover,
+  .daily-stat:hover,
+  .daily-vehicle-summary-item:hover {
+    transform: none !important;
+  }
+}

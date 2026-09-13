@@ -32,6 +32,7 @@ function readTrips() {
   try {
     const raw = localStorage.getItem(TRIPS_KEY);
     if (!raw) return [];
+
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
@@ -115,37 +116,49 @@ function getRate(trip) {
 
 function getAmount(trip) {
   const directAmount = Number(trip?.amount);
+
   if (Number.isFinite(directAmount) && directAmount >= 0) {
     return directAmount;
   }
+
   return getQuantity(trip) * getRate(trip);
 }
 
 function normalizeDate(value) {
   if (!value) return "";
+
   const text = String(value).trim();
+
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
     return text;
   }
+
   const parsed = new Date(value);
+
   if (Number.isNaN(parsed.getTime())) {
     return "";
   }
+
   const year = parsed.getFullYear();
   const month = String(parsed.getMonth() + 1).padStart(2, "0");
   const day = String(parsed.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
 function formatDate(value) {
   const normalized = normalizeDate(value);
+
   if (!normalized) return "—";
+
   const [year, month, day] = normalized.split("-");
+
   return `${day}/${month}/${year}`;
 }
 
 function formatCurrency(value) {
   const amount = Number(value) || 0;
+
   return `₹${amount.toLocaleString("en-IN", {
     maximumFractionDigits: 2,
   })}`;
@@ -153,24 +166,31 @@ function formatCurrency(value) {
 
 function getTimestamp(trip) {
   const created = trip?.createdAt || trip?.updatedAt;
+
   if (created) {
     const timestamp = new Date(created).getTime();
+
     if (!Number.isNaN(timestamp)) {
       return timestamp;
     }
   }
+
   const date = normalizeDate(trip?.date);
+
   if (date) {
     const timestamp = new Date(`${date}T00:00:00`).getTime();
+
     if (!Number.isNaN(timestamp)) {
       return timestamp;
     }
   }
+
   return 0;
 }
 
 function getToday() {
   const now = new Date();
+
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
     2,
     "0",
@@ -211,34 +231,71 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
   const amount = getAmount(trip);
 
   return (
-    <div className="all-records-modal-backdrop" onMouseDown={onClose}>
+    <div
+      className="all-records-modal-backdrop"
+      onMouseDown={onClose}
+      role="presentation"
+    >
       <div
         className="all-records-modal"
         onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="all-records-detail-title"
       >
         <div className="all-records-modal-header">
-          <div>
-            <span className="all-records-eyebrow">TRIP DETAILS</span>
-            <h2>Transport Record</h2>
+          <div className="all-records-modal-heading">
+            <div className="all-records-modal-heading-icon">
+              <FileText size={18} />
+            </div>
+
+            <div>
+              <span className="all-records-eyebrow">TRIP DETAILS</span>
+              <h2 id="all-records-detail-title">Transport Record</h2>
+            </div>
           </div>
 
           <button
             type="button"
             className="all-records-icon-button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close details"
           >
             <X size={18} />
           </button>
         </div>
 
+        <div className="all-records-detail-topline">
+          <div>
+            <span>Record date</span>
+            <strong>{formatDate(trip.date)}</strong>
+          </div>
+
+          <StatusPill type={getTripType(trip)} />
+        </div>
+
         <div className="all-records-detail-grid">
-          <DetailItem label="Date" value={formatDate(trip.date)} />
-          <DetailItem label="Vehicle" value={getVehicleNumber(trip)} />
-          <DetailItem label="Driver" value={getDriverName(trip)} />
-          <DetailItem label="Party" value={getPartyName(trip)} />
-          <DetailItem label="Material" value={getMaterialName(trip)} />
-          <DetailItem label="Trip Type" value={getTripType(trip)} />
+          <DetailItem
+            label="Vehicle"
+            value={getVehicleNumber(trip)}
+            icon={<Tractor size={14} />}
+          />
+
+          <DetailItem
+            label="Driver"
+            value={getDriverName(trip)}
+          />
+
+          <DetailItem
+            label="Party"
+            value={getPartyName(trip)}
+          />
+
+          <DetailItem
+            label="Material"
+            value={getMaterialName(trip)}
+            icon={<Package size={14} />}
+          />
 
           <DetailItem
             label="Site"
@@ -250,7 +307,10 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
             value={`${getQuantity(trip)} ${trip?.unit || "Trip"}`}
           />
 
-          <DetailItem label="Rate" value={formatCurrency(getRate(trip))} />
+          <DetailItem
+            label="Rate"
+            value={formatCurrency(getRate(trip))}
+          />
 
           <DetailItem
             label="Amount"
@@ -261,7 +321,10 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
 
         {trip?.notes && (
           <div className="all-records-notes">
-            <span>Notes</span>
+            <div className="all-records-notes-heading">
+              <span>Notes</span>
+            </div>
+
             <p>{trip.notes}</p>
           </div>
         )}
@@ -318,11 +381,15 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
   );
 }
 
-function DetailItem({ label, value, highlight = false }) {
+function DetailItem({ label, value, icon, highlight = false }) {
   return (
-    <div className="all-records-detail-item">
-      <span>{label}</span>
-      <strong className={highlight ? "is-highlight" : ""}>{value}</strong>
+    <div className={`all-records-detail-item ${highlight ? "is-highlight" : ""}`}>
+      <div className="all-records-detail-label">
+        {icon && <span>{icon}</span>}
+        <span>{label}</span>
+      </div>
+
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -352,39 +419,56 @@ function EditModal({ trip, onClose, onSave }) {
 
     setForm({
       date: normalizeDate(trip?.date),
+
       vehicleNumber:
         trip?.vehicleNumber ||
         trip?.tractorNumber ||
         trip?.vehicleNo ||
         trip?.vehicle ||
         "",
+
       partyName:
         trip?.partyName ||
         trip?.party ||
         trip?.customerName ||
         "",
+
       materialName:
         trip?.materialName ||
         trip?.material ||
         trip?.productName ||
         trip?.product ||
         "",
+
       driverName: trip?.driverName || trip?.driver || "",
-      tripType: getTripType(trip) === "—" ? "Loading" : getTripType(trip),
+
+      tripType:
+        getTripType(trip) === "—"
+          ? "Loading"
+          : getTripType(trip),
+
       site: trip?.site || trip?.location || "",
+
       quantity:
-        trip?.quantity !== undefined && trip?.quantity !== null
+        trip?.quantity !== undefined &&
+        trip?.quantity !== null
           ? String(trip.quantity)
           : "",
+
       unit: trip?.unit || "",
+
       rate:
-        trip?.rate !== undefined && trip?.rate !== null
+        trip?.rate !== undefined &&
+        trip?.rate !== null
           ? String(trip.rate)
           : "",
+
       amount:
-        trip?.amount !== undefined && trip?.amount !== null
+        trip?.amount !== undefined &&
+        trip?.amount !== null
           ? String(trip.amount)
           : "",
+
       notes: trip?.notes || "",
     });
   }, [trip]);
@@ -393,7 +477,6 @@ function EditModal({ trip, onClose, onSave }) {
 
   const quantity = Number(form.quantity) || 0;
   const rate = Number(form.rate) || 0;
-
   const calculatedAmount = quantity * rate;
 
   const handleChange = (field, value) => {
@@ -467,29 +550,39 @@ function EditModal({ trip, onClose, onSave }) {
     <div
       className="all-records-edit-backdrop"
       onMouseDown={onClose}
+      role="presentation"
     >
       <div
         className="all-records-edit-modal"
         onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="all-records-edit-title"
       >
         <div className="all-records-edit-header">
-          <div>
-            <span className="all-records-eyebrow">
-              EDIT TRANSPORT RECORD
-            </span>
+          <div className="all-records-modal-heading">
+            <div className="all-records-modal-heading-icon">
+              <Pencil size={18} />
+            </div>
 
-            <h2>Edit Record</h2>
+            <div>
+              <span className="all-records-eyebrow">
+                EDIT TRANSPORT RECORD
+              </span>
 
-            <p>
-              Update this record without creating a new trip entry.
-            </p>
+              <h2 id="all-records-edit-title">Edit Record</h2>
+
+              <p>
+                Update this record without creating a new trip entry.
+              </p>
+            </div>
           </div>
 
           <button
             type="button"
             className="all-records-icon-button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close edit form"
           >
             <X size={18} />
           </button>
@@ -542,7 +635,10 @@ function EditModal({ trip, onClose, onSave }) {
                 type="text"
                 value={form.partyName}
                 onChange={(event) =>
-                  handleChange("partyName", event.target.value)
+                  handleChange(
+                    "partyName",
+                    event.target.value,
+                  )
                 }
                 placeholder="Party name"
                 required
@@ -595,7 +691,9 @@ function EditModal({ trip, onClose, onSave }) {
                 }
               >
                 <option value="Loading">Loading</option>
-                <option value="Unloading">Unloading</option>
+                <option value="Unloading">
+                  Unloading
+                </option>
                 <option value="Site to Site">
                   Site to Site
                 </option>
@@ -609,7 +707,10 @@ function EditModal({ trip, onClose, onSave }) {
                 type="text"
                 value={form.site}
                 onChange={(event) =>
-                  handleChange("site", event.target.value)
+                  handleChange(
+                    "site",
+                    event.target.value,
+                  )
                 }
                 placeholder="Site or location"
               />
@@ -640,7 +741,10 @@ function EditModal({ trip, onClose, onSave }) {
                 type="text"
                 value={form.unit}
                 onChange={(event) =>
-                  handleChange("unit", event.target.value)
+                  handleChange(
+                    "unit",
+                    event.target.value,
+                  )
                 }
                 placeholder="Trip / Ton / CFT..."
               />
@@ -702,7 +806,10 @@ function EditModal({ trip, onClose, onSave }) {
                 rows="3"
                 value={form.notes}
                 onChange={(event) =>
-                  handleChange("notes", event.target.value)
+                  handleChange(
+                    "notes",
+                    event.target.value,
+                  )
                 }
                 placeholder="Optional notes..."
               />
@@ -744,10 +851,14 @@ function DeleteConfirmModal({ trip, onCancel, onConfirm }) {
     <div
       className="all-records-delete-backdrop"
       onMouseDown={onCancel}
+      role="presentation"
     >
       <div
         className="all-records-delete-modal"
         onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="all-records-delete-title"
       >
         <div className="all-records-delete-icon">
           <Trash2 size={22} />
@@ -758,7 +869,9 @@ function DeleteConfirmModal({ trip, onCancel, onConfirm }) {
             DELETE RECORD
           </span>
 
-          <h2>Delete this transport record?</h2>
+          <h2 id="all-records-delete-title">
+            Delete this transport record?
+          </h2>
 
           <p>
             This record will be permanently removed from the
@@ -834,10 +947,14 @@ function BulkDeleteConfirmModal({ count, onCancel, onConfirm }) {
     <div
       className="all-records-delete-backdrop"
       onMouseDown={onCancel}
+      role="presentation"
     >
       <div
         className="all-records-delete-modal"
         onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="all-records-bulk-delete-title"
       >
         <div className="all-records-delete-icon">
           <Trash2 size={22} />
@@ -848,10 +965,13 @@ function BulkDeleteConfirmModal({ count, onCancel, onConfirm }) {
             BULK DELETE
           </span>
 
-          <h2>Delete {count} records?</h2>
+          <h2 id="all-records-bulk-delete-title">
+            Delete {count} records?
+          </h2>
 
           <p>
-            All {count} selected transport records will be permanently removed.
+            All {count} selected transport records will be
+            permanently removed.
           </p>
         </div>
 
@@ -962,6 +1082,7 @@ function AllRecords() {
       if (trip.__party !== "—") parties.add(trip.__party);
       if (trip.__vehicle !== "—") tractors.add(trip.__vehicle);
       if (trip.__material !== "—") materials.add(trip.__material);
+
       if (trip.__tripType !== "—") {
         tripTypes.add(trip.__tripType);
       }
@@ -971,12 +1092,15 @@ function AllRecords() {
       parties: [...parties].sort((a, b) =>
         a.localeCompare(b),
       ),
+
       tractors: [...tractors].sort((a, b) =>
         a.localeCompare(b),
       ),
+
       materials: [...materials].sort((a, b) =>
         a.localeCompare(b),
       ),
+
       tripTypes: [...tripTypes].sort((a, b) =>
         a.localeCompare(b),
       ),
@@ -988,19 +1112,33 @@ function AllRecords() {
 
     return [...normalizedTrips]
       .filter((trip) => {
-        if (dateFrom && trip.__date && trip.__date < dateFrom) {
+        if (
+          dateFrom &&
+          trip.__date &&
+          trip.__date < dateFrom
+        ) {
           return false;
         }
 
-        if (dateTo && trip.__date && trip.__date > dateTo) {
+        if (
+          dateTo &&
+          trip.__date &&
+          trip.__date > dateTo
+        ) {
           return false;
         }
 
-        if (partyFilter && trip.__party !== partyFilter) {
+        if (
+          partyFilter &&
+          trip.__party !== partyFilter
+        ) {
           return false;
         }
 
-        if (tractorFilter && trip.__vehicle !== tractorFilter) {
+        if (
+          tractorFilter &&
+          trip.__vehicle !== tractorFilter
+        ) {
           return false;
         }
 
@@ -1117,7 +1255,8 @@ function AllRecords() {
   ]);
 
   const paginatedTrips = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const start =
+      (currentPage - 1) * ITEMS_PER_PAGE;
 
     return filteredTrips.slice(
       start,
@@ -1162,9 +1301,9 @@ function AllRecords() {
     ).length;
   }, [normalizedTrips]);
 
-  // =========================================================
-  // EXPORT CSV
-  // =========================================================
+  /* =========================================================
+     EXPORT CSV
+  ========================================================= */
 
   const exportCSV = () => {
     if (!filteredTrips.length) return;
@@ -1201,8 +1340,10 @@ function AllRecords() {
       headers.join(","),
       ...rows.map((row) =>
         row
-          .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
-          .join(",")
+          .map((value) =>
+            `"${String(value ?? "").replace(/"/g, '""')}"`,
+          )
+          .join(","),
       ),
     ].join("\n");
 
@@ -1212,17 +1353,20 @@ function AllRecords() {
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
+
     link.href = url;
     link.download = `records-${getToday()}.csv`;
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
     URL.revokeObjectURL(url);
   };
 
-  // =========================================================
-  // QUICK PRESETS
-  // =========================================================
+  /* =========================================================
+     QUICK PRESETS
+  ========================================================= */
 
   const applyQuickPreset = (preset) => {
     const today = getToday();
@@ -1235,11 +1379,17 @@ function AllRecords() {
     } else if (preset === "week") {
       const start = new Date(now);
       start.setDate(now.getDate() - 7);
+
       setDateFrom(normalizeDate(start));
       setDateTo(today);
       setQuickPreset("week");
     } else if (preset === "month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const start = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+      );
+
       setDateFrom(normalizeDate(start));
       setDateTo(today);
       setQuickPreset("month");
@@ -1250,9 +1400,9 @@ function AllRecords() {
     }
   };
 
-  // =========================================================
-  // CLONE TRIP
-  // =========================================================
+  /* =========================================================
+     CLONE
+  ========================================================= */
 
   const cloneTrip = (trip) => {
     const currentTrips = readTrips();
@@ -1268,48 +1418,65 @@ function AllRecords() {
     };
 
     const updatedTrips = [newTrip, ...currentTrips];
+
     writeTrips(updatedTrips);
     setTrips(readTrips());
     setSelectedTrip(null);
   };
 
-  // =========================================================
-  // BULK DELETE
-  // =========================================================
+  /* =========================================================
+     BULK DELETE
+  ========================================================= */
 
   const toggleSelectAll = () => {
-    if (selectedTripIds.size === paginatedTrips.length && paginatedTrips.length > 0) {
+    if (
+      selectedTripIds.size === paginatedTrips.length &&
+      paginatedTrips.length > 0
+    ) {
       setSelectedTripIds(new Set());
     } else {
-      const ids = paginatedTrips.map((trip) => trip.__id);
+      const ids = paginatedTrips.map(
+        (trip) => trip.__id,
+      );
+
       setSelectedTripIds(new Set(ids));
     }
   };
 
   const toggleSelectTrip = (id) => {
     const newSet = new Set(selectedTripIds);
+
     if (newSet.has(id)) {
       newSet.delete(id);
     } else {
       newSet.add(id);
     }
+
     setSelectedTripIds(newSet);
   };
 
   const requestBulkDelete = () => {
     if (selectedTripIds.size === 0) return;
+
     setBulkDeleteTrips(new Set(selectedTripIds));
   };
 
   const confirmBulkDelete = () => {
-    if (!bulkDeleteTrips || bulkDeleteTrips.size === 0) return;
+    if (
+      !bulkDeleteTrips ||
+      bulkDeleteTrips.size === 0
+    ) {
+      return;
+    }
 
     const currentTrips = readTrips();
 
-    const updatedTrips = currentTrips.filter((trip, index) => {
-      const id = getTripId(trip, index);
-      return !bulkDeleteTrips.has(id);
-    });
+    const updatedTrips = currentTrips.filter(
+      (trip, index) => {
+        const id = getTripId(trip, index);
+        return !bulkDeleteTrips.has(id);
+      },
+    );
 
     writeTrips(updatedTrips);
     setTrips(readTrips());
@@ -1317,9 +1484,9 @@ function AllRecords() {
     setBulkDeleteTrips(null);
   };
 
-  // =========================================================
-  // DELETE
-  // =========================================================
+  /* =========================================================
+     DELETE
+  ========================================================= */
 
   const requestDelete = (trip) => {
     setSelectedTrip(null);
@@ -1331,7 +1498,6 @@ function AllRecords() {
     if (!deleteTrip) return;
 
     const currentTrips = readTrips();
-
     const targetId = deleteTrip.__id;
 
     const targetIndex = currentTrips.findIndex(
@@ -1366,9 +1532,9 @@ function AllRecords() {
     });
   };
 
-  // =========================================================
-  // EDIT
-  // =========================================================
+  /* =========================================================
+     EDIT
+  ========================================================= */
 
   const requestEdit = (trip) => {
     setSelectedTrip(null);
@@ -1380,7 +1546,6 @@ function AllRecords() {
     if (!editTrip) return;
 
     const currentTrips = readTrips();
-
     const targetId = editTrip.__id;
 
     const targetIndex = currentTrips.findIndex(
@@ -1429,29 +1594,65 @@ function AllRecords() {
     setEditTrip(null);
   };
 
+  const pageStart =
+    filteredTrips.length === 0
+      ? 0
+      : (currentPage - 1) * ITEMS_PER_PAGE + 1;
+
+  const pageEnd = Math.min(
+    currentPage * ITEMS_PER_PAGE,
+    filteredTrips.length,
+  );
+
   return (
     <div className="all-records-page">
       <div className="all-records-print-header">
         <span>SAO AUTO TRACTOR</span>
         <strong>ALL TRANSPORT RECORDS</strong>
+        <small>
+          Generated {formatDate(getToday())}
+        </small>
       </div>
 
       {/* =====================================================
-          HEADER
+          HERO / HEADER
       ===================================================== */}
 
       <header className="all-records-page-header">
-        <div>
-          <span className="all-records-eyebrow">
-            TRANSPORT / RECORDS
-          </span>
+        <div className="all-records-header-copy">
+          <div className="all-records-title-row">
+            <div className="all-records-title-icon">
+              <FileText
+                size={21}
+                strokeWidth={2}
+              />
+            </div>
 
-          <h1>All Records</h1>
+            <div>
+              <span className="all-records-eyebrow">
+                TRANSPORT / RECORDS
+              </span>
+
+              <h1>All Records</h1>
+            </div>
+          </div>
 
           <p>
-            View, search, edit and manage every transport trip
-            recorded in the system.
+            View, search, edit and manage every transport
+            trip recorded in the system.
           </p>
+
+          <div className="all-records-header-meta">
+            <span>
+              <Truck size={13} />
+              {filteredTrips.length} matching records
+            </span>
+
+            <span>
+              <CalendarDays size={13} />
+              {todayCount} today
+            </span>
+          </div>
         </div>
 
         <div className="all-records-header-actions">
@@ -1495,9 +1696,10 @@ function AllRecords() {
             <Truck size={18} />
           </div>
 
-          <div>
+          <div className="all-records-summary-content">
             <span>Total Records</span>
             <strong>{summary.trips}</strong>
+            <small>Current filtered view</small>
           </div>
         </div>
 
@@ -1506,9 +1708,10 @@ function AllRecords() {
             <CalendarDays size={18} />
           </div>
 
-          <div>
+          <div className="all-records-summary-content">
             <span>Today</span>
             <strong>{todayCount}</strong>
+            <small>Trips recorded today</small>
           </div>
         </div>
 
@@ -1517,45 +1720,51 @@ function AllRecords() {
             <Package size={18} />
           </div>
 
-          <div>
+          <div className="all-records-summary-content">
             <span>Total Quantity</span>
 
             <strong>
               {summary.quantity.toLocaleString("en-IN")}
             </strong>
+
+            <small>Across filtered records</small>
           </div>
         </div>
 
-        <div className="all-records-summary-card">
+        <div className="all-records-summary-card is-billing">
           <div className="all-records-summary-icon">
             <IndianRupee size={18} />
           </div>
 
-          <div>
+          <div className="all-records-summary-content">
             <span>Total Billing</span>
 
             <strong>
               {formatCurrency(summary.amount)}
             </strong>
+
+            <small>Current filtered billing</small>
           </div>
         </div>
       </section>
 
       {/* =====================================================
-          FILTERS
+          FILTER WORKSPACE
       ===================================================== */}
 
       <section className="all-records-workspace">
         <div className="all-records-toolbar">
           <div className="all-records-toolbar-title">
-            <Filter size={17} />
+            <div className="all-records-toolbar-icon">
+              <Filter size={17} />
+            </div>
 
             <div>
               <strong>Record Filters</strong>
 
               <span>
-                {filteredTrips.length} of{" "}
-                {normalizedTrips.length} records
+                Narrow your transport ledger by date,
+                party, tractor or type.
               </span>
             </div>
           </div>
@@ -1564,30 +1773,54 @@ function AllRecords() {
             <div className="all-records-quick-presets">
               <button
                 type="button"
-                className={quickPreset === "today" ? "active" : ""}
-                onClick={() => applyQuickPreset("today")}
+                className={
+                  quickPreset === "today"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  applyQuickPreset("today")
+                }
               >
                 Today
               </button>
+
               <button
                 type="button"
-                className={quickPreset === "week" ? "active" : ""}
-                onClick={() => applyQuickPreset("week")}
+                className={
+                  quickPreset === "week"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  applyQuickPreset("week")
+                }
               >
                 7 Days
               </button>
+
               <button
                 type="button"
-                className={quickPreset === "month" ? "active" : ""}
-                onClick={() => applyQuickPreset("month")}
+                className={
+                  quickPreset === "month"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  applyQuickPreset("month")
+                }
               >
                 This Month
               </button>
+
               {quickPreset && (
                 <button
                   type="button"
                   className="all-records-preset-clear"
-                  onClick={() => applyQuickPreset("clear")}
+                  onClick={() =>
+                    applyQuickPreset("clear")
+                  }
+                  aria-label="Clear date preset"
                 >
                   <X size={12} />
                 </button>
@@ -1609,7 +1842,7 @@ function AllRecords() {
 
         <div className="all-records-filter-grid">
           <label className="all-records-search-field">
-            <span>Search</span>
+            <span>Search records</span>
 
             <div className="all-records-input-wrap">
               <Search size={16} />
@@ -1626,6 +1859,7 @@ function AllRecords() {
               {search && (
                 <button
                   type="button"
+                  className="all-records-input-clear"
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
                 >
@@ -1679,7 +1913,10 @@ function AllRecords() {
               <option value="">All Parties</option>
 
               {filterOptions.parties.map((party) => (
-                <option key={party} value={party}>
+                <option
+                  key={party}
+                  value={party}
+                >
                   {party}
                 </option>
               ))}
@@ -1698,7 +1935,10 @@ function AllRecords() {
               <option value="">All Tractors</option>
 
               {filterOptions.tractors.map((tractor) => (
-                <option key={tractor} value={tractor}>
+                <option
+                  key={tractor}
+                  value={tractor}
+                >
                   {tractor}
                 </option>
               ))}
@@ -1717,7 +1957,10 @@ function AllRecords() {
               <option value="">All Materials</option>
 
               {filterOptions.materials.map((material) => (
-                <option key={material} value={material}>
+                <option
+                  key={material}
+                  value={material}
+                >
                   {material}
                 </option>
               ))}
@@ -1736,7 +1979,10 @@ function AllRecords() {
               <option value="">All Types</option>
 
               {filterOptions.tripTypes.map((type) => (
-                <option key={type} value={type}>
+                <option
+                  key={type}
+                  value={type}
+                >
                   {type}
                 </option>
               ))}
@@ -1750,26 +1996,51 @@ function AllRecords() {
       ===================================================== */}
 
       <section className="all-records-breakdown">
-        <div className="all-records-breakdown-item">
-          <span>Loading</span>
-          <strong>{summary.loading}</strong>
+        <div className="all-records-breakdown-item is-loading">
+          <div className="all-records-breakdown-icon">
+            <Truck size={15} />
+          </div>
+
+          <div>
+            <span>Loading</span>
+            <strong>{summary.loading}</strong>
+          </div>
         </div>
 
-        <div className="all-records-breakdown-item">
-          <span>Unloading</span>
-          <strong>{summary.unloading}</strong>
+        <div className="all-records-breakdown-item is-unloading">
+          <div className="all-records-breakdown-icon">
+            <Truck size={15} />
+          </div>
+
+          <div>
+            <span>Unloading</span>
+            <strong>{summary.unloading}</strong>
+          </div>
         </div>
 
-        <div className="all-records-breakdown-item">
-          <span>Site to Site</span>
-          <strong>{summary.siteToSite}</strong>
+        <div className="all-records-breakdown-item is-site">
+          <div className="all-records-breakdown-icon">
+            <Truck size={15} />
+          </div>
+
+          <div>
+            <span>Site to Site</span>
+            <strong>{summary.siteToSite}</strong>
+          </div>
         </div>
 
-        <div className="all-records-breakdown-item">
-          <span>Billing</span>
-          <strong>
-            {formatCurrency(summary.amount)}
-          </strong>
+        <div className="all-records-breakdown-item is-billing">
+          <div className="all-records-breakdown-icon">
+            <IndianRupee size={15} />
+          </div>
+
+          <div>
+            <span>Billing</span>
+
+            <strong>
+              {formatCurrency(summary.amount)}
+            </strong>
+          </div>
         </div>
       </section>
 
@@ -1779,12 +2050,16 @@ function AllRecords() {
 
       <section className="all-records-table-card">
         <div className="all-records-table-header">
-          <div>
+          <div className="all-records-table-heading">
             <span className="all-records-eyebrow">
               TRANSACTION LEDGER
             </span>
 
             <h2>Transport Records</h2>
+
+            <p>
+              Complete trip history with quick actions.
+            </p>
           </div>
 
           <div className="all-records-table-header-right">
@@ -1810,6 +2085,10 @@ function AllRecords() {
             <div className="all-records-empty-icon">
               <FileText size={24} />
             </div>
+
+            <span className="all-records-eyebrow">
+              NO MATCHES
+            </span>
 
             <h3>No records found</h3>
 
@@ -1843,13 +2122,16 @@ function AllRecords() {
                         onClick={toggleSelectAll}
                         aria-label="Toggle select all"
                       >
-                        {selectedTripIds.size === paginatedTrips.length && paginatedTrips.length > 0 ? (
+                        {selectedTripIds.size ===
+                          paginatedTrips.length &&
+                        paginatedTrips.length > 0 ? (
                           <CheckSquare size={16} />
                         ) : (
                           <Square size={16} />
                         )}
                       </button>
                     </th>
+
                     <th>Date</th>
                     <th>Vehicle</th>
                     <th>Party</th>
@@ -1859,6 +2141,7 @@ function AllRecords() {
                     <th>Qty</th>
                     <th>Rate</th>
                     <th>Amount</th>
+
                     <th className="all-records-action-column">
                       Action
                     </th>
@@ -1869,16 +2152,26 @@ function AllRecords() {
                   {paginatedTrips.map((trip) => (
                     <tr
                       key={`${trip.__id}-${trip.__index}`}
-                      className={selectedTripIds.has(trip.__id) ? "selected" : ""}
+                      className={
+                        selectedTripIds.has(trip.__id)
+                          ? "selected"
+                          : ""
+                      }
                     >
                       <td className="all-records-checkbox-col">
                         <button
                           type="button"
                           className="all-records-checkbox-btn"
-                          onClick={() => toggleSelectTrip(trip.__id)}
+                          onClick={() =>
+                            toggleSelectTrip(
+                              trip.__id,
+                            )
+                          }
                           aria-label="Select record"
                         >
-                          {selectedTripIds.has(trip.__id) ? (
+                          {selectedTripIds.has(
+                            trip.__id,
+                          ) ? (
                             <CheckSquare size={16} />
                           ) : (
                             <Square size={16} />
@@ -1898,7 +2191,9 @@ function AllRecords() {
                             <Tractor size={15} />
                           </span>
 
-                          <strong>{trip.__vehicle}</strong>
+                          <strong>
+                            {trip.__vehicle}
+                          </strong>
                         </div>
                       </td>
 
@@ -1936,13 +2231,17 @@ function AllRecords() {
 
                       <td>
                         <span className="all-records-number">
-                          {formatCurrency(trip.__rate)}
+                          {formatCurrency(
+                            trip.__rate,
+                          )}
                         </span>
                       </td>
 
                       <td>
                         <strong className="all-records-amount">
-                          {formatCurrency(trip.__amount)}
+                          {formatCurrency(
+                            trip.__amount,
+                          )}
                         </strong>
                       </td>
 
@@ -1963,8 +2262,11 @@ function AllRecords() {
                           <button
                             type="button"
                             className="all-records-clone-button"
-                            onClick={() => cloneTrip(trip)}
+                            onClick={() =>
+                              cloneTrip(trip)
+                            }
                             title="Clone trip"
+                            aria-label="Clone trip"
                           >
                             <Copy size={15} />
                           </button>
@@ -2007,7 +2309,13 @@ function AllRecords() {
             <div className="all-records-mobile-list">
               {paginatedTrips.map((trip) => (
                 <article
-                  className={`all-records-mobile-card ${selectedTripIds.has(trip.__id) ? "selected" : ""}`}
+                  className={`all-records-mobile-card ${
+                    selectedTripIds.has(
+                      trip.__id,
+                    )
+                      ? "selected"
+                      : ""
+                  }`}
                   key={`${trip.__id}-${trip.__index}`}
                 >
                   <div className="all-records-mobile-top">
@@ -2015,20 +2323,30 @@ function AllRecords() {
                       <button
                         type="button"
                         className="all-records-checkbox-btn"
-                        onClick={() => toggleSelectTrip(trip.__id)}
+                        onClick={() =>
+                          toggleSelectTrip(
+                            trip.__id,
+                          )
+                        }
                         aria-label="Select record"
                       >
-                        {selectedTripIds.has(trip.__id) ? (
+                        {selectedTripIds.has(
+                          trip.__id,
+                        ) ? (
                           <CheckSquare size={16} />
                         ) : (
                           <Square size={16} />
                         )}
                       </button>
+
                       <div>
                         <span>
                           {formatDate(trip.__date)}
                         </span>
-                        <strong>{trip.__vehicle}</strong>
+
+                        <strong>
+                          {trip.__vehicle}
+                        </strong>
                       </div>
                     </div>
 
@@ -2040,7 +2358,9 @@ function AllRecords() {
                   <div className="all-records-mobile-main">
                     <strong>{trip.__party}</strong>
 
-                    <span>{trip.__material}</span>
+                    <span>
+                      {trip.__material}
+                    </span>
                   </div>
 
                   <div className="all-records-mobile-meta">
@@ -2057,7 +2377,9 @@ function AllRecords() {
                     <div>
                       <span>Qty</span>
 
-                      <strong>{trip.__quantity}</strong>
+                      <strong>
+                        {trip.__quantity}
+                      </strong>
                     </div>
 
                     <div>
@@ -2116,19 +2438,10 @@ function AllRecords() {
             <div className="all-records-pagination">
               <span>
                 Showing{" "}
-                <strong>
-                  {(currentPage - 1) *
-                    ITEMS_PER_PAGE +
-                    1}
-                </strong>{" "}
-                –{" "}
-                <strong>
-                  {Math.min(
-                    currentPage * ITEMS_PER_PAGE,
-                    filteredTrips.length,
-                  )}
-                </strong>{" "}
-                of{" "}
+                <strong>{pageStart}</strong>
+                {" – "}
+                <strong>{pageEnd}</strong>
+                {" of "}
                 <strong>{filteredTrips.length}</strong>
               </span>
 
@@ -2171,22 +2484,20 @@ function AllRecords() {
       </section>
 
       {/* =====================================================
-          VIEW MODAL
+          MODALS
       ===================================================== */}
 
       {selectedTrip && (
         <DetailModal
           trip={selectedTrip}
-          onClose={() => setSelectedTrip(null)}
+          onClose={() =>
+            setSelectedTrip(null)
+          }
           onDelete={requestDelete}
           onEdit={requestEdit}
           onClone={cloneTrip}
         />
       )}
-
-      {/* =====================================================
-          EDIT MODAL
-      ===================================================== */}
 
       {editTrip && (
         <EditModal
@@ -2196,29 +2507,26 @@ function AllRecords() {
         />
       )}
 
-      {/* =====================================================
-          DELETE MODAL
-      ===================================================== */}
-
       {deleteTrip && (
         <DeleteConfirmModal
           trip={deleteTrip}
-          onCancel={() => setDeleteTrip(null)}
+          onCancel={() =>
+            setDeleteTrip(null)
+          }
           onConfirm={confirmDelete}
         />
       )}
 
-      {/* =====================================================
-          BULK DELETE MODAL
-      ===================================================== */}
-
-      {bulkDeleteTrips && bulkDeleteTrips.size > 0 && (
-        <BulkDeleteConfirmModal
-          count={bulkDeleteTrips.size}
-          onCancel={() => setBulkDeleteTrips(null)}
-          onConfirm={confirmBulkDelete}
-        />
-      )}
+      {bulkDeleteTrips &&
+        bulkDeleteTrips.size > 0 && (
+          <BulkDeleteConfirmModal
+            count={bulkDeleteTrips.size}
+            onCancel={() =>
+              setBulkDeleteTrips(null)
+            }
+            onConfirm={confirmBulkDelete}
+          />
+        )}
     </div>
   );
 }

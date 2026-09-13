@@ -1,100 +1,231 @@
+/* =========================================================
+   PARTY DETAILS DRAWER
+   SAO AUTO TRACTOR — MASTER UI
+   FINAL / CLEAN VERSION
+========================================================= */
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
 .party-details-overlay {
   position: fixed;
   inset: 0;
   z-index: 1000;
+
   pointer-events: none;
 }
 
 .party-details-backdrop {
   position: absolute;
   inset: 0;
+
   width: 100%;
   height: 100%;
-  border: 0;
+
   padding: 0;
-  background: rgba(21, 32, 51, 0.28);
-  backdrop-filter: blur(2px);
+  border: 0;
+
+  background: rgba(21, 32, 51, 0.32);
+  backdrop-filter: blur(3px);
+
   pointer-events: auto;
   cursor: default;
 }
+
+
+/* =========================================================
+   DRAWER
+========================================================= */
 
 .party-details-drawer {
   position: absolute;
   top: 0;
   right: 0;
+
   width: min(620px, 100%);
   height: 100%;
+
   display: flex;
   flex-direction: column;
-  border-left: 1px solid rgba(21, 32, 51, 0.1);
-  background: #f3efe6;
-  box-shadow: -18px 0 50px rgba(21, 32, 51, 0.14);
+
+  overflow: hidden;
+
+  border-left: 1px solid var(--border, #ddd6ca);
+
+  background: var(--bg, #f3efe6);
+
+  box-shadow:
+    -18px 0 50px var(
+      --shadow-color-strong,
+      rgba(21, 32, 51, 0.12)
+    );
+
   pointer-events: auto;
 }
+
 
 /* =========================================================
    HEADER
 ========================================================= */
 
 .pd-header {
+  position: relative;
+
   flex: 0 0 auto;
+
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 18px;
-  padding: 24px 25px 20px;
-  border-bottom: 1px solid rgba(21, 32, 51, 0.08);
-  background: #fffcf7;
+
+  padding: 22px 24px 19px;
+
+  border-bottom: 1px solid var(--border-soft, #e9e3d9);
+
+  background: var(--surface, #fffcf7);
+}
+
+.pd-header::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 2px;
+
+  background: linear-gradient(
+    90deg,
+    var(--primary, #1b4b73),
+    var(--secondary, #9c7349)
+  );
+
+  opacity: 0.8;
 }
 
 .pd-eyebrow {
   display: block;
-  margin-bottom: 7px;
-  color: #9c7349;
+
+  margin-bottom: 6px;
+
+  color: var(--secondary, #9c7349);
+
   font-family: "IBM Plex Mono", monospace;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
+
   letter-spacing: 0.14em;
+  line-height: 1;
 }
 
 .pd-header h2 {
   margin: 0;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-family: "Fraunces", serif;
-  font-size: 28px;
+  font-size: 27px;
   font-weight: 600;
+
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .pd-header p {
+  max-width: 430px;
+
   margin: 7px 0 0;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
+  font-family: "Outfit", sans-serif;
   font-size: 12px;
+
   line-height: 1.5;
 }
 
-.pd-close {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(21, 32, 51, 0.1);
-  border-radius: 9px;
-  background: transparent;
-  color: #6d675e;
-  cursor: pointer;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease;
+
+/* =========================================================
+   HEADER ACTIONS
+========================================================= */
+
+.pd-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.pd-close:hover {
-  border-color: rgba(27, 75, 115, 0.25);
-  background: rgba(27, 75, 115, 0.07);
-  color: #1b4b73;
+.pd-close,
+.pd-action-btn {
+  width: 35px;
+  height: 35px;
+
+  min-width: 35px;
+  min-height: 35px;
+
+  flex: 0 0 35px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--border, #ddd6ca);
+  border-radius: 8px;
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--text-muted, #6d675e);
+
+  cursor: pointer;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
+
+.pd-close:hover,
+.pd-action-btn:hover {
+  border-color: var(
+    --primary-border,
+    rgba(27, 75, 115, 0.2)
+  );
+
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
+
+  transform: translateY(-1px);
+}
+
+.pd-close:focus-visible,
+.pd-action-btn:focus-visible {
+  outline: 2px solid var(--primary, #1b4b73);
+  outline-offset: 3px;
+}
+
+.pd-action-btn.pd-danger:hover {
+  border-color: rgba(182, 74, 59, 0.25);
+
+  background: rgba(182, 74, 59, 0.08);
+
+  color: #b64a3b;
+}
+
 
 /* =========================================================
    BODY
@@ -102,10 +233,18 @@
 
 .party-details-body {
   flex: 1 1 auto;
+
+  min-height: 0;
+
   overflow-y: auto;
+
   padding: 18px;
+
   scrollbar-width: thin;
-  scrollbar-color: rgba(27, 75, 115, 0.28) transparent;
+
+  scrollbar-color:
+    rgba(27, 75, 115, 0.28)
+    transparent;
 }
 
 .party-details-body::-webkit-scrollbar {
@@ -118,41 +257,76 @@
 
 .party-details-body::-webkit-scrollbar-thumb {
   border-radius: 20px;
+
   background: rgba(27, 75, 115, 0.22);
 }
 
+.party-details-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(27, 75, 115, 0.35);
+}
+
+
 /* =========================================================
-   PROFILE
+   PROFILE CARD
 ========================================================= */
 
 .pd-profile-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 16px;
-  padding: 17px;
-  border: 1px solid rgba(21, 32, 51, 0.08);
+
+  padding: 16px;
+
+  border: 1px solid var(--border, #ddd6ca);
   border-radius: 12px;
-  background: #fffcf7;
+
+  background: var(--surface, #fffcf7);
+
+  box-shadow:
+    0 1px 2px var(
+      --shadow-color,
+      rgba(21, 32, 51, 0.035)
+    );
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .pd-profile-main {
   min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 13px;
 }
 
 .pd-avatar {
   width: 50px;
   height: 50px;
+
   flex: 0 0 50px;
+
   display: grid;
   place-items: center;
-  border: 1px solid rgba(27, 75, 115, 0.15);
-  border-radius: 12px;
-  background: #edf3f7;
-  color: #1b4b73;
+
+  border: 1px solid var(
+    --primary-border,
+    rgba(27, 75, 115, 0.18)
+  );
+
+  border-radius: 11px;
+
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 14px;
   font-weight: 700;
@@ -160,30 +334,38 @@
 
 .pd-profile-info {
   min-width: 0;
+
   display: flex;
   flex-direction: column;
+
   gap: 3px;
 }
 
 .pd-profile-info strong {
   overflow: hidden;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-size: 15px;
   font-weight: 650;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .pd-profile-info span {
-  color: #9c7349;
+  color: var(--secondary, #9c7349);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 10px;
 }
 
 .pd-profile-info small {
-  color: #6d675e;
+  color: var(--text-muted, #6d675e);
+
   font-size: 11px;
 }
+
 
 /* =========================================================
    BALANCE
@@ -191,43 +373,62 @@
 
 .pd-balance-banner {
   min-height: 90px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   gap: 18px;
+
   margin-top: 13px;
-  padding: 17px 18px;
+
+  padding: 16px 18px;
+
   border: 1px solid rgba(156, 115, 73, 0.22);
-  border-radius: 12px;
-  background: #faf5eb;
+  border-radius: 11px;
+
+  background: rgba(156, 115, 73, 0.055);
 }
 
 .pd-balance-banner span {
   display: block;
+
   margin-bottom: 4px;
-  color: #7d756a;
+
+  color: var(--text-muted, #6d675e);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
   font-weight: 700;
+
   letter-spacing: 0.1em;
 }
 
 .pd-balance-banner strong {
   display: block;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 22px;
   font-weight: 600;
+
+  letter-spacing: -0.02em;
 }
 
 .pd-balance-status {
   padding: 7px 10px;
+
   border-radius: 6px;
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
   font-weight: 700;
+
   letter-spacing: 0.05em;
   text-transform: uppercase;
+
+  white-space: nowrap;
 }
 
 .pd-balance-status.due {
@@ -237,7 +438,7 @@
 
 .pd-balance-status.paid {
   background: rgba(27, 75, 115, 0.09);
-  color: #1b4b73;
+  color: var(--primary, #1b4b73);
 }
 
 .pd-balance-status.advance {
@@ -245,63 +446,108 @@
   color: #2a628f;
 }
 
+
 /* =========================================================
    METRICS
 ========================================================= */
 
 .pd-metrics-grid {
   display: grid;
+
   grid-template-columns: repeat(2, minmax(0, 1fr));
+
   gap: 10px;
+
   margin-top: 13px;
 }
 
 .pd-metric {
   min-width: 0;
+
   display: flex;
   align-items: center;
+
   gap: 11px;
-  padding: 14px;
-  border: 1px solid rgba(21, 32, 51, 0.08);
+
+  padding: 13px;
+
+  border: 1px solid var(--border, #ddd6ca);
   border-radius: 10px;
-  background: #fffcf7;
+
+  background: var(--surface, #fffcf7);
+
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.pd-metric:hover {
+  border-color: var(
+    --primary-border,
+    rgba(27, 75, 115, 0.18)
+  );
+
+  box-shadow:
+    0 4px 14px var(
+      --shadow-color,
+      rgba(21, 32, 51, 0.035)
+    );
+
+  transform: translateY(-1px);
 }
 
 .pd-metric-icon {
   width: 34px;
   height: 34px;
+
   flex: 0 0 34px;
+
   display: grid;
   place-items: center;
+
   border-radius: 8px;
-  background: rgba(27, 75, 115, 0.07);
-  color: #1b4b73;
+
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
 }
 
 .pd-metric span {
   display: block;
+
   margin-bottom: 3px;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
   font-size: 10px;
 }
 
 .pd-metric strong {
   display: block;
+
   overflow: hidden;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 14px;
   font-weight: 600;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .pd-metric.is-due strong {
-  color: #9c7349;
+  color: var(--secondary, #9c7349);
 }
 
+
 /* =========================================================
-   SECTIONS
+   SECTION HEADINGS
 ========================================================= */
 
 .pd-section {
@@ -312,33 +558,45 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+
   gap: 12px;
+
   margin-bottom: 10px;
 }
 
 .pd-section-heading span {
   display: block;
+
   margin-bottom: 3px;
-  color: #9c7349;
+
+  color: var(--secondary, #9c7349);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
   font-weight: 700;
+
   letter-spacing: 0.12em;
 }
 
 .pd-section-heading h3 {
   margin: 0;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-family: "Fraunces", serif;
   font-size: 18px;
   font-weight: 600;
+
+  line-height: 1.2;
 }
 
 .pd-section-heading small {
-  color: #6d675e;
+  color: var(--text-muted, #6d675e);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
 }
+
 
 /* =========================================================
    TRIP BREAKDOWN
@@ -346,17 +604,26 @@
 
 .pd-trip-grid {
   display: grid;
+
   grid-template-columns: repeat(4, minmax(0, 1fr));
+
   overflow: hidden;
-  border: 1px solid rgba(21, 32, 51, 0.08);
+
+  border: 1px solid var(--border, #ddd6ca);
   border-radius: 10px;
-  background: #fffcf7;
+
+  background: var(--surface, #fffcf7);
 }
 
 .pd-trip-grid > div {
   min-width: 0;
+
   padding: 13px;
-  border-right: 1px solid rgba(21, 32, 51, 0.07);
+
+  border-right: 1px solid var(
+    --border-soft,
+    #e9e3d9
+  );
 }
 
 .pd-trip-grid > div:last-child {
@@ -365,37 +632,50 @@
 
 .pd-trip-grid span {
   display: block;
+
   margin-bottom: 5px;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
   font-size: 10px;
   line-height: 1.3;
 }
 
 .pd-trip-grid strong {
-  color: #152033;
+  color: var(--text-primary, #152033);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 16px;
+  font-weight: 650;
 }
 
+
 /* =========================================================
-   INFO
+   INFORMATION
 ========================================================= */
 
 .pd-info-grid {
   display: grid;
+
   grid-template-columns: repeat(2, minmax(0, 1fr));
+
   gap: 9px;
 }
 
 .pd-info-item {
   display: flex;
   align-items: flex-start;
+
   gap: 10px;
-  padding: 13px;
-  border: 1px solid rgba(21, 32, 51, 0.08);
+
+  padding: 12px;
+
+  border: 1px solid var(--border, #ddd6ca);
   border-radius: 10px;
-  background: #fffcf7;
-  color: #1b4b73;
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--primary, #1b4b73);
 }
 
 .pd-info-full {
@@ -408,18 +688,27 @@
 
 .pd-info-item span {
   display: block;
+
   margin-bottom: 4px;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
   font-size: 10px;
 }
 
 .pd-info-item strong {
   display: block;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-size: 12px;
   font-weight: 550;
+
   line-height: 1.45;
+
+  overflow-wrap: anywhere;
 }
+
 
 /* =========================================================
    PAYMENT
@@ -428,12 +717,17 @@
 .pd-payment-card {
   display: flex;
   align-items: center;
+
   gap: 11px;
-  padding: 14px;
-  border: 1px solid rgba(21, 32, 51, 0.08);
+
+  padding: 13px;
+
+  border: 1px solid var(--border, #ddd6ca);
   border-radius: 10px;
-  background: #fffcf7;
-  color: #1b4b73;
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--primary, #1b4b73);
 }
 
 .pd-payment-card div {
@@ -442,15 +736,21 @@
 
 .pd-payment-card span {
   display: block;
+
   margin-bottom: 4px;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
   font-size: 10px;
 }
 
 .pd-payment-card strong {
   display: block;
+
   overflow-wrap: anywhere;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 11px;
   font-weight: 500;
@@ -459,19 +759,27 @@
 .pd-advance-note {
   display: flex;
   align-items: center;
+
   gap: 7px;
+
   margin-top: 9px;
+
   padding: 10px 12px;
+
   border: 1px solid rgba(42, 98, 143, 0.14);
   border-radius: 8px;
+
   background: rgba(42, 98, 143, 0.06);
+
   color: #2a628f;
+
   font-size: 11px;
 }
 
 .pd-advance-note strong {
   font-family: "IBM Plex Mono", monospace;
 }
+
 
 /* =========================================================
    HISTORY
@@ -483,59 +791,92 @@
 
 .pd-history-list {
   overflow: hidden;
-  border: 1px solid rgba(21, 32, 51, 0.08);
+
+  border: 1px solid var(--border, #ddd6ca);
   border-radius: 10px;
-  background: #fffcf7;
+
+  background: var(--surface, #fffcf7);
 }
 
 .pd-history-item {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 13px;
-  border-bottom: 1px solid rgba(21, 32, 51, 0.07);
+
+  gap: 12px;
+
+  padding: 10px 13px;
+
+  border-bottom: 1px solid var(
+    --border-soft,
+    #e9e3d9
+  );
+
+  transition:
+    background-color 150ms ease;
 }
 
 .pd-history-item:last-child {
   border-bottom: 0;
 }
 
+.pd-history-item:hover {
+  background: var(--surface-soft, #f6f1e8);
+}
+
 .pd-history-icon {
-  width: 31px;
-  height: 31px;
+  width: 32px;
+  height: 32px;
+
+  flex: 0 0 32px;
+
   display: grid;
   place-items: center;
+
   border-radius: 8px;
-  background: rgba(27, 75, 115, 0.08);
-  color: #1b4b73;
+
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
 }
 
 .pd-history-icon.payment {
   background: rgba(156, 115, 73, 0.1);
-  color: #9c7349;
+
+  color: var(--secondary, #9c7349);
 }
 
 .pd-history-content {
+  flex: 1;
+
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
 }
 
 .pd-history-content strong {
+  display: block;
+
   overflow: hidden;
-  color: #152033;
+
+  color: var(--text-primary, #152033);
+
   font-size: 12px;
   font-weight: 650;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pd-history-content > span {
+.pd-history-content span {
+  display: block;
+
   overflow: hidden;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
   font-size: 10px;
+
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -543,36 +884,437 @@
 .pd-history-content small {
   display: flex;
   align-items: center;
+
   gap: 4px;
-  color: #999187;
+
+  margin-top: 2px;
+
+  color: var(--text-muted, #6d675e);
+
   font-family: "IBM Plex Mono", monospace;
   font-size: 9px;
 }
 
+.pd-history-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex-shrink: 0;
+}
+
+.pd-history-view-btn,
+.pd-daily-view-btn {
+  width: 28px;
+  height: 28px;
+
+  min-width: 28px;
+  min-height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid var(--border, #ddd6ca);
+  border-radius: 6px;
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--text-muted, #6d675e);
+
+  cursor: pointer;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.pd-history-view-btn:hover,
+.pd-daily-view-btn:hover {
+  border-color: var(
+    --primary-border,
+    rgba(27, 75, 115, 0.2)
+  );
+
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
+
+  transform: translateY(-1px);
+}
+
+.pd-history-view-btn:focus-visible,
+.pd-daily-view-btn:focus-visible {
+  outline: 2px solid var(--primary, #1b4b73);
+  outline-offset: 2px;
+}
+
 .pd-history-amount {
-  color: #1b4b73;
+  color: var(--primary, #1b4b73);
+
   font-family: "IBM Plex Mono", monospace;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+
   white-space: nowrap;
 }
 
 .pd-history-amount.received {
-  color: #9c7349;
+  color: var(--secondary, #9c7349);
 }
 
-.pd-history-empty {
-  min-height: 110px;
+.pd-history-empty,
+.pd-daily-empty {
+  min-height: 105px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   gap: 8px;
+
   padding: 20px;
-  border: 1px dashed rgba(21, 32, 51, 0.14);
+
+  border: 1px dashed var(--border, #ddd6ca);
   border-radius: 10px;
-  color: #6d675e;
+
+  color: var(--text-muted, #6d675e);
+
+  font-size: 11px;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   DAILY ACTIVITY
+========================================================= */
+
+.pd-daily-section {
+  margin-top: 16px;
+}
+
+.pd-daily-controls {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex-wrap: wrap;
+
+  margin-bottom: 12px;
+}
+
+.pd-date-btn {
+  min-height: 30px;
+
+  padding: 0 12px;
+
+  border: 1px solid var(--border, #ddd6ca);
+  border-radius: 7px;
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--text-muted, #6d675e);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.pd-date-btn:hover,
+.pd-date-btn.active {
+  border-color: var(
+    --primary-border,
+    rgba(27, 75, 115, 0.22)
+  );
+
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
+}
+
+.pd-date-input {
+  min-height: 30px;
+
+  padding: 0 9px;
+
+  border: 1px solid var(--border, #ddd6ca);
+  border-radius: 7px;
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--text-primary, #152033);
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+
+  cursor: pointer;
+
+  outline: none;
+
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.pd-date-input:focus {
+  border-color: var(--primary, #1b4b73);
+
+  box-shadow:
+    0 0 0 3px rgba(27, 75, 115, 0.08);
+}
+
+.pd-daily-summary {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 8px;
+
+  margin-bottom: 12px;
+}
+
+.pd-daily-stat {
+  padding: 10px 12px;
+
+  border: 1px solid var(
+    --border-soft,
+    #e9e3d9
+  );
+
+  border-radius: 8px;
+
+  background: var(
+    --surface-soft,
+    #f6f1e8
+  );
+
+  text-align: center;
+}
+
+.pd-daily-stat span {
+  display: block;
+
+  margin-bottom: 2px;
+
+  color: var(--text-muted, #6d675e);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pd-daily-stat strong {
+  display: block;
+
+  color: var(--text-primary, #152033);
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pd-daily-received strong {
+  color: var(--secondary, #9c7349);
+}
+
+.pd-daily-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  max-height: 180px;
+
+  overflow-y: auto;
+}
+
+.pd-daily-item {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 8px 11px;
+
+  border-radius: 7px;
+
+  background: var(
+    --surface-soft,
+    #f6f1e8
+  );
+
+  transition:
+    background-color 150ms ease;
+}
+
+.pd-daily-item:hover {
+  background: var(
+    --surface,
+    #fffcf7
+  );
+}
+
+.pd-daily-icon {
+  width: 28px;
+  height: 28px;
+
+  flex: 0 0 28px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 6px;
+}
+
+.pd-daily-icon.trip {
+  background: var(
+    --primary-soft,
+    rgba(27, 75, 115, 0.08)
+  );
+
+  color: var(--primary, #1b4b73);
+}
+
+.pd-daily-icon.payment {
+  background: rgba(156, 115, 73, 0.1);
+
+  color: var(--secondary, #9c7349);
+}
+
+.pd-daily-content {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.pd-daily-content strong {
+  display: block;
+
+  color: var(--text-primary, #152033);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pd-daily-content span {
+  display: block;
+
+  color: var(--text-muted, #6d675e);
+
   font-size: 11px;
 }
+
+.pd-daily-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex-shrink: 0;
+}
+
+.pd-daily-amount {
+  color: var(--text-primary, #152033);
+
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.pd-daily-amount.received {
+  color: var(--secondary, #9c7349);
+}
+
+
+/* =========================================================
+   REMINDER
+========================================================= */
+
+.pd-reminder-badge {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 4px;
+
+  padding: 4px 9px;
+
+  border: 1px solid rgba(156, 115, 73, 0.25);
+  border-radius: 999px;
+
+  background: rgba(156, 115, 73, 0.08);
+
+  color: var(--secondary, #9c7349);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.pd-reminder-banner {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 12px;
+
+  padding: 11px 14px;
+
+  border: 1px solid rgba(156, 115, 73, 0.22);
+  border-radius: 10px;
+
+  background: rgba(156, 115, 73, 0.06);
+}
+
+.pd-reminder-banner svg {
+  flex-shrink: 0;
+
+  color: var(--secondary, #9c7349);
+}
+
+.pd-reminder-banner strong {
+  display: block;
+
+  color: #8b6914;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pd-reminder-banner span {
+  display: block;
+
+  color: #7a5a0a;
+
+  font-size: 11px;
+
+  line-height: 1.45;
+}
+
 
 /* =========================================================
    FOOTER
@@ -580,29 +1322,254 @@
 
 .pd-footer {
   flex: 0 0 auto;
+
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+
   gap: 9px;
-  padding: 14px 18px;
-  border-top: 1px solid rgba(21, 32, 51, 0.08);
-  background: #fffcf7;
+
+  padding: 13px 18px;
+
+  border-top: 1px solid var(
+    --border-soft,
+    #e9e3d9
+  );
+
+  background: var(--surface, #fffcf7);
 }
 
+.pd-footer button {
+  min-height: 36px;
+}
+
+
 /* =========================================================
-   RESPONSIVE
+   DELETE MODAL
 ========================================================= */
 
-@media (max-width: 560px) {
-  .party-details-drawer {
-    width: 100%;
-  }
+.pd-delete-overlay {
+  position: absolute;
+  inset: 0;
+
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(21, 32, 51, 0.48);
+
+  backdrop-filter: blur(4px);
+
+  border-radius: inherit;
+}
+
+.pd-delete-modal {
+  width: min(420px, 100%);
+
+  padding: 24px;
+
+  border: 1px solid var(--border, #ddd6ca);
+  border-radius: 14px;
+
+  background: var(--surface, #fffcf7);
+
+  box-shadow:
+    0 24px 70px rgba(21, 32, 51, 0.18);
+
+  text-align: center;
+}
+
+.pd-delete-icon {
+  width: 52px;
+  height: 52px;
+
+  margin: 0 auto 12px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: rgba(192, 57, 43, 0.08);
+
+  color: #c0392b;
+}
+
+.pd-delete-modal h3 {
+  margin: 0 0 8px;
+
+  color: var(--text-primary, #152033);
+
+  font-family: "Fraunces", serif;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.pd-delete-modal p {
+  margin: 0 0 20px;
+
+  color: var(--text-muted, #6d675e);
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+.pd-delete-modal p strong {
+  color: var(--text-primary, #152033);
+}
+
+.pd-delete-actions {
+  display: flex;
+  justify-content: center;
+
+  gap: 10px;
+}
+
+.pd-delete-cancel,
+.pd-delete-confirm {
+  min-height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 0 18px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.pd-delete-cancel {
+  border: 1px solid var(--border, #ddd6ca);
+
+  background: var(--surface, #fffcf7);
+
+  color: var(--text-primary, #152033);
+}
+
+.pd-delete-cancel:hover {
+  background: var(--surface-soft, #f6f1e8);
+
+  transform: translateY(-1px);
+}
+
+.pd-delete-confirm {
+  border: 1px solid #c0392b;
+
+  background: #c0392b;
+
+  color: #fff;
+}
+
+.pd-delete-confirm:hover {
+  border-color: #a93226;
+
+  background: #a93226;
+
+  transform: translateY(-1px);
+}
+
+.pd-delete-cancel:focus-visible,
+.pd-delete-confirm:focus-visible {
+  outline: 2px solid var(--primary, #1b4b73);
+  outline-offset: 3px;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+html[data-theme="dark"] .party-details-backdrop {
+  background: rgba(0, 0, 0, 0.58);
+}
+
+html[data-theme="dark"] .party-details-drawer {
+  border-left-color: var(--border);
+
+  box-shadow:
+    -18px 0 50px rgba(0, 0, 0, 0.38);
+}
+
+html[data-theme="dark"] .pd-header::before {
+  opacity: 0.7;
+}
+
+html[data-theme="dark"] .pd-balance-banner {
+  background: rgba(156, 115, 73, 0.08);
+}
+
+html[data-theme="dark"] .pd-reminder-banner {
+  background: rgba(156, 115, 73, 0.09);
+}
+
+html[data-theme="dark"] .pd-reminder-banner strong {
+  color: #d8b06e;
+}
+
+html[data-theme="dark"] .pd-reminder-banner span {
+  color: #bca16f;
+}
+
+html[data-theme="dark"] .pd-delete-overlay {
+  background: rgba(0, 0, 0, 0.62);
+}
+
+html[data-theme="dark"] .pd-delete-icon {
+  background: rgba(192, 57, 43, 0.14);
+}
+
+
+/* =========================================================
+   RESPONSIVE — TABLET / MOBILE
+========================================================= */
+
+@media (max-width: 640px) {
 
   .pd-header {
-    padding: 19px 17px 16px;
+    gap: 10px;
+
+    padding: 18px 17px 16px;
   }
 
   .pd-header h2 {
     font-size: 24px;
+  }
+
+  .pd-header p {
+    font-size: 11px;
+  }
+
+  .pd-header-actions {
+    gap: 4px;
+  }
+
+  .pd-action-btn,
+  .pd-close {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+    min-height: 32px;
+
+    flex-basis: 32px;
   }
 
   .party-details-body {
@@ -612,14 +1579,16 @@
   .pd-profile-card {
     align-items: flex-start;
     flex-direction: column;
+
+    padding: 14px;
   }
 
   .pd-metrics-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .pd-trip-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .pd-trip-grid > div:nth-child(2) {
@@ -627,7 +1596,10 @@
   }
 
   .pd-trip-grid > div:nth-child(-n + 2) {
-    border-bottom: 1px solid rgba(21, 32, 51, 0.07);
+    border-bottom: 1px solid var(
+      --border-soft,
+      #e9e3d9
+    );
   }
 
   .pd-info-grid {
@@ -638,919 +1610,499 @@
     grid-column: auto;
   }
 
+  .pd-daily-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pd-daily-controls {
+    gap: 5px;
+  }
+
+  .pd-date-btn {
+    padding: 0 10px;
+
+    font-size: 9px;
+  }
+
+  .pd-reminder-banner {
+    align-items: flex-start;
+  }
+
   .pd-footer {
     padding: 12px;
   }
 
   .pd-footer button {
     flex: 1;
+
     justify-content: center;
+  }
+
+  .pd-delete-modal {
+    margin: 10px;
+
+    padding: 18px;
+  }
+
+  .pd-delete-actions {
+    flex-direction: column;
+  }
+
+  .pd-delete-actions button {
+    width: 100%;
   }
 }
 
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .party-details-drawer {
+    width: 100%;
+  }
+
+  .pd-header {
+    gap: 8px;
+
+    padding: 16px 14px 14px;
+  }
+
+  .pd-header h2 {
+    font-size: 22px;
+  }
+
+  .pd-header p {
+    font-size: 10.5px;
+  }
+
+  .pd-profile-card {
+    padding: 13px;
+  }
+
+  .pd-avatar {
+    width: 44px;
+    height: 44px;
+
+    flex-basis: 44px;
+  }
+
+  .pd-profile-main {
+    gap: 10px;
+  }
+
+  .pd-metrics-grid {
+    gap: 7px;
+  }
+
+  .pd-metric {
+    gap: 8px;
+
+    padding: 11px;
+  }
+
+  .pd-metric-icon {
+    width: 30px;
+    height: 30px;
+
+    flex-basis: 30px;
+  }
+
+  .pd-metric strong {
+    font-size: 12px;
+  }
+
+  .pd-trip-grid strong {
+    font-size: 14px;
+  }
+
+  .pd-daily-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pd-daily-item {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+  .pd-daily-actions {
+    width: calc(100% - 38px);
+
+    margin-left: 38px;
+  }
+
+  .pd-history-item {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+  }
+
+  .pd-history-actions {
+    width: calc(100% - 44px);
+
+    margin-left: 44px;
+  }
+
+  .pd-reminder-badge {
+    padding: 3px 7px;
+
+    font-size: 8px;
+  }
+
+  .pd-balance-banner {
+    align-items: flex-start;
+    flex-direction: column;
+
+    gap: 10px;
+
+    padding: 14px;
+  }
+
+  .pd-balance-status {
+    align-self: flex-start;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
 @media (max-width: 380px) {
+
+  .pd-header {
+    padding-inline: 12px;
+  }
+
+  .party-details-body {
+    padding: 10px;
+  }
+
   .pd-metrics-grid {
     grid-template-columns: 1fr;
   }
 
-  .pd-history-item {
-    grid-template-columns: 31px minmax(0, 1fr);
+  .pd-trip-grid {
+    grid-template-columns: 1fr;
   }
 
-  .pd-history-amount {
-    grid-column: 2;
-  }
-}
-/* ============================================================
-   PARTY DETAILS — NEW FEATURES
-   Actions, Daily Activity, Delete Modal
-   ============================================================ */
+  .pd-trip-grid > div {
+    border-right: 0;
 
-/* ============================================================
-   HEADER ACTIONS
-   ============================================================ */
-
-.pd-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.pd-action-btn {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text-muted, #6C757D);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-action-btn:hover {
-  border-color: var(--color-primary, #1A5F7A);
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-action-btn.pd-danger:hover {
-  border-color: #E74C3C;
-  background: #FDECEA;
-  color: #E74C3C;
-}
-
-/* ============================================================
-   DELETE CONFIRMATION MODAL
-   ============================================================ */
-
-.pd-delete-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(21, 32, 51, 0.48);
-  backdrop-filter: blur(4px);
-  border-radius: inherit;
-}
-
-.pd-delete-modal {
-  width: min(420px, 100%);
-  padding: 24px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 16px;
-  background: var(--color-surface, #FFFFFF);
-  box-shadow: 0 24px 70px rgba(21, 32, 51, 0.18);
-  text-align: center;
-}
-
-.pd-delete-icon {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 12px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #FDECEA;
-  color: #E74C3C;
-}
-
-.pd-delete-modal h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-}
-
-.pd-delete-modal p {
-  margin: 0 0 20px;
-  font-size: 13px;
-  color: var(--color-text-muted, #6C757D);
-  line-height: 1.5;
-}
-
-.pd-delete-modal p strong {
-  color: var(--color-text, #212529);
-}
-
-.pd-delete-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.pd-delete-cancel {
-  min-height: 38px;
-  padding: 0 18px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text, #212529);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-delete-cancel:hover {
-  background: var(--color-surface-soft, #F8F9FA);
-}
-
-.pd-delete-confirm {
-  min-height: 38px;
-  padding: 0 18px;
-  border: 1px solid #E74C3C;
-  border-radius: 8px;
-  background: #E74C3C;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-}
-
-.pd-delete-confirm:hover {
-  background: #C0392B;
-  border-color: #C0392B;
-}
-
-/* ============================================================
-   DAILY ACTIVITY SECTION
-   ============================================================ */
-
-.pd-daily-section {
-  margin-top: 6px;
-}
-
-.pd-daily-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.pd-date-btn {
-  padding: 5px 14px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 6px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text-muted, #6C757D);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-date-btn:hover {
-  border-color: var(--color-primary, #1A5F7A);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-date-btn.active {
-  border-color: var(--color-primary, #1A5F7A);
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-date-input {
-  padding: 5px 10px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 6px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text, #212529);
-  font-size: 11px;
-  cursor: pointer;
-  outline: none;
-}
-
-.pd-date-input:focus {
-  border-color: var(--color-primary, #1A5F7A);
-  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.08);
-}
-
-.pd-daily-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.pd-daily-stat {
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  background: var(--color-surface-soft, #F8F9FA);
-  text-align: center;
-}
-
-.pd-daily-stat span {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted, #6C757D);
-  margin-bottom: 2px;
-}
-
-.pd-daily-stat strong {
-  display: block;
-  font-family: var(--font-mono, "IBM Plex Mono", monospace);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-}
-
-.pd-daily-received strong {
-  color: #2ECC71;
-}
-
-.pd-daily-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 20px;
-  border: 1px dashed var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  color: var(--color-text-muted, #6C757D);
-  font-size: 13px;
-}
-
-.pd-daily-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.pd-daily-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: var(--color-surface-soft, #F8F9FA);
-  transition: background 0.15s ease;
-}
-
-.pd-daily-item:hover {
-  background: var(--color-surface, #FFFFFF);
-}
-
-.pd-daily-icon {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-}
-
-.pd-daily-icon.trip {
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-daily-icon.payment {
-  background: #E8F8F0;
-  color: #2ECC71;
-}
-
-.pd-daily-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.pd-daily-content strong {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text, #212529);
-}
-
-.pd-daily-content span {
-  display: block;
-  font-size: 11px;
-  color: var(--color-text-muted, #6C757D);
-}
-
-.pd-daily-amount {
-  font-family: var(--font-mono, "IBM Plex Mono", monospace);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-  flex-shrink: 0;
-}
-
-.pd-daily-amount.received {
-  color: #2ECC71;
-}
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-
-@media (max-width: 640px) {
-  .pd-header-actions {
-    flex-wrap: wrap;
-    gap: 4px;
+    border-bottom: 1px solid var(
+      --border-soft,
+      #e9e3d9
+    );
   }
 
-  .pd-action-btn {
-    width: 30px;
-    height: 30px;
+  .pd-trip-grid > div:last-child {
+    border-bottom: 0;
   }
 
   .pd-daily-summary {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
-  .pd-daily-controls {
-    gap: 4px;
-  }
-
-  .pd-date-btn {
-    font-size: 10px;
-    padding: 4px 10px;
-  }
-
-  .pd-delete-modal {
-    padding: 18px;
-    margin: 10px;
-  }
-
-  .pd-delete-actions {
-    flex-direction: column;
-  }
-
-  .pd-delete-actions button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .pd-daily-summary {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .pd-daily-item {
-    flex-wrap: wrap;
-  }
-
-  .pd-daily-amount {
-    margin-left: 38px;
-  }
-}
-/* ============================================================
-   PARTY DETAILS — ALL 9 FEATURES CSS
-   ============================================================ */
-
-/* 1. HEADER ACTIONS */
-.pd-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.pd-action-btn {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text-muted, #6C757D);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-action-btn:hover {
-  border-color: var(--color-primary, #1A5F7A);
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-action-btn.pd-danger:hover {
-  border-color: #E74C3C;
-  background: #FDECEA;
-  color: #E74C3C;
-}
-
-/* 2. SMART REMINDER */
-.pd-reminder-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid #F39C12;
-  border-radius: 999px;
-  background: #FEF3E2;
-  color: #F39C12;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.pd-reminder-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  border: 1px solid #F39C12;
-  border-radius: 10px;
-  background: #FEF3E2;
-}
-
-.pd-reminder-banner svg {
-  color: #F39C12;
-  flex-shrink: 0;
-}
-
-.pd-reminder-banner strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #8B6914;
-}
-
-.pd-reminder-banner span {
-  display: block;
-  font-size: 12px;
-  color: #7A5A0A;
-}
-
-/* 3. DELETE CONFIRMATION MODAL */
-.pd-delete-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(21, 32, 51, 0.48);
-  backdrop-filter: blur(4px);
-  border-radius: inherit;
-}
-
-.pd-delete-modal {
-  width: min(420px, 100%);
-  padding: 24px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 16px;
-  background: var(--color-surface, #FFFFFF);
-  box-shadow: 0 24px 70px rgba(21, 32, 51, 0.18);
-  text-align: center;
-}
-
-.pd-delete-icon {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 12px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #FDECEA;
-  color: #E74C3C;
-}
-
-.pd-delete-modal h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-}
-
-.pd-delete-modal p {
-  margin: 0 0 20px;
-  font-size: 13px;
-  color: var(--color-text-muted, #6C757D);
-  line-height: 1.5;
-}
-
-.pd-delete-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.pd-delete-cancel {
-  min-height: 38px;
-  padding: 0 18px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text, #212529);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-delete-confirm {
-  min-height: 38px;
-  padding: 0 18px;
-  border: 1px solid #E74C3C;
-  border-radius: 8px;
-  background: #E74C3C;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-}
-
-.pd-delete-confirm:hover {
-  background: #C0392B;
-  border-color: #C0392B;
-}
-
-/* 4. DAILY ACTIVITY */
-.pd-daily-section {
-  margin-top: 6px;
-}
-
-.pd-daily-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.pd-date-btn {
-  padding: 5px 14px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 6px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text-muted, #6C757D);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-date-btn:hover {
-  border-color: var(--color-primary, #1A5F7A);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-date-btn.active {
-  border-color: var(--color-primary, #1A5F7A);
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-date-input {
-  padding: 5px 10px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 6px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text, #212529);
-  font-size: 11px;
-  cursor: pointer;
-  outline: none;
-}
-
-.pd-date-input:focus {
-  border-color: var(--color-primary, #1A5F7A);
-  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.08);
-}
-
-.pd-daily-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.pd-daily-stat {
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  background: var(--color-surface-soft, #F8F9FA);
-  text-align: center;
-}
-
-.pd-daily-stat span {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted, #6C757D);
-  margin-bottom: 2px;
-}
-
-.pd-daily-stat strong {
-  display: block;
-  font-family: var(--font-mono, "IBM Plex Mono", monospace);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-}
-
-.pd-daily-received strong {
-  color: #2ECC71;
-}
-
-.pd-daily-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 20px;
-  border: 1px dashed var(--color-border, #E9ECEF);
-  border-radius: 8px;
-  color: var(--color-text-muted, #6C757D);
-  font-size: 13px;
-}
-
-.pd-daily-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.pd-daily-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: var(--color-surface-soft, #F8F9FA);
-  transition: background 0.15s ease;
-}
-
-.pd-daily-item:hover {
-  background: var(--color-surface, #FFFFFF);
-}
-
-.pd-daily-icon {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-}
-
-.pd-daily-icon.trip {
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-daily-icon.payment {
-  background: #E8F8F0;
-  color: #2ECC71;
-}
-
-.pd-daily-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.pd-daily-content strong {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text, #212529);
-}
-
-.pd-daily-content span {
-  display: block;
-  font-size: 11px;
-  color: var(--color-text-muted, #6C757D);
-}
-
-.pd-daily-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.pd-daily-view-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 6px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text-muted, #6C757D);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-daily-view-btn:hover {
-  border-color: var(--color-primary, #1A5F7A);
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-daily-amount {
-  font-family: var(--font-mono, "IBM Plex Mono", monospace);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-}
-
-.pd-daily-amount.received {
-  color: #2ECC71;
-}
-
-/* 5. HISTORY WITH VIEW BUTTON */
-.pd-history-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.pd-history-view-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--color-border, #E9ECEF);
-  border-radius: 6px;
-  background: var(--color-surface, #FFFFFF);
-  color: var(--color-text-muted, #6C757D);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pd-history-view-btn:hover {
-  border-color: var(--color-primary, #1A5F7A);
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-history-amount {
-  font-family: var(--font-mono, "IBM Plex Mono", monospace);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text, #212529);
-}
-
-.pd-history-amount.received {
-  color: #2ECC71;
-}
-
-.pd-history-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border-soft, #E9ECEF);
-}
-
-.pd-history-item:last-child {
-  border-bottom: 0;
-}
-
-.pd-history-icon {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-}
-
-.pd-history-icon.trip {
-  background: var(--color-primary-soft, #E8F0F4);
-  color: var(--color-primary, #1A5F7A);
-}
-
-.pd-history-icon.payment {
-  background: #E8F8F0;
-  color: #2ECC71;
-}
-
-.pd-history-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.pd-history-content strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text, #212529);
-}
-
-.pd-history-content span {
-  display: block;
-  font-size: 12px;
-  color: var(--color-text-muted, #6C757D);
-}
-
-.pd-history-content small {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  font-size: 10px;
-  color: var(--color-text-muted, #6C757D);
-}
-
-/* 6. RESPONSIVE */
-@media (max-width: 640px) {
-  .pd-header-actions {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .pd-action-btn {
-    width: 30px;
-    height: 30px;
-  }
-  .pd-daily-summary {
-    grid-template-columns: 1fr 1fr;
-  }
-  .pd-daily-controls {
-    gap: 4px;
-  }
-  .pd-date-btn {
-    font-size: 10px;
-    padding: 4px 10px;
-  }
-  .pd-delete-modal {
-    padding: 18px;
-    margin: 10px;
-  }
-  .pd-delete-actions {
-    flex-direction: column;
-  }
-  .pd-delete-actions button {
-    width: 100%;
-  }
-  .pd-daily-item {
-    flex-wrap: wrap;
-  }
-  .pd-daily-actions {
-    margin-left: 38px;
-  }
-  .pd-reminder-banner {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-@media (max-width: 480px) {
-  .pd-daily-summary {
-    grid-template-columns: 1fr 1fr;
-  }
-  .pd-history-item {
-    flex-wrap: wrap;
-  }
   .pd-history-actions {
+    width: 100%;
+
     margin-left: 44px;
   }
-  .pd-reminder-badge {
-    font-size: 8px;
-    padding: 2px 8px;
+
+  .pd-footer {
+    gap: 6px;
+  }
+}
+
+
+/* =========================================================
+   PRINT / SAVE AS PDF
+   Browser Print → Save as PDF
+========================================================= */
+
+@media print {
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    width: 100% !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #fff !important;
+  }
+
+  body {
+    overflow: visible !important;
+  }
+
+
+  /* -------------------------------------------------------
+     HIDE APPLICATION CHROME
+  ------------------------------------------------------- */
+
+  .app-sidebar,
+  .sidebar,
+  .app-header,
+  .header,
+  .mobile-header,
+  .bottom-nav,
+  .page-header {
+    display: none !important;
+  }
+
+
+  /* -------------------------------------------------------
+     CONVERT OVERLAY INTO DOCUMENT
+  ------------------------------------------------------- */
+
+  .party-details-overlay {
+    position: static !important;
+    inset: auto !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    height: auto !important;
+
+    background: transparent !important;
+
+    pointer-events: auto !important;
+  }
+
+  .party-details-backdrop {
+    display: none !important;
+  }
+
+  .party-details-drawer {
+    position: static !important;
+
+    width: 100% !important;
+    max-width: none !important;
+
+    height: auto !important;
+    max-height: none !important;
+
+    overflow: visible !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+  }
+
+  .party-details-body {
+    overflow: visible !important;
+
+    max-height: none !important;
+
+    padding: 0 !important;
+  }
+
+
+  /* -------------------------------------------------------
+     HIDE SCREEN-ONLY CONTROLS
+  ------------------------------------------------------- */
+
+  .pd-header-actions,
+  .pd-action-btn,
+  .pd-close,
+  .pd-footer,
+  .pd-delete-overlay,
+  .pd-daily-controls,
+  .pd-history-actions,
+  .pd-history-view-btn,
+  .pd-daily-view-btn {
+    display: none !important;
+  }
+
+
+  /* -------------------------------------------------------
+     PRINT HEADER
+  ------------------------------------------------------- */
+
+  .pd-header {
+    display: block !important;
+
+    padding: 0 0 12px !important;
+
+    margin-bottom: 14px !important;
+
+    background: #fff !important;
+
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+
+    border-bottom: 2px solid #222 !important;
+  }
+
+  .pd-header::before {
+    display: none !important;
+  }
+
+  .pd-eyebrow {
+    color: #555 !important;
+  }
+
+  .pd-header h2 {
+    color: #111 !important;
+  }
+
+  .pd-header p {
+    color: #555 !important;
+  }
+
+
+  /* -------------------------------------------------------
+     PRINT COLORS
+  ------------------------------------------------------- */
+
+  .party-details-drawer,
+  .party-details-drawer * {
+    color: #111 !important;
+  }
+
+  .pd-balance-status.due {
+    color: #7a542d !important;
+  }
+
+  .pd-balance-status.paid {
+    color: #244e6f !important;
+  }
+
+  .pd-balance-status.advance {
+    color: #2a628f !important;
+  }
+
+  .pd-history-amount,
+  .pd-history-amount.received,
+  .pd-daily-amount,
+  .pd-daily-amount.received {
+    color: #111 !important;
+  }
+
+
+  /* -------------------------------------------------------
+     FLATTEN CARDS FOR PAPER
+  ------------------------------------------------------- */
+
+  .pd-profile-card,
+  .pd-balance-banner,
+  .pd-metric,
+  .pd-trip-grid,
+  .pd-info-item,
+  .pd-payment-card,
+  .pd-history-list,
+  .pd-daily-stat,
+  .pd-daily-item {
+    background: #fff !important;
+
+    box-shadow: none !important;
+  }
+
+  .pd-profile-card,
+  .pd-balance-banner,
+  .pd-metric,
+  .pd-trip-grid,
+  .pd-info-item,
+  .pd-payment-card,
+  .pd-history-list {
+    border-color: #aaa !important;
+  }
+
+  .pd-history-item {
+    border-color: #ddd !important;
+  }
+
+  .pd-daily-item {
+    border: 1px solid #ddd !important;
+  }
+
+
+  /* -------------------------------------------------------
+     PRINT SECTION HEADINGS
+  ------------------------------------------------------- */
+
+  .pd-section-heading span {
+    color: #555 !important;
+  }
+
+  .pd-section-heading h3 {
+    color: #111 !important;
+  }
+
+  .pd-section-heading small {
+    color: #555 !important;
+  }
+
+
+  /* -------------------------------------------------------
+     PAGE BREAK CONTROL
+  ------------------------------------------------------- */
+
+  .pd-profile-card,
+  .pd-balance-banner,
+  .pd-metric,
+  .pd-trip-grid,
+  .pd-info-item,
+  .pd-payment-card,
+  .pd-history-item,
+  .pd-daily-item,
+  .pd-daily-stat {
+    break-inside: avoid;
+
+    page-break-inside: avoid;
+  }
+
+  .pd-section-heading {
+    break-after: avoid;
+
+    page-break-after: avoid;
+  }
+
+
+  /* -------------------------------------------------------
+     PRINT BODY
+  ------------------------------------------------------- */
+
+  .pd-history-list,
+  .pd-daily-list {
+    max-height: none !important;
+
+    overflow: visible !important;
+  }
+
+  .pd-daily-list {
+    display: flex !important;
+  }
+
+
+  /* -------------------------------------------------------
+     REMOVE SCREEN EFFECTS
+  ------------------------------------------------------- */
+
+  * {
+    text-shadow: none !important;
+
+    animation: none !important;
+
+    transition: none !important;
+  }
+
+  svg {
+    -webkit-print-color-adjust: exact;
+
+    print-color-adjust: exact;
   }
 }

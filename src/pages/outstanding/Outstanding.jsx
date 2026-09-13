@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -12,9 +12,11 @@ import {
   Filter,
   History,
   IndianRupee,
+  MessageCircle,
   Printer,
   RefreshCw,
   Search,
+  Send,
   WalletCards,
   X,
 } from "lucide-react";
@@ -23,6 +25,7 @@ import "./Outstanding.css";
 const TRIPS_KEY = "saoAutoTractorTrips";
 const PARTIES_KEY = "saoAutoTractorParties";
 const PAYMENTS_KEY = "saoAutoTractorPayments";
+const BUSINESS_KEY = "saoAutoTractorBusinessDetails";
 
 const cleanText = (value) => String(value ?? "").trim();
 
@@ -150,16 +153,47 @@ const formatDate = (value) => {
   });
 };
 
+/* FIX 3: Local timezone date (was UTC before) */
 const getToday = () => {
-  const date = new Date();
-  return date.toISOString().slice(0, 10);
+  const d = new Date();
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset)
+    .toISOString()
+    .slice(0, 10);
 };
 
 const getMonthStart = () => {
-  const date = new Date();
-  return new Date(date.getFullYear(), date.getMonth(), 1)
+  const d = new Date();
+  const firstOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  const offset = firstOfMonth.getTimezoneOffset() * 60000;
+  return new Date(firstOfMonth.getTime() - offset)
     .toISOString()
     .slice(0, 10);
+};
+
+/* FIX 6: Aging bucket helper */
+const getAgeInDays = (dateValue) => {
+  const date = parseDate(dateValue);
+  if (!date) return null;
+
+  const now = new Date();
+  const diff = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  return diff >= 0 ? diff : 0;
+};
+
+/* FIX: Business details for print header */
+const getBusinessDetails = () => {
+  try {
+    const raw = localStorage.getItem(BUSINESS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
 };
 
 function StatCard({ icon, label, value, helper, tone = "" }) {
@@ -178,22 +212,10 @@ function StatCard({ icon, label, value, helper, tone = "" }) {
 
 function StatusBadge({ status }) {
   const config = {
-    Paid: {
-      className: "paid",
-      label: "Paid",
-    },
-    Due: {
-      className: "due",
-      label: "Due",
-    },
-    Partial: {
-      className: "partial",
-      label: "Partial",
-    },
-    Advance: {
-      className: "advance",
-      label: "Advance",
-    },
+    Paid: { className: "paid", label: "Paid" },
+    Due: { className: "due", label: "Due" },
+    Partial: { className: "partial", label: "Partial" },
+    Advance: { className: "advance", label: "Advance" },
   };
 
   const item = config[status] || config.Due;
@@ -206,7 +228,51 @@ function StatusBadge({ status }) {
   );
 }
 
-function AccountModal({ account, onClose, onReceivePayment, onPrint }) {
+/* FIX 5: WhatsApp message helpers */
+const buildWhatsAppMessage = (account, businessName) => {
+  const dueAmount =
+    account.balance > 0 ? account.balance : 0;
+
+  const message =
+    `🙏 *${businessName || "SAO AUTO TRACTOR"}*%0A%0A` +
+    `Dear *${account.partyName}*,%0A%0A` +
+    `Your account summary:%0A` +
+    `• Total Billed: ${formatMoney(account.billed)}%0A` +
+    `• Total Paid: ${formatMoney(account.received)}%0A` +
+    `• *Outstanding: ${formatMoney(dueAmount)}*%0A%0A` +
+    `Kindly clear the pending balance at your earliest.%0A%0A` +
+    `Thank you for your business.`;
+
+  return message;
+};
+
+const openWhatsApp = (account, businessName) => {
+  const message = buildWhatsAppMessage(account, businessName);
+
+  /* Try to use party contact number if available */
+  window.open(
+    `https://wa.me/?text=${message}`,
+    "_blank"
+  );
+};
+
+function AccountModal({
+  account,
+  businessName,
+  onClose,
+  onReceivePayment,
+  onPrint,
+  onWhatsApp,
+}) {
+  /* FIX 1: Esc key closes modal */
+  useEffect(() => {
+    const handleKey = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
   if (!account) return null;
 
   return (
@@ -243,7 +309,11 @@ function AccountModal({ account, onClose, onReceivePayment, onPrint }) {
             <strong>{formatMoney(account.received)}</strong>
           </div>
 
-          <div className={account.balance > 0 ? "balance-positive" : ""}>
+          <div
+            className={
+              account.balance > 0 ? "balance-positive" : ""
+            }
+          >
             <span>Outstanding</span>
             <strong>
               {account.balance > 0
@@ -264,6 +334,18 @@ function AccountModal({ account, onClose, onReceivePayment, onPrint }) {
             <Banknote size={16} />
             Receive Payment
           </button>
+
+          {account.balance > 0.01 && (
+            <button
+              type="button"
+              className="outstanding-btn whatsapp"
+              onClick={() => onWhatsApp(account)}
+              title="Send WhatsApp reminder"
+            >
+              <MessageCircle size={16} />
+              WhatsApp
+            </button>
+          )}
 
           <button
             type="button"
@@ -353,6 +435,7 @@ export default function Outstanding() {
   const [trips, setTrips] = useState([]);
   const [parties, setParties] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [business, setBusiness] = useState(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -372,6 +455,9 @@ export default function Outstanding() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
+  /* FIX 7: bulk reminder state */
+  const [showBulkModal, setShowBulkModal] = useState(false);
+
   const loadData = () => {
     try {
       const storedTrips = JSON.parse(
@@ -389,6 +475,7 @@ export default function Outstanding() {
       setTrips(Array.isArray(storedTrips) ? storedTrips : []);
       setParties(Array.isArray(storedParties) ? storedParties : []);
       setPayments(Array.isArray(storedPayments) ? storedPayments : []);
+      setBusiness(getBusinessDetails());
     } catch (error) {
       console.error("Outstanding data load error:", error);
       setTrips([]);
@@ -417,6 +504,20 @@ export default function Outstanding() {
     };
   }, []);
 
+  /* FIX 1: Esc key for payment modal */
+  useEffect(() => {
+    if (!showPaymentModal && !showBulkModal) return;
+
+    const handleKey = (event) => {
+      if (event.key === "Escape") {
+        setShowPaymentModal(false);
+        setShowBulkModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [showPaymentModal, showBulkModal]);
+
   const accounts = useMemo(() => {
     const map = new Map();
 
@@ -431,6 +532,7 @@ export default function Outstanding() {
           billed: 0,
           received: 0,
           transactions: [],
+          oldestDueDate: null,
         });
       }
 
@@ -529,11 +631,27 @@ export default function Outstanding() {
           return dateB - dateA;
         });
 
+        /* FIX 6: Compute oldest due date (oldest billing if due > 0) */
+        let oldestDueDate = null;
+        if (balance > 0.01) {
+          const billingDates = account.transactions
+            .filter((t) => t.type === "Billing")
+            .map((t) => parseDate(t.date))
+            .filter(Boolean)
+            .sort((a, b) => a.getTime() - b.getTime());
+
+          if (billingDates.length > 0) {
+            oldestDueDate = billingDates[0].toISOString().slice(0, 10);
+          }
+        }
+
         return {
           ...account,
           balance,
           status,
           collectionPercentage,
+          oldestDueDate,
+          dueAge: oldestDueDate ? getAgeInDays(oldestDueDate) : null,
         };
       })
       .sort((a, b) => {
@@ -570,8 +688,7 @@ export default function Outstanding() {
       }
 
       const matchesDate =
-        !fromDate &&
-        !toDate
+        !fromDate && !toDate
           ? true
           : accountDates.some((date) => {
               if (fromDate && date < fromDate) return false;
@@ -595,14 +712,12 @@ export default function Outstanding() {
     );
 
     const positiveDue = filteredAccounts.reduce(
-      (sum, account) =>
-        sum + Math.max(0, account.balance),
+      (sum, account) => sum + Math.max(0, account.balance),
       0
     );
 
     const totalAdvance = filteredAccounts.reduce(
-      (sum, account) =>
-        sum + Math.max(0, -account.balance),
+      (sum, account) => sum + Math.max(0, -account.balance),
       0
     );
 
@@ -615,6 +730,30 @@ export default function Outstanding() {
         ? Math.min(100, (totalReceived / totalBilled) * 100)
         : 0;
 
+    /* FIX 6: Aging buckets */
+    const aging = {
+      d0_30: 0,
+      d31_60: 0,
+      d61_90: 0,
+      d90plus: 0,
+    };
+
+    filteredAccounts.forEach((account) => {
+      if (account.balance <= 0.01) return;
+
+      const age = account.dueAge;
+
+      if (age === null) {
+        aging.d0_30 += account.balance;
+        return;
+      }
+
+      if (age <= 30) aging.d0_30 += account.balance;
+      else if (age <= 60) aging.d31_60 += account.balance;
+      else if (age <= 90) aging.d61_90 += account.balance;
+      else aging.d90plus += account.balance;
+    });
+
     return {
       totalBilled,
       totalReceived,
@@ -622,8 +761,17 @@ export default function Outstanding() {
       totalAdvance,
       partiesDue,
       collection,
+      aging,
     };
   }, [filteredAccounts]);
+
+  /* FIX 7: Top 5 overdue parties for bulk reminder */
+  const topOverdueParties = useMemo(() => {
+    return [...accounts]
+      .filter((account) => account.balance > 0.01)
+      .sort((a, b) => b.balance - a.balance)
+      .slice(0, 5);
+  }, [accounts]);
 
   const clearFilters = () => {
     setSearch("");
@@ -708,6 +856,7 @@ export default function Outstanding() {
       "Outstanding",
       "Advance",
       "Status",
+      "Due Age (days)",
     ];
 
     const rows = filteredAccounts.map((account) => [
@@ -717,12 +866,10 @@ export default function Outstanding() {
       Math.max(0, account.balance).toFixed(2),
       Math.max(0, -account.balance).toFixed(2),
       account.status,
+      account.dueAge !== null ? account.dueAge : "",
     ]);
 
-    const csv = [
-      headers,
-      ...rows,
-    ]
+    const csv = [headers, ...rows]
       .map((row) =>
         row
           .map((value) => `"${String(value).replace(/"/g, '""')}"`)
@@ -746,6 +893,7 @@ export default function Outstanding() {
     URL.revokeObjectURL(url);
   };
 
+  /* FIX 8: Print statement with full business header */
   const printStatement = (account) => {
     if (!account) return;
 
@@ -775,6 +923,24 @@ export default function Outstanding() {
       return;
     }
 
+    const biz = business || {};
+    const bizName = biz.businessName || "SAO AUTO TRACTOR";
+    const bizOwner = biz.ownerName || "";
+    const bizAddress = biz.address || "";
+    const bizMobile = biz.mobile || "";
+    const bizAltMobile = biz.alternateMobile || "";
+    const bizEmail = biz.email || "";
+    const bizGstin = biz.gstin || "";
+    const bizLogo = biz.logo || "";
+
+    const contactLine = [
+      bizMobile && `Mob: ${bizMobile}`,
+      bizAltMobile && `${bizAltMobile}`,
+      bizEmail,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -790,70 +956,127 @@ export default function Outstanding() {
               background: #fff;
             }
             .header {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              gap: 20px;
               border-bottom: 2px solid #1b4b73;
               padding-bottom: 18px;
               margin-bottom: 24px;
             }
+            .header-left {
+              display: flex;
+              align-items: flex-start;
+              gap: 14px;
+            }
+            .logo {
+              width: 62px;
+              height: 62px;
+              object-fit: contain;
+              border: 1px solid #ddd5c8;
+              border-radius: 5px;
+              padding: 4px;
+              background: #fff;
+            }
+            .biz-name {
+              margin: 0 0 4px;
+              font-size: 24px;
+              color: #1b4b73;
+            }
+            .biz-line {
+              margin: 2px 0;
+              color: #5f5b55;
+              font-size: 11px;
+              line-height: 1.4;
+            }
+            .header-right {
+              text-align: right;
+              min-width: 150px;
+            }
             .eyebrow {
               color: #9c7349;
-              font-size: 11px;
+              font-size: 10px;
               font-weight: 700;
               letter-spacing: 1.5px;
+              margin-bottom: 6px;
             }
             h1 {
-              margin: 6px 0;
-              font-size: 28px;
-              color: #1b4b73;
+              margin: 0 0 4px;
+              font-size: 20px;
+              color: #152033;
             }
             h2 {
               margin: 0;
-              font-size: 20px;
+              font-size: 15px;
+              color: #1b4b73;
             }
             .summary {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
               gap: 12px;
-              margin-bottom: 28px;
+              margin-bottom: 24px;
             }
             .summary-box {
               border: 1px solid #ddd5c8;
-              padding: 16px;
-              border-radius: 8px;
+              padding: 14px 16px;
+              border-radius: 6px;
+              background: #faf8f4;
             }
             .summary-box span {
               display: block;
               color: #6d675e;
-              font-size: 11px;
+              font-size: 10px;
               text-transform: uppercase;
-              margin-bottom: 6px;
+              letter-spacing: 0.06em;
+              margin-bottom: 5px;
             }
             .summary-box strong {
-              font-size: 20px;
+              font-size: 18px;
+              color: #152033;
+            }
+            .summary-box.due {
+              border-color: #1b4b73;
+              background: #eaf1f6;
+            }
+            .summary-box.due strong {
+              color: #1b4b73;
+            }
+            h3 {
+              margin: 0 0 8px;
+              font-size: 15px;
+              color: #152033;
             }
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 16px;
+              margin-top: 8px;
             }
             th, td {
-              padding: 10px;
+              padding: 9px 10px;
               border-bottom: 1px solid #ddd5c8;
               text-align: left;
-              font-size: 12px;
+              font-size: 11px;
+              vertical-align: top;
             }
             th {
               background: #f3efe6;
               color: #1b4b73;
+              font-size: 10px;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
             }
             th:last-child, td:last-child {
               text-align: right;
             }
             .footer {
-              margin-top: 36px;
+              margin-top: 32px;
               padding-top: 14px;
               border-top: 1px solid #ddd5c8;
-              font-size: 11px;
+              font-size: 10px;
               color: #6d675e;
+              display: flex;
+              justify-content: space-between;
+              gap: 20px;
             }
             @media print {
               body { padding: 20px; }
@@ -862,9 +1085,21 @@ export default function Outstanding() {
         </head>
         <body>
           <div class="header">
-            <div class="eyebrow">SAO AUTO TRACTOR</div>
-            <h1>Account Statement</h1>
-            <h2>${account.partyName}</h2>
+            <div class="header-left">
+              ${bizLogo ? `<img src="${bizLogo}" alt="Logo" class="logo" />` : ""}
+              <div>
+                <h1 class="biz-name">${bizName}</h1>
+                ${bizOwner ? `<p class="biz-line">${bizOwner}</p>` : ""}
+                ${bizAddress ? `<p class="biz-line">${bizAddress}</p>` : ""}
+                ${contactLine ? `<p class="biz-line">${contactLine}</p>` : ""}
+                ${bizGstin ? `<p class="biz-line">GSTIN: ${bizGstin}</p>` : ""}
+              </div>
+            </div>
+            <div class="header-right">
+              <div class="eyebrow">ACCOUNT STATEMENT</div>
+              <h1>Party Ledger</h1>
+              <h2>${account.partyName}</h2>
+            </div>
           </div>
 
           <div class="summary">
@@ -876,11 +1111,9 @@ export default function Outstanding() {
               <span>Total Received</span>
               <strong>${formatMoney(account.received)}</strong>
             </div>
-            <div class="summary-box">
+            <div class="summary-box ${account.balance > 0.01 ? "due" : ""}">
               <span>Outstanding</span>
-              <strong>${formatMoney(
-                Math.max(0, account.balance)
-              )}</strong>
+              <strong>${formatMoney(Math.max(0, account.balance))}</strong>
             </div>
           </div>
 
@@ -899,7 +1132,8 @@ export default function Outstanding() {
           </table>
 
           <div class="footer">
-            Generated on ${formatDate(getToday())} · SAO AUTO TRACTOR
+            <span>Generated on ${formatDate(getToday())}</span>
+            <span>${bizName}</span>
           </div>
         </body>
       </html>
@@ -912,6 +1146,9 @@ export default function Outstanding() {
       printWindow.print();
     }, 300);
   };
+
+  const businessName =
+    business?.businessName || "SAO AUTO TRACTOR";
 
   return (
     <div className="outstanding-page">
@@ -996,9 +1233,7 @@ export default function Outstanding() {
         <div className="collection-heading">
           <div>
             <span>COLLECTION PROGRESS</span>
-            <strong>
-              {summary.collection.toFixed(1)}%
-            </strong>
+            <strong>{summary.collection.toFixed(1)}%</strong>
           </div>
 
           <div className="collection-numbers">
@@ -1023,6 +1258,42 @@ export default function Outstanding() {
         </div>
       </div>
 
+      {/* FIX 6: Aging buckets */}
+      {summary.positiveDue > 0.01 && (
+        <div className="outstanding-aging-card">
+          <div className="aging-heading">
+            <div>
+              <span className="outstanding-section-label">
+                DUE AGING
+              </span>
+              <h3>Outstanding by Age</h3>
+            </div>
+          </div>
+
+          <div className="aging-grid">
+            <div className="aging-bucket bucket-fresh">
+              <span>0 – 30 days</span>
+              <strong>{formatMoney(summary.aging.d0_30)}</strong>
+            </div>
+
+            <div className="aging-bucket bucket-warm">
+              <span>31 – 60 days</span>
+              <strong>{formatMoney(summary.aging.d31_60)}</strong>
+            </div>
+
+            <div className="aging-bucket bucket-hot">
+              <span>61 – 90 days</span>
+              <strong>{formatMoney(summary.aging.d61_90)}</strong>
+            </div>
+
+            <div className="aging-bucket bucket-critical">
+              <span>90+ days</span>
+              <strong>{formatMoney(summary.aging.d90plus)}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="outstanding-card">
         <div className="outstanding-card-header">
           <div>
@@ -1033,6 +1304,19 @@ export default function Outstanding() {
           </div>
 
           <div className="outstanding-card-header-actions">
+            {/* FIX 7: Bulk reminder button */}
+            {topOverdueParties.length > 0 && (
+              <button
+                type="button"
+                className="outstanding-bulk-btn"
+                onClick={() => setShowBulkModal(true)}
+                title="Send bulk WhatsApp reminders"
+              >
+                <Send size={14} />
+                Bulk Reminder
+              </button>
+            )}
+
             <button
               type="button"
               className={`outstanding-filter-button ${
@@ -1058,16 +1342,11 @@ export default function Outstanding() {
               <input
                 type="text"
                 value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search party..."
               />
               {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                >
+                <button type="button" onClick={() => setSearch("")}>
                   <X size={14} />
                 </button>
               )}
@@ -1156,9 +1435,7 @@ export default function Outstanding() {
 
             <h3>No outstanding accounts</h3>
 
-            <p>
-              No party account matches the current filters.
-            </p>
+            <p>No party account matches the current filters.</p>
 
             {hasFilters && (
               <button
@@ -1191,13 +1468,11 @@ export default function Outstanding() {
                     expandedParty === account.partyName;
 
                   return (
-                    <>
+                    /* FIX 4: Fragment key to remove React warning */
+                    <Fragment key={account.partyName}>
                       <tr
-                        key={account.partyName}
                         className={
-                          isExpanded
-                            ? "account-row expanded"
-                            : ""
+                          isExpanded ? "account-row expanded" : ""
                         }
                       >
                         <td>
@@ -1268,9 +1543,7 @@ export default function Outstanding() {
                             </div>
 
                             <span>
-                              {account.collectionPercentage.toFixed(
-                                0
-                              )}
+                              {account.collectionPercentage.toFixed(0)}
                               %
                             </span>
                           </div>
@@ -1281,9 +1554,7 @@ export default function Outstanding() {
                             <button
                               type="button"
                               className="row-action"
-                              onClick={() =>
-                                openAccount(account)
-                              }
+                              onClick={() => openAccount(account)}
                               title="View account"
                             >
                               <FileText size={14} />
@@ -1294,15 +1565,31 @@ export default function Outstanding() {
                               type="button"
                               className="row-action primary-action"
                               onClick={() =>
-                                openPayment(
-                                  account.partyName
-                                )
+                                openPayment(account.partyName)
                               }
                               title="Receive payment"
                             >
                               <Banknote size={14} />
                               Pay
                             </button>
+
+                            {/* FIX 5: WhatsApp quick reminder per row */}
+                            {account.balance > 0.01 && (
+                              <button
+                                type="button"
+                                className="row-action whatsapp-action"
+                                onClick={() =>
+                                  openWhatsApp(
+                                    account,
+                                    businessName
+                                  )
+                                }
+                                title="WhatsApp reminder"
+                              >
+                                <MessageCircle size={14} />
+                                WA
+                              </button>
+                            )}
 
                             <button
                               type="button"
@@ -1329,10 +1616,7 @@ export default function Outstanding() {
                       </tr>
 
                       {isExpanded && (
-                        <tr
-                          key={`${account.partyName}-details`}
-                          className="expanded-detail-row"
-                        >
+                        <tr className="expanded-detail-row">
                           <td colSpan="7">
                             <div className="quick-account-panel">
                               <div className="quick-account-stat">
@@ -1362,12 +1646,20 @@ export default function Outstanding() {
                                 </strong>
                               </div>
 
+                              {account.dueAge !== null &&
+                                account.balance > 0.01 && (
+                                  <div className="quick-account-stat age">
+                                    <span>Due Age</span>
+                                    <strong>
+                                      {account.dueAge} days
+                                    </strong>
+                                  </div>
+                                )}
+
                               <button
                                 type="button"
                                 className="quick-view-btn"
-                                onClick={() =>
-                                  openAccount(account)
-                                }
+                                onClick={() => openAccount(account)}
                               >
                                 Open Full Account
                                 <ArrowUpRight size={15} />
@@ -1376,7 +1668,7 @@ export default function Outstanding() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -1418,9 +1710,7 @@ export default function Outstanding() {
 
             <h3>Billing → Payments → Outstanding</h3>
 
-            <p>
-              No duplicate billing data is maintained here.
-            </p>
+            <p>No duplicate billing data is maintained here.</p>
           </div>
         </div>
       </section>
@@ -1428,11 +1718,13 @@ export default function Outstanding() {
       {selectedAccount && (
         <AccountModal
           account={selectedAccount}
+          businessName={businessName}
           onClose={() => setSelectedAccount(null)}
-          onReceivePayment={(partyName) =>
-            openPayment(partyName)
-          }
+          onReceivePayment={(partyName) => openPayment(partyName)}
           onPrint={printStatement}
+          onWhatsApp={(account) =>
+            openWhatsApp(account, businessName)
+          }
         />
       )}
 
@@ -1443,9 +1735,7 @@ export default function Outstanding() {
         >
           <div
             className="outstanding-payment-modal"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="outstanding-modal-header">
               <div>
@@ -1453,17 +1743,13 @@ export default function Outstanding() {
                   PAYMENT ENTRY
                 </span>
                 <h2>Receive Payment</h2>
-                <p>
-                  Record a payment against a party account.
-                </p>
+                <p>Record a payment against a party account.</p>
               </div>
 
               <button
                 type="button"
                 className="outstanding-modal-close"
-                onClick={() =>
-                  setShowPaymentModal(false)
-                }
+                onClick={() => setShowPaymentModal(false)}
               >
                 <X size={18} />
               </button>
@@ -1482,14 +1768,9 @@ export default function Outstanding() {
 
                   {accounts
                     .map((account) => account.partyName)
-                    .sort((a, b) =>
-                      a.localeCompare(b)
-                    )
+                    .sort((a, b) => a.localeCompare(b))
                     .map((partyName) => (
-                      <option
-                        key={partyName}
-                        value={partyName}
-                      >
+                      <option key={partyName} value={partyName}>
                         {partyName}
                       </option>
                     ))}
@@ -1545,9 +1826,7 @@ export default function Outstanding() {
                   type="text"
                   value={paymentReference}
                   onChange={(event) =>
-                    setPaymentReference(
-                      event.target.value
-                    )
+                    setPaymentReference(event.target.value)
                   }
                   placeholder="Optional"
                 />
@@ -1566,6 +1845,7 @@ export default function Outstanding() {
               </label>
             </div>
 
+            {/* FIX 2: Live balance — recalculated via useMemo below */}
             {paymentParty && (
               <div className="payment-party-balance">
                 <span>Current Balance</span>
@@ -1598,9 +1878,7 @@ export default function Outstanding() {
               <button
                 type="button"
                 className="outstanding-btn secondary"
-                onClick={() =>
-                  setShowPaymentModal(false)
-                }
+                onClick={() => setShowPaymentModal(false)}
               >
                 Cancel
               </button>
@@ -1612,6 +1890,76 @@ export default function Outstanding() {
               >
                 <Banknote size={16} />
                 Save Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FIX 7: Bulk reminder modal */}
+      {showBulkModal && (
+        <div
+          className="outstanding-modal-overlay"
+          onMouseDown={() => setShowBulkModal(false)}
+        >
+          <div
+            className="outstanding-bulk-modal"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="outstanding-modal-header">
+              <div>
+                <span className="outstanding-eyebrow">
+                  BULK REMINDER
+                </span>
+                <h2>Top Overdue Parties</h2>
+                <p>
+                  Send WhatsApp reminders one by one. Each opens
+                  in a new tab.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="outstanding-modal-close"
+                onClick={() => setShowBulkModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bulk-list">
+              {topOverdueParties.map((account) => (
+                <div className="bulk-row" key={account.partyName}>
+                  <div className="bulk-party">
+                    <strong>{account.partyName}</strong>
+                    <span>
+                      Due {formatMoney(account.balance)}
+                      {account.dueAge !== null &&
+                        ` · ${account.dueAge} days`}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="outstanding-btn whatsapp"
+                    onClick={() =>
+                      openWhatsApp(account, businessName)
+                    }
+                  >
+                    <MessageCircle size={15} />
+                    Send
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="payment-modal-actions">
+              <button
+                type="button"
+                className="outstanding-btn secondary"
+                onClick={() => setShowBulkModal(false)}
+              >
+                Close
               </button>
             </div>
           </div>

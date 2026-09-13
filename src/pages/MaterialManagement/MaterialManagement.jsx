@@ -3,17 +3,15 @@ import {
   Activity,
   CheckCircle2,
   Edit3,
+  Eye,
   IndianRupee,
-  MoreVertical,
   Package,
   Plus,
+  Printer,
   Search,
   Trash2,
   X,
   CalendarDays,
-  Truck,
-  ArrowDownToLine,
-  ArrowUpFromLine,
   FileBarChart,
 } from "lucide-react";
 
@@ -109,6 +107,7 @@ function getTripType(trip) {
 
   if (value === "loading") return "Loading";
   if (value === "unloading") return "Unloading";
+
   if (
     value === "site to site" ||
     value === "site-to-site" ||
@@ -192,14 +191,18 @@ function getMaterialDailyStats(material, trips, date) {
     material?.materialName,
   );
 
-  const dayTrips = trips.filter(
-    (trip) => {
-      const tripDate = trip?.date || trip?.createdAt?.split('T')[0] || "";
-      return normalize(getMaterialName(trip)) === materialName &&
-             tripDate === date &&
-             Boolean(getTripType(trip));
-    }
-  );
+  const dayTrips = trips.filter((trip) => {
+    const tripDate =
+      trip?.date ||
+      trip?.createdAt?.split("T")[0] ||
+      "";
+
+    return (
+      normalize(getMaterialName(trip)) === materialName &&
+      tripDate === date &&
+      Boolean(getTripType(trip))
+    );
+  });
 
   const quantity = dayTrips.reduce(
     (sum, trip) => sum + getTripQuantity(trip),
@@ -216,8 +219,12 @@ function getMaterialDailyStats(material, trips, date) {
   dayTrips.forEach((trip) => {
     const name = getMaterialName(trip);
     const qty = getTripQuantity(trip);
+
     if (name) {
-      materials.set(name, (materials.get(name) || 0) + qty);
+      materials.set(
+        name,
+        (materials.get(name) || 0) + qty,
+      );
     }
   });
 
@@ -225,7 +232,12 @@ function getMaterialDailyStats(material, trips, date) {
     trips: dayTrips.length,
     quantity,
     billing,
-    materials: Array.from(materials.entries()).map(([name, qty]) => ({ name, qty })),
+    materials: Array.from(
+      materials.entries(),
+    ).map(([name, qty]) => ({
+      name,
+      qty,
+    })),
     tripList: dayTrips,
   };
 }
@@ -449,7 +461,12 @@ function MaterialDetails({
   onEdit,
 }) {
   const today = getTodayISO();
-  const [selectedDate, setSelectedDate] = useState(today);
+
+  const [selectedDate, setSelectedDate] =
+  useState(today);
+
+const [showPrintPreview, setShowPrintPreview] =
+  useState(false);
 
   const stats = useMemo(
     () =>
@@ -461,7 +478,12 @@ function MaterialDetails({
   );
 
   const dailyStats = useMemo(
-    () => getMaterialDailyStats(material, trips, selectedDate),
+    () =>
+      getMaterialDailyStats(
+        material,
+        trips,
+        selectedDate,
+      ),
     [material, trips, selectedDate],
   );
 
@@ -494,7 +516,9 @@ function MaterialDetails({
   }, [material, trips]);
 
   const handleDateChange = (event) => {
-    setSelectedDate(event.target.value);
+    setSelectedDate(
+      event.target.value,
+    );
   };
 
   const setToday = () => {
@@ -503,9 +527,29 @@ function MaterialDetails({
 
   const setYesterday = () => {
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    setSelectedDate(yesterday.toISOString().split('T')[0]);
+
+    yesterday.setDate(
+      yesterday.getDate() - 1,
+    );
+
+    setSelectedDate(
+      yesterday
+        .toISOString()
+        .split("T")[0],
+    );
   };
+
+  const handlePrint = () => {
+  setShowPrintPreview(true);
+};
+
+const closePrintPreview = () => {
+  setShowPrintPreview(false);
+};
+
+const handleConfirmPrint = () => {
+  window.print();
+};
 
   return (
     <div className="material-details-overlay">
@@ -589,10 +633,6 @@ function MaterialDetails({
             />
           </div>
 
-          {/* ===================================================
-              DAILY ACTIVITY SECTION
-              =================================================== */}
-
           <div className="material-daily-activity">
             <div className="material-daily-header">
               <div className="material-daily-title">
@@ -603,11 +643,16 @@ function MaterialDetails({
               <div className="material-daily-date-controls">
                 <button
                   type="button"
-                  className={`material-date-btn ${selectedDate === today ? 'active' : ''}`}
+                  className={`material-date-btn ${
+                    selectedDate === today
+                      ? "active"
+                      : ""
+                  }`}
                   onClick={setToday}
                 >
                   Today
                 </button>
+
                 <button
                   type="button"
                   className="material-date-btn"
@@ -615,6 +660,7 @@ function MaterialDetails({
                 >
                   Yesterday
                 </button>
+
                 <input
                   type="date"
                   value={selectedDate}
@@ -628,22 +674,38 @@ function MaterialDetails({
             <div className="material-daily-summary">
               <div className="material-daily-stat">
                 <span>Trips</span>
-                <strong>{dailyStats.trips}</strong>
+                <strong>
+                  {dailyStats.trips}
+                </strong>
               </div>
+
               <div className="material-daily-stat">
                 <span>Total Qty</span>
-                <strong>{dailyStats.quantity}</strong>
+                <strong>
+                  {dailyStats.quantity}
+                </strong>
               </div>
+
               <div className="material-daily-stat material-daily-finance">
                 <span>Billing</span>
-                <strong>{formatCurrency(dailyStats.billing)}</strong>
+                <strong>
+                  {formatCurrency(
+                    dailyStats.billing,
+                  )}
+                </strong>
               </div>
             </div>
 
             {dailyStats.trips === 0 ? (
               <div className="material-daily-empty">
                 <Activity size={18} />
-                <span>No trips on {formatDate(selectedDate)}</span>
+
+                <span>
+                  No trips on{" "}
+                  {formatDate(
+                    selectedDate,
+                  )}
+                </span>
               </div>
             ) : (
               <>
@@ -652,12 +714,24 @@ function MaterialDetails({
                     <span className="material-daily-items-label">
                       Items Transported
                     </span>
+
                     <div className="material-daily-item-tags">
-                      {dailyStats.materials.map(({ name, qty }) => (
-                        <span key={name} className="material-daily-item-tag">
-                          {name} <small>{qty} qty</small>
-                        </span>
-                      ))}
+                      {dailyStats.materials.map(
+                        ({
+                          name,
+                          qty,
+                        }) => (
+                          <span
+                            key={name}
+                            className="material-daily-item-tag"
+                          >
+                            {name}{" "}
+                            <small>
+                              {qty} qty
+                            </small>
+                          </span>
+                        ),
+                      )}
                     </div>
                   </div>
                 )}
@@ -669,37 +743,89 @@ function MaterialDetails({
                     <span>Qty</span>
                     <span>Amount</span>
                   </div>
-                  {dailyStats.tripList.map((trip, idx) => {
-                    const type = getTripType(trip);
-                    const party = trip?.partyName || trip?.party || "—";
-                    const qty = getTripQuantity(trip);
-                    const amount = getTripAmount(trip);
-                    const time = trip?.time || trip?.createdAt || "";
 
-                    return (
-                      <div key={trip?.id || idx} className="material-daily-trip-row">
-                        <span className="material-daily-trip-time">
-                          {formatDate(time, { timeOnly: true }) || "N/A"}
-                        </span>
-                        <span className="material-daily-trip-party">
-                          {party}
-                          <StatusBadge status={type} label={type} size="small" />
-                        </span>
-                        <span className="material-daily-trip-qty">{qty}</span>
-                        <span className="material-daily-trip-amount">
-                          {formatCurrency(amount)}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {dailyStats.tripList.map(
+                    (
+                      trip,
+                      idx,
+                    ) => {
+                      const type =
+                        getTripType(
+                          trip,
+                        );
+
+                      const party =
+                        trip?.partyName ||
+                        trip?.party ||
+                        "—";
+
+                      const qty =
+                        getTripQuantity(
+                          trip,
+                        );
+
+                      const amount =
+                        getTripAmount(
+                          trip,
+                        );
+
+                      const time =
+                        trip?.time ||
+                        trip?.createdAt ||
+                        "";
+
+                      return (
+                        <div
+                          key={
+                            trip?.id ||
+                            idx
+                          }
+                          className="material-daily-trip-row"
+                        >
+                          <span className="material-daily-trip-time">
+                            {formatDate(
+                              time,
+                              {
+                                timeOnly:
+                                  true,
+                              },
+                            ) ||
+                              "N/A"}
+                          </span>
+
+                          <span className="material-daily-trip-party">
+                            <span>
+                              {party}
+                            </span>
+
+                            <StatusBadge
+                              status={
+                                type
+                              }
+                              label={
+                                type
+                              }
+                              size="small"
+                            />
+                          </span>
+
+                          <span className="material-daily-trip-qty">
+                            {qty}
+                          </span>
+
+                          <span className="material-daily-trip-amount">
+                            {formatCurrency(
+                              amount,
+                            )}
+                          </span>
+                        </div>
+                      );
+                    },
+                  )}
                 </div>
               </>
             )}
           </div>
-
-          {/* ===================================================
-              END DAILY ACTIVITY
-              =================================================== */}
 
           <div className="material-detail-stats">
             <div>
@@ -779,9 +905,14 @@ function MaterialDetails({
             ) : (
               <div className="material-history-list">
                 {recentTrips.map(
-                  (trip, index) => {
+                  (
+                    trip,
+                    index,
+                  ) => {
                     const type =
-                      getTripType(trip);
+                      getTripType(
+                        trip,
+                      );
 
                     return (
                       <div
@@ -837,6 +968,19 @@ function MaterialDetails({
 
           <Button
             type="button"
+            variant="secondary"
+            onClick={handlePrint}
+            title="Print or save as PDF"
+          >
+            <Printer
+              size={16}
+              strokeWidth={1.8}
+            />
+            Print / PDF
+          </Button>
+
+          <Button
+            type="button"
             onClick={() =>
               onEdit(material)
             }
@@ -849,6 +993,321 @@ function MaterialDetails({
           </Button>
         </div>
       </aside>
+      {showPrintPreview && (
+  <div
+    className="material-print-preview-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Material print preview"
+  >
+    <div
+      className="material-print-preview-backdrop"
+      onClick={closePrintPreview}
+    />
+
+    <section className="material-print-preview">
+      <header className="material-print-preview-header">
+        <div>
+          <span className="material-print-preview-eyebrow">
+            PRINT PREVIEW
+          </span>
+
+          <h2>Material Activity Report</h2>
+
+          <p>
+            Preview before printing or saving as PDF.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="material-print-preview-close"
+          onClick={closePrintPreview}
+          aria-label="Close print preview"
+        >
+          <X
+            size={20}
+            strokeWidth={1.8}
+          />
+        </button>
+      </header>
+
+      <div className="material-print-preview-body">
+        <div className="material-print-sheet">
+          <div className="material-print-sheet-header">
+            <div>
+              <span className="material-print-label">
+                MATERIAL ACCOUNT
+              </span>
+
+              <h3>
+                {material?.materialName ||
+                  "Material Details"}
+              </h3>
+
+              <p>
+                Material Activity Report
+              </p>
+            </div>
+
+            <div className="material-print-date">
+              <span>REPORT DATE</span>
+
+              <strong>
+                {formatDate(selectedDate)}
+              </strong>
+            </div>
+          </div>
+
+          <div className="material-print-meta">
+            <div>
+              <span>UNIT</span>
+              <strong>
+                {material?.unit || "Trip"}
+              </strong>
+            </div>
+
+            <div>
+              <span>DEFAULT RATE</span>
+              <strong>
+                {formatCurrency(
+                  Number(
+                    material?.defaultRate ??
+                      material?.rate ??
+                      0,
+                  ),
+                )}
+              </strong>
+            </div>
+
+            <div>
+              <span>STATUS</span>
+              <strong>
+                {normalize(
+                  material?.status,
+                ) === "inactive"
+                  ? "Inactive"
+                  : "Active"}
+              </strong>
+            </div>
+          </div>
+
+          <div className="material-print-summary">
+            <div>
+              <span>Trips</span>
+              <strong>
+                {dailyStats.trips}
+              </strong>
+            </div>
+
+            <div>
+              <span>Total Quantity</span>
+              <strong>
+                {dailyStats.quantity}
+              </strong>
+            </div>
+
+            <div>
+              <span>Billing</span>
+              <strong>
+                {formatCurrency(
+                  dailyStats.billing,
+                )}
+              </strong>
+            </div>
+          </div>
+
+          <div className="material-print-section">
+            <div className="material-print-section-heading">
+              <span>DAILY ACTIVITY</span>
+              <strong>
+                {formatDate(selectedDate)}
+              </strong>
+            </div>
+
+            {dailyStats.tripList.length === 0 ? (
+              <div className="material-print-empty">
+                No trips recorded for this date.
+              </div>
+            ) : (
+              <div className="material-print-table-wrap">
+                <table className="material-print-table">
+                  <thead>
+                    <tr>
+                      <th>TIME</th>
+                      <th>PARTY</th>
+                      <th>TYPE</th>
+                      <th>QTY</th>
+                      <th>AMOUNT</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {dailyStats.tripList.map(
+                      (trip, index) => {
+                        const type =
+                          getTripType(trip);
+
+                        const party =
+                          trip?.partyName ||
+                          trip?.party ||
+                          "—";
+
+                        const qty =
+                          getTripQuantity(
+                            trip,
+                          );
+
+                        const amount =
+                          getTripAmount(
+                            trip,
+                          );
+
+                        const time =
+                          trip?.time ||
+                          trip?.createdAt ||
+                          "";
+
+                        return (
+                          <tr
+                            key={
+                              trip?.id ||
+                              `print-trip-${index}`
+                            }
+                          >
+                            <td>
+                              {formatDate(
+                                time,
+                                {
+                                  timeOnly:
+                                    true,
+                                },
+                              ) || "N/A"}
+                            </td>
+
+                            <td>
+                              {party}
+                            </td>
+
+                            <td>
+                              {type || "—"}
+                            </td>
+
+                            <td>
+                              {qty}
+                            </td>
+
+                            <td>
+                              {formatCurrency(
+                                amount,
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      },
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="material-print-section">
+            <div className="material-print-section-heading">
+              <span>OVERALL SUMMARY</span>
+              <strong>
+                All Activity
+              </strong>
+            </div>
+
+            <div className="material-print-overall-grid">
+              <div>
+                <span>Total Trips</span>
+                <strong>
+                  {stats.trips}
+                </strong>
+              </div>
+
+              <div>
+                <span>Total Quantity</span>
+                <strong>
+                  {stats.quantity}
+                </strong>
+              </div>
+
+              <div>
+                <span>Loading</span>
+                <strong>
+                  {stats.loading}
+                </strong>
+              </div>
+
+              <div>
+                <span>Unloading</span>
+                <strong>
+                  {stats.unloading}
+                </strong>
+              </div>
+
+              <div>
+                <span>Site to Site</span>
+                <strong>
+                  {stats.siteToSite}
+                </strong>
+              </div>
+
+              <div>
+                <span>Total Billing</span>
+                <strong>
+                  {formatCurrency(
+                    stats.billing,
+                  )}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="material-print-footer">
+            <span>
+              Generated from SAO AUTO TRACTOR
+            </span>
+
+            <span>
+              {new Date().toLocaleDateString(
+                "en-IN",
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <footer className="material-print-preview-footer">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={closePrintPreview}
+        >
+          <X
+            size={16}
+            strokeWidth={1.8}
+          />
+          Close
+        </Button>
+
+        <Button
+          type="button"
+          onClick={handleConfirmPrint}
+        >
+          <Printer
+            size={16}
+            strokeWidth={1.8}
+          />
+          Print / Save PDF
+        </Button>
+      </footer>
+    </section>
+  </div>
+)}
     </div>
   );
 }
@@ -1047,44 +1506,78 @@ function MaterialManagement() {
       sortBy,
     ]);
 
-  // EXPORT CSV
   const handleExportCSV = () => {
     if (!filteredMaterials.length) return;
 
     const headers = [
-      'Material Name',
-      'Unit',
-      'Default Rate',
-      'Total Trips',
-      'Total Quantity',
-      'Total Billing',
-      'Status'
+      "Material Name",
+      "Unit",
+      "Default Rate",
+      "Total Trips",
+      "Total Quantity",
+      "Total Billing",
+      "Status",
     ];
 
-    const rows = filteredMaterials.map((material) => {
-      const stats = getMaterialStats(material, safeTrips);
-      return [
-        material?.materialName || '',
-        material?.unit || 'Trip',
-        material?.defaultRate || 0,
-        stats.trips,
-        stats.quantity,
-        stats.billing.toFixed(2),
-        normalize(material?.status) === 'inactive' ? 'Inactive' : 'Active'
-      ];
-    });
+    const rows =
+      filteredMaterials.map(
+        (material) => {
+          const stats =
+            getMaterialStats(
+              material,
+              safeTrips,
+            );
+
+          return [
+            material?.materialName ||
+              "",
+            material?.unit ||
+              "Trip",
+            material?.defaultRate ||
+              0,
+            stats.trips,
+            stats.quantity,
+            stats.billing.toFixed(2),
+            normalize(
+              material?.status,
+            ) === "inactive"
+              ? "Inactive"
+              : "Active",
+          ];
+        },
+      );
 
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map(
+        (row) =>
+          row.join(","),
+      ),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `materials-export-${new Date().toISOString().split('T')[0]}.csv`;
+    const blob = new Blob(
+      [csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      },
+    );
+
+    const link =
+      document.createElement("a");
+
+    link.href =
+      URL.createObjectURL(blob);
+
+    link.download =
+      `materials-export-${new Date()
+        .toISOString()
+        .split("T")[0]}.csv`;
+
     link.click();
-    URL.revokeObjectURL(link.href);
+
+    URL.revokeObjectURL(
+      link.href,
+    );
   };
 
   const saveMaterial = (
@@ -1173,14 +1666,8 @@ function MaterialManagement() {
   const handleEdit = (
     material,
   ) => {
-    setSelectedMaterial(
-      null,
-    );
-
-    setEditingMaterial(
-      material,
-    );
-
+    setSelectedMaterial(null);
+    setEditingMaterial(material);
     setShowForm(true);
   };
 
@@ -1220,19 +1707,14 @@ function MaterialManagement() {
       selectedMaterial?.id ===
       deleteTarget?.id
     ) {
-      setSelectedMaterial(
-        null,
-      );
+      setSelectedMaterial(null);
     }
 
     setDeleteTarget(null);
   };
 
   const openAddForm = () => {
-    setEditingMaterial(
-      null,
-    );
-
+    setEditingMaterial(null);
     setShowForm(true);
   };
 
@@ -1244,28 +1726,39 @@ function MaterialManagement() {
   const openDetails = (
     material,
   ) => {
-    setSelectedMaterial(
-      material,
-    );
+    setSelectedMaterial(material);
   };
 
   return (
     <div className="material-management-page">
-      <div className="material-page-header">
-        <div>
-          <span className="material-page-eyebrow">
-            MATERIAL MANAGEMENT
-          </span>
+      <header className="material-page-header">
+        <div className="material-page-header-main">
+          <div className="material-page-header-icon">
+            <Package
+              size={25}
+              strokeWidth={1.7}
+            />
+          </div>
 
-          <h2>
-            Material Management
-          </h2>
+          <div className="material-page-header-copy">
+            <span className="material-page-eyebrow">
+              MATERIAL MANAGEMENT
+            </span>
 
-          <p>
-            Manage transport materials,
-            units, default rates and
-            material-wise activity.
-          </p>
+            <h2>
+              Material Management
+            </h2>
+
+            <p>
+              Manage transport materials,
+              units, default rates and
+              material-wise activity.
+            </p>
+
+            <span className="material-page-header-accent">
+              MATERIAL
+            </span>
+          </div>
         </div>
 
         <div className="material-page-header-actions">
@@ -1273,8 +1766,12 @@ function MaterialManagement() {
             type="button"
             variant="secondary"
             onClick={handleExportCSV}
-            disabled={!filteredMaterials.length}
-            icon={<FileBarChart size={16} />}
+            disabled={
+              !filteredMaterials.length
+            }
+            icon={
+              <FileBarChart size={16} />
+            }
           >
             Export CSV
           </Button>
@@ -1290,7 +1787,7 @@ function MaterialManagement() {
             Add Material
           </Button>
         </div>
-      </div>
+      </header>
 
       <section
         className="material-summary-grid"
@@ -1528,7 +2025,7 @@ function MaterialManagement() {
         </div>
       </Card>
 
-      <Card className="material-table-card">
+      <Card className="material-table-card material-register-card">
         <div className="material-table-header">
           <div>
             <span>
@@ -1703,27 +2200,21 @@ function MaterialManagement() {
 
                         <td>
                           <div className="material-activity">
-                            <span
-                              title="Loading"
-                            >
+                            <span title="Loading">
                               L{" "}
                               {
                                 stats.loading
                               }
                             </span>
 
-                            <span
-                              title="Unloading"
-                            >
+                            <span title="Unloading">
                               U{" "}
                               {
                                 stats.unloading
                               }
                             </span>
 
-                            <span
-                              title="Site to Site"
-                            >
+                            <span title="Site to Site">
                               S{" "}
                               {
                                 stats.siteToSite
@@ -1754,14 +2245,17 @@ function MaterialManagement() {
                             <button
                               type="button"
                               title="View details"
-                              aria-label={`View ${material?.materialName || "material"} details`}
+                              aria-label={`View ${
+                                material?.materialName ||
+                                "material"
+                              } details`}
                               onClick={() =>
                                 openDetails(
                                   material,
                                 )
                               }
                             >
-                              <MoreVertical
+                              <Eye
                                 size={17}
                                 strokeWidth={
                                   1.8
@@ -1772,7 +2266,10 @@ function MaterialManagement() {
                             <button
                               type="button"
                               title="Edit material"
-                              aria-label={`Edit ${material?.materialName || "material"}`}
+                              aria-label={`Edit ${
+                                material?.materialName ||
+                                "material"
+                              }`}
                               onClick={() =>
                                 handleEdit(
                                   material,
@@ -1790,7 +2287,10 @@ function MaterialManagement() {
                             <button
                               type="button"
                               title="Delete material"
-                              aria-label={`Delete ${material?.materialName || "material"}`}
+                              aria-label={`Delete ${
+                                material?.materialName ||
+                                "material"
+                              }`}
                               onClick={() =>
                                 setDeleteTarget(
                                   material,
@@ -1840,7 +2340,10 @@ function MaterialManagement() {
         title="Delete material?"
         message={
           deleteTarget
-            ? `Are you sure you want to delete ${deleteTarget.materialName || "this material"}? Existing trip records will not be deleted.`
+            ? `Are you sure you want to delete ${
+                deleteTarget.materialName ||
+                "this material"
+              }? Existing trip records will not be deleted.`
             : ""
         }
         confirmLabel="Delete Material"

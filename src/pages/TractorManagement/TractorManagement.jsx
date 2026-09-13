@@ -111,22 +111,34 @@ function getTripQuantity(trip) {
 }
 
 function getTripMaterial(trip) {
-  return trip?.materialName || trip?.material || trip?.product || "Unknown";
+  return (
+    trip?.materialName ||
+    trip?.material ||
+    trip?.product ||
+    "Unknown"
+  );
 }
 
 function getLatestTrip(trips) {
   if (!Array.isArray(trips) || trips.length === 0) return null;
 
   return [...trips].sort((a, b) => {
-    const dateA = new Date(a?.date ?? a?.createdAt ?? 0).getTime();
-    const dateB = new Date(b?.date ?? b?.createdAt ?? 0).getTime();
+    const dateA = new Date(
+      a?.date ?? a?.createdAt ?? 0,
+    ).getTime();
+
+    const dateB = new Date(
+      b?.date ?? b?.createdAt ?? 0,
+    ).getTime();
 
     return dateB - dateA;
   })[0];
 }
 
 function createId() {
-  return `TR-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `TR-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
 }
 
 function getInitials(name, fallback = "TR") {
@@ -147,7 +159,8 @@ function getTractorStats(tractor, trips) {
   const vehicleNumber = normalize(tractor?.vehicleNumber);
 
   const tractorTrips = trips.filter(
-    (trip) => normalize(getVehicleNumber(trip)) === vehicleNumber,
+    (trip) =>
+      normalize(getVehicleNumber(trip)) === vehicleNumber,
   );
 
   let loading = 0;
@@ -181,22 +194,34 @@ function getTractorStats(tractor, trips) {
 
 function getLastTripDate(tractor, trips) {
   const vehicleNumber = normalize(tractor?.vehicleNumber);
+
   const tractorTrips = trips.filter(
-    (trip) => normalize(getVehicleNumber(trip)) === vehicleNumber,
+    (trip) =>
+      normalize(getVehicleNumber(trip)) === vehicleNumber,
   );
 
   if (tractorTrips.length === 0) return null;
 
   const sorted = [...tractorTrips].sort((a, b) => {
-    const dateA = new Date(a?.date ?? a?.createdAt ?? 0).getTime();
-    const dateB = new Date(b?.date ?? b?.createdAt ?? 0).getTime();
+    const dateA = new Date(
+      a?.date ?? a?.createdAt ?? 0,
+    ).getTime();
+
+    const dateB = new Date(
+      b?.date ?? b?.createdAt ?? 0,
+    ).getTime();
+
     return dateB - dateA;
   });
 
   return sorted[0]?.date || sorted[0]?.createdAt || null;
 }
 
-function TractorForm({ initialValue, onCancel, onSave }) {
+function TractorForm({
+  initialValue,
+  onCancel,
+  onSave,
+}) {
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
     ...(initialValue || {}),
@@ -227,8 +252,13 @@ function TractorForm({ initialValue, onCancel, onSave }) {
       return;
     }
 
-    if (driverMobile && !/^[0-9]{10}$/.test(driverMobile)) {
-      setError("Enter a valid 10-digit mobile number.");
+    if (
+      driverMobile &&
+      !/^[0-9]{10}$/.test(driverMobile)
+    ) {
+      setError(
+        "Enter a valid 10-digit mobile number.",
+      );
       return;
     }
 
@@ -248,15 +278,20 @@ function TractorForm({ initialValue, onCancel, onSave }) {
       <div className="tractor-form-header">
         <div>
           <span className="tractor-form-eyebrow">
-            {initialValue ? "EDIT TRACTOR" : "NEW TRACTOR"}
+            {initialValue
+              ? "EDIT TRACTOR"
+              : "NEW TRACTOR"}
           </span>
 
           <h3>
-            {initialValue ? "Update Tractor" : "Add Tractor"}
+            {initialValue
+              ? "Update Tractor"
+              : "Add Tractor"}
           </h3>
 
           <p>
-            Keep vehicle and driver information ready for trip management.
+            Keep vehicle and driver information ready
+            for trip management.
           </p>
         </div>
 
@@ -270,9 +305,15 @@ function TractorForm({ initialValue, onCancel, onSave }) {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="tractor-form">
+      <form
+        onSubmit={handleSubmit}
+        className="tractor-form"
+      >
         {error && (
-          <div className="tractor-form-error" role="alert">
+          <div
+            className="tractor-form-error"
+            role="alert"
+          >
             {error}
           </div>
         )}
@@ -348,8 +389,13 @@ function TractorForm({ initialValue, onCancel, onSave }) {
               value={form.status}
               onChange={handleChange}
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">
+                Active
+              </option>
+
+              <option value="inactive">
+                Inactive
+              </option>
             </select>
           </label>
         </div>
@@ -364,7 +410,9 @@ function TractorForm({ initialValue, onCancel, onSave }) {
           </Button>
 
           <Button type="submit">
-            {initialValue ? "Update Tractor" : "Save Tractor"}
+            {initialValue
+              ? "Update Tractor"
+              : "Save Tractor"}
           </Button>
         </div>
       </form>
@@ -372,42 +420,63 @@ function TractorForm({ initialValue, onCancel, onSave }) {
   );
 }
 
-function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, initialDate }) {
+function TractorDetails({
+  tractor,
+  trips,
+  onClose,
+  onEdit,
+  onWhatsAppShare,
+  initialDate,
+}) {
   const today = getTodayISO();
-  const [selectedDate, setSelectedDate] = useState(initialDate || today);
 
-  // Get trips for this tractor
-  const vehicleNumber = normalize(tractor?.vehicleNumber);
+  const [selectedDate, setSelectedDate] =
+    useState(initialDate || today);
+
+  const vehicleNumber = normalize(
+    tractor?.vehicleNumber,
+  );
+
   const tractorTrips = useMemo(() => {
     return trips.filter(
-      (trip) => normalize(getVehicleNumber(trip)) === vehicleNumber,
+      (trip) =>
+        normalize(getVehicleNumber(trip)) ===
+        vehicleNumber,
     );
   }, [trips, vehicleNumber]);
 
-  // Filter trips by selected date
   const dateTrips = useMemo(() => {
     return tractorTrips.filter((trip) => {
-      const tripDate = trip?.date || trip?.createdAt?.split('T')[0] || "";
+      const tripDate =
+        trip?.date ||
+        trip?.createdAt?.split("T")[0] ||
+        "";
+
       return tripDate === selectedDate;
     });
   }, [tractorTrips, selectedDate]);
 
-  // Summary for selected date
   const dateSummary = useMemo(() => {
     let totalTrips = dateTrips.length;
     let totalQuantity = 0;
     let totalBilling = 0;
+
     const materialMap = new Map();
 
     dateTrips.forEach((trip) => {
       const qty = getTripQuantity(trip);
       const amt = getTripAmount(trip);
+
       totalQuantity += qty;
       totalBilling += amt;
 
       const material = getTripMaterial(trip);
+
       if (material) {
-        materialMap.set(material, (materialMap.get(material) || 0) + qty);
+        materialMap.set(
+          material,
+          (materialMap.get(material) || 0) + qty,
+        );
       }
     });
 
@@ -415,7 +484,12 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
       totalTrips,
       totalQuantity,
       totalBilling,
-      materials: Array.from(materialMap.entries()).map(([name, qty]) => ({ name, qty })),
+      materials: Array.from(
+        materialMap.entries(),
+      ).map(([name, qty]) => ({
+        name,
+        qty,
+      })),
     };
   }, [dateTrips]);
 
@@ -429,8 +503,14 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
 
   const setYesterday = () => {
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    setSelectedDate(yesterday.toISOString().split('T')[0]);
+
+    yesterday.setDate(
+      yesterday.getDate() - 1,
+    );
+
+    setSelectedDate(
+      yesterday.toISOString().split("T")[0],
+    );
   };
 
   return (
@@ -451,7 +531,8 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
             </span>
 
             <h2>
-              {tractor?.vehicleNumber || "Tractor Details"}
+              {tractor?.vehicleNumber ||
+                "Tractor Details"}
             </h2>
           </div>
 
@@ -461,7 +542,10 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
             onClick={onClose}
             aria-label="Close tractor details"
           >
-            <X size={19} strokeWidth={1.8} />
+            <X
+              size={19}
+              strokeWidth={1.8}
+            />
           </button>
         </div>
 
@@ -469,7 +553,8 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
           <div className="tractor-profile">
             <div className="tractor-profile-avatar">
               {getInitials(
-                tractor?.tractorName || tractor?.vehicleNumber,
+                tractor?.tractorName ||
+                  tractor?.vehicleNumber,
               )}
             </div>
 
@@ -481,7 +566,8 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
               </strong>
 
               <span>
-                {tractor?.model || "Model not specified"}
+                {tractor?.model ||
+                  "Model not specified"}
               </span>
 
               <small>
@@ -493,7 +579,9 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
             <StatusBadge
               status={tractor?.status || "active"}
               label={
-                normalize(tractor?.status) === "inactive"
+                normalize(
+                  tractor?.status,
+                ) === "inactive"
                   ? "Inactive"
                   : "Active"
               }
@@ -502,18 +590,23 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
 
           <div className="tractor-driver-card">
             <div className="tractor-driver-icon">
-              <CircleUserRound size={18} strokeWidth={1.8} />
+              <CircleUserRound
+                size={18}
+                strokeWidth={1.8}
+              />
             </div>
 
             <div>
               <span>Driver</span>
 
               <strong>
-                {tractor?.driverName || "Not assigned"}
+                {tractor?.driverName ||
+                  "Not assigned"}
               </strong>
 
               <small>
-                {tractor?.driverMobile || "No mobile number"}
+                {tractor?.driverMobile ||
+                  "No mobile number"}
               </small>
             </div>
 
@@ -521,7 +614,9 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
               <button
                 type="button"
                 className="tractor-whatsapp-driver-btn"
-                onClick={() => onWhatsAppShare(tractor)}
+                onClick={() =>
+                  onWhatsAppShare(tractor)
+                }
                 aria-label="Share on WhatsApp"
                 title="Share on WhatsApp"
               >
@@ -531,7 +626,7 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
           </div>
 
           {/* ===================================================
-              DAILY ACTIVITY SECTION - NEW
+              DAILY ACTIVITY
               =================================================== */}
 
           <div className="tractor-daily-activity">
@@ -544,11 +639,16 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
               <div className="tractor-daily-date-controls">
                 <button
                   type="button"
-                  className={`tractor-date-btn ${selectedDate === today ? 'active' : ''}`}
+                  className={`tractor-date-btn ${
+                    selectedDate === today
+                      ? "active"
+                      : ""
+                  }`}
                   onClick={setToday}
                 >
                   Today
                 </button>
+
                 <button
                   type="button"
                   className="tractor-date-btn"
@@ -556,6 +656,7 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
                 >
                   Yesterday
                 </button>
+
                 <input
                   type="date"
                   value={selectedDate}
@@ -569,46 +670,72 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
             <div className="tractor-daily-summary">
               <div className="tractor-daily-stat">
                 <span>Trips</span>
-                <strong>{dateSummary.totalTrips}</strong>
+                <strong>
+                  {dateSummary.totalTrips}
+                </strong>
               </div>
+
               <div className="tractor-daily-stat">
                 <span>Materials</span>
-                <strong>{dateSummary.materials.length}</strong>
+                <strong>
+                  {dateSummary.materials.length}
+                </strong>
               </div>
+
               <div className="tractor-daily-stat">
                 <span>Total Qty</span>
-                <strong>{dateSummary.totalQuantity}</strong>
+                <strong>
+                  {dateSummary.totalQuantity}
+                </strong>
               </div>
+
               <div className="tractor-daily-stat tractor-daily-finance">
                 <span>Billing</span>
-                <strong>{formatCurrency(dateSummary.totalBilling)}</strong>
+
+                <strong>
+                  {formatCurrency(
+                    dateSummary.totalBilling,
+                  )}
+                </strong>
               </div>
             </div>
 
             {dateTrips.length === 0 ? (
               <div className="tractor-daily-empty">
                 <Activity size={18} />
-                <span>No trips on {formatDate(selectedDate)}</span>
+
+                <span>
+                  No trips on{" "}
+                  {formatDate(selectedDate)}
+                </span>
               </div>
             ) : (
               <>
-                {/* Material breakdown */}
                 {dateSummary.materials.length > 0 && (
                   <div className="tractor-daily-materials">
                     <span className="tractor-daily-materials-label">
                       Materials Used
                     </span>
+
                     <div className="tractor-daily-material-tags">
-                      {dateSummary.materials.map(({ name, qty }) => (
-                        <span key={name} className="tractor-daily-material-tag">
-                          {name} <small>{qty} qty</small>
-                        </span>
-                      ))}
+                      {dateSummary.materials.map(
+                        ({ name, qty }) => (
+                          <span
+                            key={name}
+                            className="tractor-daily-material-tag"
+                          >
+                            {name}
+
+                            <small>
+                              {qty} qty
+                            </small>
+                          </span>
+                        ),
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Trip list */}
                 <div className="tractor-daily-trip-list">
                   <div className="tractor-daily-trip-header">
                     <span>Time</span>
@@ -616,29 +743,62 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
                     <span>Qty</span>
                     <span>Amount</span>
                   </div>
-                  {dateTrips.map((trip, idx) => {
-                    const type = getTripType(trip);
-                    const material = getTripMaterial(trip);
-                    const qty = getTripQuantity(trip);
-                    const amount = getTripAmount(trip);
-                    const time = trip?.time || trip?.createdAt || "";
 
-                    return (
-                      <div key={trip?.id || idx} className="tractor-daily-trip-row">
-                        <span className="tractor-daily-trip-time">
-                          {formatDate(time, { timeOnly: true }) || "N/A"}
-                        </span>
-                        <span className="tractor-daily-trip-material">
-                          {material}
-                          <StatusBadge status={type} label={type} size="small" />
-                        </span>
-                        <span className="tractor-daily-trip-qty">{qty}</span>
-                        <span className="tractor-daily-trip-amount">
-                          {formatCurrency(amount)}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {dateTrips.map(
+                    (trip, idx) => {
+                      const type =
+                        getTripType(trip);
+
+                      const material =
+                        getTripMaterial(trip);
+
+                      const qty =
+                        getTripQuantity(trip);
+
+                      const amount =
+                        getTripAmount(trip);
+
+                      const time =
+                        trip?.time ||
+                        trip?.createdAt ||
+                        "";
+
+                      return (
+                        <div
+                          key={
+                            trip?.id || idx
+                          }
+                          className="tractor-daily-trip-row"
+                        >
+                          <span className="tractor-daily-trip-time">
+                            {formatDate(time, {
+                              timeOnly: true,
+                            }) || "N/A"}
+                          </span>
+
+                          <span className="tractor-daily-trip-material">
+                            {material}
+
+                            <StatusBadge
+                              status={type}
+                              label={type}
+                              size="small"
+                            />
+                          </span>
+
+                          <span className="tractor-daily-trip-qty">
+                            {qty}
+                          </span>
+
+                          <span className="tractor-daily-trip-amount">
+                            {formatCurrency(
+                              amount,
+                            )}
+                          </span>
+                        </div>
+                      );
+                    },
+                  )}
                 </div>
               </>
             )}
@@ -652,57 +812,79 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
             <div className="tractor-history-title">
               <div>
                 <span>RECENT ACTIVITY</span>
-                <strong>All Trip History</strong>
+
+                <strong>
+                  All Trip History
+                </strong>
               </div>
 
-              <span>{tractorTrips.length} records</span>
+              <span>
+                {tractorTrips.length} records
+              </span>
             </div>
 
             {tractorTrips.length === 0 ? (
               <div className="tractor-history-empty">
-                <Activity size={18} strokeWidth={1.8} />
-                <span>No trip history available.</span>
+                <Activity
+                  size={18}
+                  strokeWidth={1.8}
+                />
+
+                <span>
+                  No trip history available.
+                </span>
               </div>
             ) : (
               <div className="tractor-history-list">
-                {tractorTrips.slice(0, 8).map((trip, index) => {
-                  const type = getTripType(trip);
-                  const amount = getTripAmount(trip);
+                {tractorTrips
+                  .slice(0, 8)
+                  .map((trip, index) => {
+                    const type =
+                      getTripType(trip);
 
-                  return (
-                    <div
-                      className="tractor-history-item"
-                      key={
-                        trip?.id ||
-                        trip?._id ||
-                        `history-${index}`
-                      }
-                    >
-                      <div className="tractor-history-date">
-                        <strong>
-                          {formatDate(trip?.date)}
-                        </strong>
+                    const amount =
+                      getTripAmount(trip);
 
-                        <span>
-                          {trip?.partyName ||
-                            trip?.party ||
-                            "No party"}
-                        </span>
+                    return (
+                      <div
+                        className="tractor-history-item"
+                        key={
+                          trip?.id ||
+                          trip?._id ||
+                          `history-${index}`
+                        }
+                      >
+                        <div className="tractor-history-date">
+                          <strong>
+                            {formatDate(
+                              trip?.date,
+                            )}
+                          </strong>
+
+                          <span>
+                            {trip?.partyName ||
+                              trip?.party ||
+                              "No party"}
+                          </span>
+                        </div>
+
+                        <div className="tractor-history-type">
+                          <StatusBadge
+                            status={type}
+                            label={
+                              type || "Unknown"
+                            }
+                          />
+                        </div>
+
+                        <div className="tractor-history-amount">
+                          {formatCurrency(
+                            amount,
+                          )}
+                        </div>
                       </div>
-
-                      <div className="tractor-history-type">
-                        <StatusBadge
-                          status={type}
-                          label={type || "Unknown"}
-                        />
-                      </div>
-
-                      <div className="tractor-history-amount">
-                        {formatCurrency(amount)}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </div>
@@ -719,9 +901,14 @@ function TractorDetails({ tractor, trips, onClose, onEdit, onWhatsAppShare, init
 
           <Button
             type="button"
-            onClick={() => onEdit(tractor)}
+            onClick={() =>
+              onEdit(tractor)
+            }
           >
-            <Edit3 size={16} strokeWidth={1.8} />
+            <Edit3
+              size={16}
+              strokeWidth={1.8}
+            />
             Edit Tractor
           </Button>
         </div>
@@ -746,49 +933,70 @@ function TractorManagement() {
     : [];
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("vehicle");
+  const [statusFilter, setStatusFilter] =
+    useState("all");
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingTractor, setEditingTractor] = useState(null);
-  const [selectedTractor, setSelectedTractor] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [dailyDate, setDailyDate] = useState(getTodayISO());
+  const [sortBy, setSortBy] =
+    useState("vehicle");
+
+  const [showForm, setShowForm] =
+    useState(false);
+
+  const [editingTractor, setEditingTractor] =
+    useState(null);
+
+  const [selectedTractor, setSelectedTractor] =
+    useState(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState(null);
+
+  const [dailyDate, setDailyDate] =
+    useState(getTodayISO());
 
   const summary = useMemo(() => {
     const total = safeTractors.length;
 
     const active = safeTractors.filter(
       (tractor) =>
-        normalize(tractor?.status) !== "inactive",
+        normalize(tractor?.status) !==
+        "inactive",
     ).length;
 
     const inactive = safeTractors.filter(
       (tractor) =>
-        normalize(tractor?.status) === "inactive",
+        normalize(tractor?.status) ===
+        "inactive",
     ).length;
 
     const loadingTrips = safeTrips.filter(
-      (trip) => getTripType(trip) === "Loading",
+      (trip) =>
+        getTripType(trip) === "Loading",
     ).length;
 
     const unloadingTrips = safeTrips.filter(
-      (trip) => getTripType(trip) === "Unloading",
+      (trip) =>
+        getTripType(trip) === "Unloading",
     ).length;
 
-    const siteToSiteTrips = safeTrips.filter(
-      (trip) => getTripType(trip) === "Site to Site",
-    ).length;
+    const siteToSiteTrips =
+      safeTrips.filter(
+        (trip) =>
+          getTripType(trip) ===
+          "Site to Site",
+      ).length;
 
     const totalTrips =
       loadingTrips +
       unloadingTrips +
       siteToSiteTrips;
 
-    const totalBilling = safeTrips.reduce(
-      (sum, trip) => sum + getTripAmount(trip),
-      0,
-    );
+    const totalBilling =
+      safeTrips.reduce(
+        (sum, trip) =>
+          sum + getTripAmount(trip),
+        0,
+      );
 
     return {
       total,
@@ -802,143 +1010,286 @@ function TractorManagement() {
     };
   }, [safeTractors, safeTrips]);
 
-  // SMART REMINDERS
+  /* =========================================================
+     SMART REMINDERS
+     ========================================================= */
+
   const idleTractors = useMemo(() => {
     const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    sevenDaysAgo.setDate(
+      sevenDaysAgo.getDate() - 7,
+    );
 
     return safeTractors
-      .filter((tractor) => normalize(tractor?.status) !== "inactive")
+      .filter(
+        (tractor) =>
+          normalize(tractor?.status) !==
+          "inactive",
+      )
       .filter((tractor) => {
-        const lastDate = getLastTripDate(tractor, safeTrips);
+        const lastDate =
+          getLastTripDate(
+            tractor,
+            safeTrips,
+          );
+
         if (!lastDate) return true;
 
-        const lastTripDate = new Date(lastDate);
-        return lastTripDate < sevenDaysAgo;
+        const lastTripDate =
+          new Date(lastDate);
+
+        return (
+          lastTripDate <
+          sevenDaysAgo
+        );
       });
   }, [safeTractors, safeTrips]);
 
-  // WHATSAPP SHARE
-  const handleWhatsAppShare = (tractor) => {
-    const stats = getTractorStats(tractor, safeTrips);
+  /* =========================================================
+     WHATSAPP SHARE
+     ========================================================= */
+
+  const handleWhatsAppShare = (
+    tractor,
+  ) => {
+    const stats = getTractorStats(
+      tractor,
+      safeTrips,
+    );
+
     const message =
       `🚜 *Tractor Details*%0A%0A` +
-      `📋 Vehicle: ${tractor?.vehicleNumber || 'N/A'}%0A` +
-      `🚜 Name: ${tractor?.tractorName || 'N/A'}%0A` +
-      `🔧 Model: ${tractor?.model || 'N/A'}%0A` +
-      `👤 Driver: ${tractor?.driverName || 'Not assigned'}%0A` +
-      `📱 Mobile: ${tractor?.driverMobile || 'N/A'}%0A` +
-      `📊 Status: ${normalize(tractor?.status) === 'inactive' ? 'Inactive' : 'Active'}%0A` +
+      `📋 Vehicle: ${
+        tractor?.vehicleNumber || "N/A"
+      }%0A` +
+      `🚜 Name: ${
+        tractor?.tractorName || "N/A"
+      }%0A` +
+      `🔧 Model: ${
+        tractor?.model || "N/A"
+      }%0A` +
+      `👤 Driver: ${
+        tractor?.driverName ||
+        "Not assigned"
+      }%0A` +
+      `📱 Mobile: ${
+        tractor?.driverMobile || "N/A"
+      }%0A` +
+      `📊 Status: ${
+        normalize(
+          tractor?.status,
+        ) === "inactive"
+          ? "Inactive"
+          : "Active"
+      }%0A` +
       `%0A` +
       `📈 *Performance*%0A` +
-      `🔄 Total Trips: ${stats.totalTrips}%0A` +
-      `📥 Loading: ${stats.loading}%0A` +
-      `📤 Unloading: ${stats.unloading}%0A` +
-      `🚚 Site to Site: ${stats.siteToSite}%0A` +
-      `💰 Billing: ${formatCurrency(stats.billing)}%0A%0A` +
+      `🔄 Total Trips: ${
+        stats.totalTrips
+      }%0A` +
+      `📥 Loading: ${
+        stats.loading
+      }%0A` +
+      `📤 Unloading: ${
+        stats.unloading
+      }%0A` +
+      `🚚 Site to Site: ${
+        stats.siteToSite
+      }%0A` +
+      `💰 Billing: ${
+        formatCurrency(stats.billing)
+      }%0A%0A` +
       `---%0A` +
       `SAO AUTO TRACTOR`;
 
-    window.open(`https://wa.me/?text=${message}`, '_blank');
+    window.open(
+      `https://wa.me/?text=${message}`,
+      "_blank",
+    );
   };
 
-  // EXPORT CSV
+  /* =========================================================
+     EXPORT CSV
+     ========================================================= */
+
   const handleExportCSV = () => {
     const headers = [
-      'Vehicle Number',
-      'Tractor Name',
-      'Model',
-      'Driver Name',
-      'Driver Mobile',
-      'Status',
-      'Total Trips',
-      'Loading',
-      'Unloading',
-      'Site to Site',
-      'Total Billing (INR)'
+      "Vehicle Number",
+      "Tractor Name",
+      "Model",
+      "Driver Name",
+      "Driver Mobile",
+      "Status",
+      "Total Trips",
+      "Loading",
+      "Unloading",
+      "Site to Site",
+      "Total Billing (INR)",
     ];
 
-    const rows = filteredTractors.map((tractor) => {
-      const stats = getTractorStats(tractor, safeTrips);
-      return [
-        tractor?.vehicleNumber || '',
-        tractor?.tractorName || '',
-        tractor?.model || '',
-        tractor?.driverName || '',
-        tractor?.driverMobile || '',
-        normalize(tractor?.status) === 'inactive' ? 'Inactive' : 'Active',
-        stats.totalTrips,
-        stats.loading,
-        stats.unloading,
-        stats.siteToSite,
-        stats.billing.toFixed(2),
-      ];
-    });
+    const rows =
+      filteredTractors.map(
+        (tractor) => {
+          const stats =
+            getTractorStats(
+              tractor,
+              safeTrips,
+            );
+
+          return [
+            tractor?.vehicleNumber ||
+              "",
+            tractor?.tractorName ||
+              "",
+            tractor?.model || "",
+            tractor?.driverName ||
+              "",
+            tractor?.driverMobile ||
+              "",
+            normalize(
+              tractor?.status,
+            ) === "inactive"
+              ? "Inactive"
+              : "Active",
+            stats.totalTrips,
+            stats.loading,
+            stats.unloading,
+            stats.siteToSite,
+            stats.billing.toFixed(2),
+          ];
+        },
+      );
 
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) =>
+        row.join(","),
+      ),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `tractors-export-${new Date().toISOString().split('T')[0]}.csv`;
+    const blob = new Blob(
+      [csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      },
+    );
+
+    const link =
+      document.createElement("a");
+
+    link.href =
+      URL.createObjectURL(blob);
+
+    link.download = `tractors-export-${
+      new Date()
+        .toISOString()
+        .split("T")[0]
+    }.csv`;
+
     link.click();
-    URL.revokeObjectURL(link.href);
+
+    URL.revokeObjectURL(
+      link.href,
+    );
   };
 
   const filteredTractors = useMemo(() => {
     const query = normalize(search);
 
-    const result = safeTractors.filter((tractor) => {
-      const matchesSearch =
-        !query ||
-        normalize(tractor?.vehicleNumber).includes(query) ||
-        normalize(tractor?.tractorName).includes(query) ||
-        normalize(tractor?.model).includes(query) ||
-        normalize(tractor?.driverName).includes(query) ||
-        normalize(tractor?.driverMobile).includes(query);
+    const result =
+      safeTractors.filter(
+        (tractor) => {
+          const matchesSearch =
+            !query ||
+            normalize(
+              tractor?.vehicleNumber,
+            ).includes(query) ||
+            normalize(
+              tractor?.tractorName,
+            ).includes(query) ||
+            normalize(
+              tractor?.model,
+            ).includes(query) ||
+            normalize(
+              tractor?.driverName,
+            ).includes(query) ||
+            normalize(
+              tractor?.driverMobile,
+            ).includes(query);
 
-      const tractorStatus =
-        normalize(tractor?.status) === "inactive"
-          ? "inactive"
-          : "active";
+          const tractorStatus =
+            normalize(
+              tractor?.status,
+            ) === "inactive"
+              ? "inactive"
+              : "active";
 
-      const matchesStatus =
-        statusFilter === "all" ||
-        tractorStatus === statusFilter;
+          const matchesStatus =
+            statusFilter === "all" ||
+            tractorStatus ===
+              statusFilter;
 
-      return matchesSearch && matchesStatus;
-    });
-
-    return [...result].sort((a, b) => {
-      const statsA = getTractorStats(a, safeTrips);
-      const statsB = getTractorStats(b, safeTrips);
-
-      if (sortBy === "trips") {
-        return statsB.totalTrips - statsA.totalTrips;
-      }
-
-      if (sortBy === "billing") {
-        return statsB.billing - statsA.billing;
-      }
-
-      if (sortBy === "quantity") {
-        return statsB.quantity - statsA.quantity;
-      }
-
-      return String(
-        a?.vehicleNumber || "",
-      ).localeCompare(
-        String(b?.vehicleNumber || ""),
-        undefined,
-        {
-          numeric: true,
-          sensitivity: "base",
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
         },
       );
-    });
+
+    return [...result].sort(
+      (a, b) => {
+        const statsA =
+          getTractorStats(
+            a,
+            safeTrips,
+          );
+
+        const statsB =
+          getTractorStats(
+            b,
+            safeTrips,
+          );
+
+        if (sortBy === "trips") {
+          return (
+            statsB.totalTrips -
+            statsA.totalTrips
+          );
+        }
+
+        if (
+          sortBy === "billing"
+        ) {
+          return (
+            statsB.billing -
+            statsA.billing
+          );
+        }
+
+        if (
+          sortBy === "quantity"
+        ) {
+          return (
+            statsB.quantity -
+            statsA.quantity
+          );
+        }
+
+        return String(
+          a?.vehicleNumber || "",
+        ).localeCompare(
+          String(
+            b?.vehicleNumber || "",
+          ),
+          undefined,
+          {
+            numeric: true,
+            sensitivity: "base",
+          },
+        );
+      },
+    );
   }, [
     safeTractors,
     safeTrips,
@@ -947,25 +1298,34 @@ function TractorManagement() {
     sortBy,
   ]);
 
-  const saveTractor = (formData) => {
-    const existingTractors = readStorage(
-      STORAGE_KEYS.tractors,
-      [],
-    );
+  const saveTractor = (
+    formData,
+  ) => {
+    const existingTractors =
+      readStorage(
+        STORAGE_KEYS.tractors,
+        [],
+      );
 
-    const list = Array.isArray(existingTractors)
-      ? existingTractors
-      : [];
+    const list =
+      Array.isArray(
+        existingTractors,
+      )
+        ? existingTractors
+        : [];
 
-    const normalizedVehicle = normalize(
-      formData.vehicleNumber,
-    );
+    const normalizedVehicle =
+      normalize(
+        formData.vehicleNumber,
+      );
 
     const duplicate = list.find(
       (tractor) =>
-        normalize(tractor?.vehicleNumber) ===
-          normalizedVehicle &&
-        tractor?.id !== formData?.id,
+        normalize(
+          tractor?.vehicleNumber,
+        ) === normalizedVehicle &&
+        tractor?.id !==
+          formData?.id,
     );
 
     if (duplicate) {
@@ -975,19 +1335,22 @@ function TractorManagement() {
       return;
     }
 
-    const now = new Date().toISOString();
+    const now =
+      new Date().toISOString();
 
     if (editingTractor) {
-      const updatedList = list.map((tractor) =>
-        tractor?.id === editingTractor?.id
-          ? {
-              ...tractor,
-              ...formData,
-              id: tractor.id,
-              updatedAt: now,
-            }
-          : tractor,
-      );
+      const updatedList =
+        list.map((tractor) =>
+          tractor?.id ===
+          editingTractor?.id
+            ? {
+                ...tractor,
+                ...formData,
+                id: tractor.id,
+                updatedAt: now,
+              }
+            : tractor,
+        );
 
       writeStorage(
         STORAGE_KEYS.tractors,
@@ -1001,10 +1364,13 @@ function TractorManagement() {
         updatedAt: now,
       };
 
-      writeStorage(STORAGE_KEYS.tractors, [
-        ...list,
-        newTractor,
-      ]);
+      writeStorage(
+        STORAGE_KEYS.tractors,
+        [
+          ...list,
+          newTractor,
+        ],
+      );
     }
 
     refreshData?.();
@@ -1013,28 +1379,38 @@ function TractorManagement() {
     setEditingTractor(null);
   };
 
-  const handleEdit = (tractor) => {
+  const handleEdit = (
+    tractor,
+  ) => {
     setSelectedTractor(null);
-    setEditingTractor(tractor);
+    setEditingTractor(
+      tractor,
+    );
     setShowForm(true);
   };
 
   const handleDelete = () => {
     if (!deleteTarget) return;
 
-    const existingTractors = readStorage(
-      STORAGE_KEYS.tractors,
-      [],
-    );
+    const existingTractors =
+      readStorage(
+        STORAGE_KEYS.tractors,
+        [],
+      );
 
-    const list = Array.isArray(existingTractors)
-      ? existingTractors
-      : [];
+    const list =
+      Array.isArray(
+        existingTractors,
+      )
+        ? existingTractors
+        : [];
 
-    const updatedList = list.filter(
-      (tractor) =>
-        tractor?.id !== deleteTarget?.id,
-    );
+    const updatedList =
+      list.filter(
+        (tractor) =>
+          tractor?.id !==
+          deleteTarget?.id,
+      );
 
     writeStorage(
       STORAGE_KEYS.tractors,
@@ -1047,7 +1423,8 @@ function TractorManagement() {
 
     if (
       selectedTractor?.id &&
-      selectedTractor.id === deleteTarget.id
+      selectedTractor.id ===
+        deleteTarget.id
     ) {
       setSelectedTractor(null);
     }
@@ -1063,71 +1440,153 @@ function TractorManagement() {
     setEditingTractor(null);
   };
 
-  const openDailyActivity = (tractor) => {
-    setSelectedTractor(tractor);
-    setDailyDate(getTodayISO());
+  const openDailyActivity = (
+    tractor,
+  ) => {
+    setSelectedTractor(
+      tractor,
+    );
+
+    setDailyDate(
+      getTodayISO(),
+    );
   };
 
   return (
     <div className="tractor-management-page">
 
-      {/* SMART REMINDERS */}
+      {/* =====================================================
+          SMART REMINDERS
+          ===================================================== */}
+
       {idleTractors.length > 0 && (
         <Card className="tractor-reminder-card">
           <div className="tractor-reminder-header">
             <div className="tractor-reminder-icon">
               <AlertTriangle size={17} />
             </div>
+
             <div>
-              <span className="tractor-reminder-eyebrow">SMART REMINDER</span>
+              <span className="tractor-reminder-eyebrow">
+                SMART REMINDER
+              </span>
+
               <h4>
-                {idleTractors.length} {idleTractors.length === 1 ? 'tractor' : 'tractors'} inactive for 7+ days
+                {idleTractors.length}{" "}
+                {idleTractors.length ===
+                1
+                  ? "tractor"
+                  : "tractors"}{" "}
+                inactive for 7+ days
               </h4>
             </div>
           </div>
+
           <div className="tractor-reminder-list">
-            {idleTractors.slice(0, 5).map((tractor) => (
-              <div key={tractor.id} className="tractor-reminder-item">
-                <span className="tractor-reminder-dot" />
-                <strong>{tractor?.vehicleNumber || 'Unknown'}</strong>
-                <span>{tractor?.driverName || 'No driver'}</span>
-                <small>No trips in last 7 days</small>
-              </div>
-            ))}
-            {idleTractors.length > 5 && (
+            {idleTractors
+              .slice(0, 5)
+              .map((tractor) => (
+                <div
+                  key={tractor.id}
+                  className="tractor-reminder-item"
+                >
+                  <span className="tractor-reminder-dot" />
+
+                  <strong>
+                    {tractor?.vehicleNumber ||
+                      "Unknown"}
+                  </strong>
+
+                  <span>
+                    {tractor?.driverName ||
+                      "No driver"}
+                  </span>
+
+                  <small>
+                    No trips in last 7 days
+                  </small>
+                </div>
+              ))}
+
+            {idleTractors.length >
+              5 && (
               <span className="tractor-reminder-more">
-                +{idleTractors.length - 5} more tractors
+                +
+                {idleTractors.length -
+                  5}{" "}
+                more tractors
               </span>
             )}
           </div>
         </Card>
       )}
 
-      {/* PAGE HEADER */}
+      {/* =====================================================
+          PAGE HEADER — PREMIUM TRACTOR MANAGEMENT CARD
+          ===================================================== */}
+
       <div className="tractor-page-header">
-        <div>
-          <span className="tractor-page-eyebrow">
-            TRANSPORT MANAGEMENT
-          </span>
 
-          <h2>Tractor Management</h2>
+        <div className="tractor-page-header-content">
 
-          <p>
-            Manage tractors, drivers, trip activity and
-            vehicle-wise business performance.
-          </p>
+          <div className="tractor-page-header-icon">
+            <TractorIcon
+              size={25}
+              strokeWidth={1.8}
+            />
+          </div>
+
+          <div className="tractor-page-header-copy">
+
+            <span className="tractor-page-eyebrow">
+              FLEET MANAGEMENT
+            </span>
+
+            <h2>
+              Tractor Management
+            </h2>
+
+            <p>
+              Manage your tractors,
+              drivers, trip activity
+              and vehicle-wise business
+              performance from one place.
+            </p>
+
+          </div>
+
         </div>
 
-        <Button
-          type="button"
-          onClick={openAddForm}
-        >
-          <Plus size={17} strokeWidth={1.9} />
-          Add Tractor
-        </Button>
+        <div className="tractor-page-header-accent">
+          <Truck
+            size={17}
+            strokeWidth={1.8}
+          />
+
+          <span>
+            FLEET
+          </span>
+        </div>
+
+        <div className="tractor-page-header-action">
+          <Button
+            type="button"
+            onClick={openAddForm}
+          >
+            <Plus
+              size={17}
+              strokeWidth={1.9}
+            />
+            Add Tractor
+          </Button>
+        </div>
+
       </div>
 
-      {/* SUMMARY CARDS */}
+      {/* =====================================================
+          SUMMARY CARDS
+          ===================================================== */}
+
       <section
         className="tractor-summary-grid"
         aria-label="Tractor summary"
@@ -1141,8 +1600,13 @@ function TractorManagement() {
           </div>
 
           <div>
-            <span>Total Tractors</span>
-            <strong>{summary.total}</strong>
+            <span>
+              Total Tractors
+            </span>
+
+            <strong>
+              {summary.total}
+            </strong>
           </div>
         </Card>
 
@@ -1156,7 +1620,10 @@ function TractorManagement() {
 
           <div>
             <span>Active</span>
-            <strong>{summary.active}</strong>
+
+            <strong>
+              {summary.active}
+            </strong>
           </div>
         </Card>
 
@@ -1170,7 +1637,10 @@ function TractorManagement() {
 
           <div>
             <span>Inactive</span>
-            <strong>{summary.inactive}</strong>
+
+            <strong>
+              {summary.inactive}
+            </strong>
           </div>
         </Card>
 
@@ -1184,7 +1654,10 @@ function TractorManagement() {
 
           <div>
             <span>Total Trips</span>
-            <strong>{summary.totalTrips}</strong>
+
+            <strong>
+              {summary.totalTrips}
+            </strong>
           </div>
         </Card>
 
@@ -1198,7 +1671,10 @@ function TractorManagement() {
 
           <div>
             <span>Loading</span>
-            <strong>{summary.loadingTrips}</strong>
+
+            <strong>
+              {summary.loadingTrips}
+            </strong>
           </div>
         </Card>
 
@@ -1212,7 +1688,10 @@ function TractorManagement() {
 
           <div>
             <span>Unloading</span>
-            <strong>{summary.unloadingTrips}</strong>
+
+            <strong>
+              {summary.unloadingTrips}
+            </strong>
           </div>
         </Card>
 
@@ -1225,8 +1704,13 @@ function TractorManagement() {
           </div>
 
           <div>
-            <span>Site to Site</span>
-            <strong>{summary.siteToSiteTrips}</strong>
+            <span>
+              Site to Site
+            </span>
+
+            <strong>
+              {summary.siteToSiteTrips}
+            </strong>
           </div>
         </Card>
 
@@ -1239,29 +1723,46 @@ function TractorManagement() {
           </div>
 
           <div>
-            <span>Total Billing</span>
+            <span>
+              Total Billing
+            </span>
 
             <strong>
-              {formatCurrency(summary.totalBilling)}
+              {formatCurrency(
+                summary.totalBilling,
+              )}
             </strong>
           </div>
         </Card>
       </section>
 
-      {/* FORM */}
+      {/* =====================================================
+          FORM
+          ===================================================== */}
+
       {showForm && (
         <Card className="tractor-form-card">
           <TractorForm
-            initialValue={editingTractor}
-            onCancel={closeForm}
-            onSave={saveTractor}
+            initialValue={
+              editingTractor
+            }
+            onCancel={
+              closeForm
+            }
+            onSave={
+              saveTractor
+            }
           />
         </Card>
       )}
 
-      {/* TOOLBAR */}
+      {/* =====================================================
+          TOOLBAR
+          ===================================================== */}
+
       <Card className="tractor-toolbar-card">
         <div className="tractor-toolbar">
+
           <div className="tractor-search">
             <Search
               size={17}
@@ -1272,7 +1773,9 @@ function TractorManagement() {
               type="search"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value,
+                )
               }
               placeholder="Search vehicle, driver or model..."
               aria-label="Search tractors"
@@ -1280,16 +1783,21 @@ function TractorManagement() {
           </div>
 
           <div className="tractor-toolbar-actions">
+
             <div className="tractor-filter-tabs">
+
               <button
                 type="button"
                 className={
-                  statusFilter === "all"
+                  statusFilter ===
+                  "all"
                     ? "active"
                     : ""
                 }
                 onClick={() =>
-                  setStatusFilter("all")
+                  setStatusFilter(
+                    "all",
+                  )
                 }
               >
                 All
@@ -1298,12 +1806,15 @@ function TractorManagement() {
               <button
                 type="button"
                 className={
-                  statusFilter === "active"
+                  statusFilter ===
+                  "active"
                     ? "active"
                     : ""
                 }
                 onClick={() =>
-                  setStatusFilter("active")
+                  setStatusFilter(
+                    "active",
+                  )
                 }
               >
                 Active
@@ -1312,25 +1823,34 @@ function TractorManagement() {
               <button
                 type="button"
                 className={
-                  statusFilter === "inactive"
+                  statusFilter ===
+                  "inactive"
                     ? "active"
                     : ""
                 }
                 onClick={() =>
-                  setStatusFilter("inactive")
+                  setStatusFilter(
+                    "inactive",
+                  )
                 }
               >
                 Inactive
               </button>
+
             </div>
 
             <label className="tractor-sort">
-              <span>Sort</span>
+
+              <span>
+                Sort
+              </span>
 
               <select
                 value={sortBy}
                 onChange={(event) =>
-                  setSortBy(event.target.value)
+                  setSortBy(
+                    event.target.value,
+                  )
                 }
               >
                 <option value="vehicle">
@@ -1349,38 +1869,59 @@ function TractorManagement() {
                   Highest Quantity
                 </option>
               </select>
+
             </label>
 
             <button
               type="button"
               className="tractor-export-btn"
-              onClick={handleExportCSV}
+              onClick={
+                handleExportCSV
+              }
               title="Export as CSV"
               aria-label="Export tractor list as CSV"
             >
-              <FileBarChart size={15} />
+              <FileBarChart
+                size={15}
+              />
+
               Export
             </button>
+
           </div>
         </div>
       </Card>
 
-      {/* TABLE */}
+      {/* =====================================================
+          TABLE
+          ===================================================== */}
+
       <Card className="tractor-table-card">
+
         <div className="tractor-table-header">
+
           <div>
-            <span>TRACTOR REGISTER</span>
-            <strong>All Tractors</strong>
+            <span>
+              TRACTOR REGISTER
+            </span>
+
+            <strong>
+              All Tractors
+            </strong>
           </div>
 
           <small>
-            {filteredTractors.length} of{" "}
+            {filteredTractors.length}{" "}
+            of{" "}
             {safeTractors.length}
           </small>
+
         </div>
 
-        {filteredTractors.length === 0 ? (
+        {filteredTractors.length ===
+        0 ? (
           <div className="tractor-empty-state">
+
             <div className="tractor-empty-icon">
               <TractorIcon
                 size={22}
@@ -1389,244 +1930,353 @@ function TractorManagement() {
             </div>
 
             <h3>
-              {safeTractors.length === 0
+              {safeTractors.length ===
+              0
                 ? "No tractors added yet"
                 : "No tractors found"}
             </h3>
 
             <p>
-              {safeTractors.length === 0
+              {safeTractors.length ===
+              0
                 ? "Add your first tractor to start managing vehicle-wise trips."
                 : "Try changing the search or status filter."}
             </p>
 
-            {safeTractors.length === 0 && (
+            {safeTractors.length ===
+              0 && (
               <Button
                 type="button"
-                onClick={openAddForm}
+                onClick={
+                  openAddForm
+                }
               >
                 <Plus
                   size={16}
                   strokeWidth={1.9}
                 />
+
                 Add First Tractor
               </Button>
             )}
+
           </div>
         ) : (
           <div className="tractor-table-wrap">
+
             <table className="tractor-table">
+
               <thead>
                 <tr>
-                  <th>TRACTOR</th>
-                  <th>DRIVER</th>
-                  <th>TRIPS</th>
-                  <th>ACTIVITY</th>
-                  <th>BILLING</th>
-                  <th>STATUS</th>
+                  <th>
+                    TRACTOR
+                  </th>
+
+                  <th>
+                    DRIVER
+                  </th>
+
+                  <th>
+                    TRIPS
+                  </th>
+
+                  <th>
+                    ACTIVITY
+                  </th>
+
+                  <th>
+                    BILLING
+                  </th>
+
+                  <th>
+                    STATUS
+                  </th>
+
                   <th aria-label="Actions" />
                 </tr>
               </thead>
 
               <tbody>
-                {filteredTractors.map((tractor) => {
-                  const stats = getTractorStats(
-                    tractor,
-                    safeTrips,
-                  );
 
-                  return (
-                    <tr key={tractor?.id}>
-                      <td>
-                        <button
-                          type="button"
-                          className="tractor-identity"
-                          onClick={() =>
-                            setSelectedTractor(
-                              tractor,
-                            )
-                          }
-                        >
-                          <span className="tractor-avatar">
-                            {getInitials(
-                              tractor?.tractorName ||
-                                tractor?.vehicleNumber,
-                            )}
-                          </span>
+                {filteredTractors.map(
+                  (tractor) => {
+                    const stats =
+                      getTractorStats(
+                        tractor,
+                        safeTrips,
+                      );
 
-                          <span>
-                            <strong>
-                              {tractor?.vehicleNumber ||
-                                "No vehicle number"}
-                            </strong>
+                    return (
+                      <tr
+                        key={
+                          tractor?.id
+                        }
+                      >
+                        <td>
 
-                            <small>
-                              {tractor?.tractorName ||
-                                tractor?.model ||
-                                "Tractor"}
-                            </small>
-                          </span>
-                        </button>
-                      </td>
-
-                      <td>
-                        <div className="tractor-driver-cell">
-                          <strong>
-                            {tractor?.driverName ||
-                              "Not assigned"}
-                          </strong>
-
-                          <small>
-                            {tractor?.driverMobile ||
-                              "No mobile"}
-                          </small>
-                        </div>
-                      </td>
-
-                      <td>
-                        <strong className="tractor-number">
-                          {stats.totalTrips}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <div className="tractor-activity">
-                          <span title="Loading">
-                            L {stats.loading}
-                          </span>
-
-                          <span title="Unloading">
-                            U {stats.unloading}
-                          </span>
-
-                          <span title="Site to Site">
-                            S {stats.siteToSite}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td>
-                        <strong className="tractor-billing">
-                          {formatCurrency(
-                            stats.billing,
-                          )}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <StatusBadge
-                          status={
-                            tractor?.status ||
-                            "active"
-                          }
-                          label={
-                            normalize(
-                              tractor?.status,
-                            ) === "inactive"
-                              ? "Inactive"
-                              : "Active"
-                          }
-                        />
-                      </td>
-
-                      <td>
-                        <div className="tractor-row-actions">
                           <button
                             type="button"
-                            title="View details"
-                            aria-label={`View ${tractor?.vehicleNumber || "tractor"} details`}
+                            className="tractor-identity"
                             onClick={() =>
                               setSelectedTractor(
                                 tractor,
                               )
                             }
                           >
-                            <MoreVertical
-                              size={17}
-                              strokeWidth={1.8}
-                            />
+
+                            <span className="tractor-avatar">
+                              {getInitials(
+                                tractor?.tractorName ||
+                                  tractor?.vehicleNumber,
+                              )}
+                            </span>
+
+                            <span>
+
+                              <strong>
+                                {tractor?.vehicleNumber ||
+                                  "No vehicle number"}
+                              </strong>
+
+                              <small>
+                                {tractor?.tractorName ||
+                                  tractor?.model ||
+                                  "Tractor"}
+                              </small>
+
+                            </span>
+
                           </button>
 
-                          <button
-                            type="button"
-                            title="Daily Activity"
-                            aria-label={`Daily activity for ${tractor?.vehicleNumber || "tractor"}`}
-                            onClick={() => openDailyActivity(tractor)}
-                            className="tractor-daily-btn"
-                          >
-                            <CalendarDays size={16} />
-                          </button>
+                        </td>
 
-                          <button
-                            type="button"
-                            title="Share on WhatsApp"
-                            aria-label={`Share ${tractor?.vehicleNumber || "tractor"} on WhatsApp`}
-                            onClick={() =>
-                              handleWhatsAppShare(tractor)
+                        <td>
+
+                          <div className="tractor-driver-cell">
+
+                            <strong>
+                              {tractor?.driverName ||
+                                "Not assigned"}
+                            </strong>
+
+                            <small>
+                              {tractor?.driverMobile ||
+                                "No mobile"}
+                            </small>
+
+                          </div>
+
+                        </td>
+
+                        <td>
+
+                          <strong className="tractor-number">
+                            {stats.totalTrips}
+                          </strong>
+
+                        </td>
+
+                        <td>
+
+                          <div className="tractor-activity">
+
+                            <span title="Loading">
+                              L{" "}
+                              {stats.loading}
+                            </span>
+
+                            <span title="Unloading">
+                              U{" "}
+                              {stats.unloading}
+                            </span>
+
+                            <span title="Site to Site">
+                              S{" "}
+                              {stats.siteToSite}
+                            </span>
+
+                          </div>
+
+                        </td>
+
+                        <td>
+
+                          <strong className="tractor-billing">
+                            {formatCurrency(
+                              stats.billing,
+                            )}
+                          </strong>
+
+                        </td>
+
+                        <td>
+
+                          <StatusBadge
+                            status={
+                              tractor?.status ||
+                              "active"
                             }
-                            className="tractor-whatsapp-row-btn"
-                          >
-                            <MessageCircle
-                              size={16}
-                            />
-                          </button>
-
-                          <button
-                            type="button"
-                            title="Edit tractor"
-                            aria-label={`Edit ${tractor?.vehicleNumber || "tractor"}`}
-                            onClick={() =>
-                              handleEdit(tractor)
+                            label={
+                              normalize(
+                                tractor?.status,
+                              ) ===
+                              "inactive"
+                                ? "Inactive"
+                                : "Active"
                             }
-                          >
-                            <Edit3
-                              size={16}
-                              strokeWidth={1.8}
-                            />
-                          </button>
+                          />
 
-                          <button
-                            type="button"
-                            title="Delete tractor"
-                            aria-label={`Delete ${tractor?.vehicleNumber || "tractor"}`}
-                            onClick={() =>
-                              setDeleteTarget(
-                                tractor,
-                              )
-                            }
-                          >
-                            <Trash2
-                              size={16}
-                              strokeWidth={1.8}
-                            />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+
+                        <td>
+
+                          <div className="tractor-row-actions">
+
+                            <button
+                              type="button"
+                              title="View details"
+                              aria-label={`View ${
+                                tractor?.vehicleNumber ||
+                                "tractor"
+                              } details`}
+                              onClick={() =>
+                                setSelectedTractor(
+                                  tractor,
+                                )
+                              }
+                            >
+                              <MoreVertical
+                                size={17}
+                                strokeWidth={1.8}
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Daily Activity"
+                              aria-label={`Daily activity for ${
+                                tractor?.vehicleNumber ||
+                                "tractor"
+                              }`}
+                              onClick={() =>
+                                openDailyActivity(
+                                  tractor,
+                                )
+                              }
+                              className="tractor-daily-btn"
+                            >
+                              <CalendarDays
+                                size={16}
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Share on WhatsApp"
+                              aria-label={`Share ${
+                                tractor?.vehicleNumber ||
+                                "tractor"
+                              } on WhatsApp`}
+                              onClick={() =>
+                                handleWhatsAppShare(
+                                  tractor,
+                                )
+                              }
+                              className="tractor-whatsapp-row-btn"
+                            >
+                              <MessageCircle
+                                size={16}
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Edit tractor"
+                              aria-label={`Edit ${
+                                tractor?.vehicleNumber ||
+                                "tractor"
+                              }`}
+                              onClick={() =>
+                                handleEdit(
+                                  tractor,
+                                )
+                              }
+                            >
+                              <Edit3
+                                size={16}
+                                strokeWidth={1.8}
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              title="Delete tractor"
+                              aria-label={`Delete ${
+                                tractor?.vehicleNumber ||
+                                "tractor"
+                              }`}
+                              onClick={() =>
+                                setDeleteTarget(
+                                  tractor,
+                                )
+                              }
+                            >
+                              <Trash2
+                                size={16}
+                                strokeWidth={1.8}
+                              />
+                            </button>
+
+                          </div>
+
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
+
               </tbody>
+
             </table>
+
           </div>
         )}
+
       </Card>
 
-      {/* DETAILS DRAWER */}
+      {/* =====================================================
+          DETAILS DRAWER
+          ===================================================== */}
+
       {selectedTractor && (
         <TractorDetails
-          tractor={selectedTractor}
+          tractor={
+            selectedTractor
+          }
           trips={safeTrips}
           onClose={() =>
-            setSelectedTractor(null)
+            setSelectedTractor(
+              null,
+            )
           }
           onEdit={handleEdit}
-          onWhatsAppShare={handleWhatsAppShare}
-          initialDate={dailyDate}
+          onWhatsAppShare={
+            handleWhatsAppShare
+          }
+          initialDate={
+            dailyDate
+          }
         />
       )}
 
+      {/* =====================================================
+          DELETE CONFIRMATION
+          ===================================================== */}
+
       <ConfirmDialog
-        open={Boolean(deleteTarget)}
+        open={Boolean(
+          deleteTarget,
+        )}
         title="Delete tractor?"
         message={
           deleteTarget
@@ -1639,11 +2289,14 @@ function TractorManagement() {
         confirmLabel="Delete Tractor"
         cancelLabel="Cancel"
         danger
-        onConfirm={handleDelete}
+        onConfirm={
+          handleDelete
+        }
         onCancel={() =>
           setDeleteTarget(null)
         }
       />
+
     </div>
   );
 }

@@ -29,6 +29,7 @@ import {
   FileText,
   CreditCard,
   UserRound,
+  Zap,
 } from "lucide-react";
 
 import "./StaffManagement.css";
@@ -48,8 +49,13 @@ function safeParse(key, fallback) {
   }
 }
 
+/* FIX: Local timezone date (was UTC before) */
 function getToday() {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset)
+    .toISOString()
+    .split("T")[0];
 }
 
 function formatDateInput(date) {
@@ -91,13 +97,18 @@ function formatCurrency(amount) {
   })}`;
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+/* Esc key hook — shared by all modals */
+function useEscKey(active, onClose) {
+  useEffect(() => {
+    if (!active) return;
+
+    const handler = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [active, onClose]);
 }
 
 function StaffManagement() {
@@ -193,6 +204,15 @@ function StaffManagement() {
 
     return () => window.clearTimeout(timer);
   }, [showPreview, printAfterPreview]);
+
+  /* FIX: Esc key for all modals */
+  useEscKey(showStaffModal, () => setShowStaffModal(false));
+  useEscKey(showPreview, () => {
+    setShowPreview(false);
+    setPrintAfterPreview(false);
+    setPreviewStaff(null);
+  });
+  useEscKey(showPayModal, () => setShowPayModal(false));
 
   const notifyDataChanged = () => {
     window.dispatchEvent(
@@ -513,11 +533,6 @@ function StaffManagement() {
     );
   };
 
-  /*
-   * IMPORTANT:
-   * New attendance is BLANK by default.
-   * Blank attendance is not counted in salary.
-   */
   const getAttendanceStatus = (
     staffId,
     dateKey
@@ -542,10 +557,6 @@ function StaffManagement() {
       },
     };
 
-    /*
-     * If blank is selected, remove the saved
-     * date entry instead of storing a fake status.
-     */
     if (!status) {
       const staffWeek = {
         ...(updated[weekStart]?.[staffId] || {}),
@@ -557,6 +568,45 @@ function StaffManagement() {
     }
 
     saveAttendance(updated);
+  };
+
+  /* NEW: Bulk mark all present for the whole week */
+  const markAllPresent = () => {
+    if (!activeStaff.length) {
+      showToast("No active staff to mark.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Mark all active staff as Present (P) for the entire week?"
+    );
+
+    if (!confirmed) return;
+
+    const updated = {
+      ...attendance,
+      [weekStart]: {
+        ...(attendance[weekStart] || {}),
+      },
+    };
+
+    const week = { ...(updated[weekStart] || {}) };
+
+    activeStaff.forEach((staff) => {
+      const staffWeek = { ...(week[staff.id] || {}) };
+
+      weekDates.forEach((date) => {
+        staffWeek[getDateKey(date)] = "P";
+      });
+
+      week[staff.id] = staffWeek;
+    });
+
+    updated[weekStart] = week;
+
+    saveAttendance(updated);
+
+    showToast("All active staff marked Present.");
   };
 
   const getAttendanceSummary = (staffId) => {
@@ -797,9 +847,6 @@ function StaffManagement() {
     setShowStaffModal(true);
   };
 
-  /*
-   * Staff profile preview.
-   */
   const openStaffPreview = (staff, shouldPrint = false) => {
     setPreviewStaff(staff);
     setPreviewType("staff");
@@ -807,9 +854,6 @@ function StaffManagement() {
     setPrintAfterPreview(shouldPrint);
   };
 
-  /*
-   * Salary statement preview.
-   */
   const openSalaryPreview = (
     staff,
     shouldPrint = false
@@ -902,13 +946,6 @@ function StaffManagement() {
     showToast("Staff CSV exported.");
   };
 
-  /*
-   * Salary payment modal.
-   *
-   * Payment is added to the existing weekly
-   * payment structure without changing the
-   * existing localStorage key.
-   */
   const openPayModal = (staff) => {
     setPayStaff(staff);
     setPayAmount("");
@@ -1980,6 +2017,16 @@ function StaffManagement() {
 
               <button
                 type="button"
+                className="staff-mark-all-btn"
+                onClick={markAllPresent}
+                title="Mark all active staff Present for the week"
+              >
+                <Zap size={15} />
+                Mark All P
+              </button>
+
+              <button
+                type="button"
                 onClick={() =>
                   changeWeek(-1)
                 }
@@ -2742,6 +2789,7 @@ function StaffManagement() {
                   onClick={() =>
                     setShowStaffModal(false)
                   }
+                  aria-label="Close"
                 >
                   <X size={18} />
                 </button>
@@ -3263,6 +3311,7 @@ function StaffManagement() {
                   onClick={() =>
                     setShowPayModal(false)
                   }
+                  aria-label="Close"
                 >
                   <X size={18} />
                 </button>

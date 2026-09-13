@@ -732,8 +732,35 @@ function Invoice() {
           )
         : -1;
 
-    const next =
-      highestSaved + 1;
+    /*
+      FIX 1: Also consider the stored sequence in
+      INVOICE_NUMBER_KEY. This prevents invoice numbers
+      from being reused after an invoice is deleted.
+    */
+    let storedSequence = -1;
+
+    try {
+      const rawStored = localStorage.getItem(
+        INVOICE_NUMBER_KEY
+      );
+
+      if (rawStored !== null) {
+        const parsedStored = Number(rawStored);
+
+        if (Number.isFinite(parsedStored)) {
+          storedSequence = parsedStored;
+        }
+      }
+    } catch (error) {
+      // ignore — localStorage not available
+    }
+
+    const highest = Math.max(
+      highestSaved,
+      storedSequence
+    );
+
+    const next = highest + 1;
 
     return `${prefix}${String(next).padStart(
       4,
@@ -2581,7 +2608,9 @@ function Invoice() {
           </div>
 
           <div>
-            <span>Party Outstanding</span>
+            {/* FIX 2: Clearer label — this is the overall
+                party balance, not this invoice's balance. */}
+            <span>Party Outstanding (Overall)</span>
             <strong>
               {currency(
                 partyOutstanding
@@ -3314,7 +3343,7 @@ function Invoice() {
         )}
 
         {/* ===================================================
-            NEW: PARTY FINANCIAL SUMMARY
+            PARTY FINANCIAL SUMMARY
         =================================================== */}
         {partyName && (
           <div className="party-financial-summary">
@@ -3488,7 +3517,7 @@ function Invoice() {
                   />
                 </div>
 
-                {/* NEW: Trip search suggestions dropdown */}
+                {/* Trip search suggestions dropdown */}
                 {showTripSuggestions &&
                   tripSearchQuery.trim() &&
                   tripSearchBy !== "Date" && (

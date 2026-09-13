@@ -1,16 +1,16 @@
 import "./Badge.css";
 
-function Badge({
+export default function Badge({
   children,
   variant = "neutral",
-  size = "medium",
+  size = "md",
   dot = false,
   className = "",
 }) {
   const classes = [
-    "ui-badge",
-    `ui-badge-${variant}`,
-    `ui-badge-${size}`,
+    "badge",
+    `badge--${variant}`,
+    `badge--${size}`,
     className,
   ]
     .filter(Boolean)
@@ -18,16 +18,8 @@ function Badge({
 
   return (
     <span className={classes}>
-      {dot && (
-        <span
-          className="ui-badge-dot"
-          aria-hidden="true"
-        />
-      )}
-
-      <span>{children}</span>
+      {dot && <span className="badge__dot" aria-hidden="true" />}
+      {children}
     </span>
   );
 }
-
-export default Badge;

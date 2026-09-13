@@ -15,8 +15,6 @@ import {
   Copy,
   FileDown,
   Trash2,
-  AlertCircle,
-  CheckCircle2,
   Eye,
   Bell,
 } from "lucide-react";
@@ -24,19 +22,29 @@ import {
 import {
   calculateTripAmount,
 } from "../../utils/calculations";
+
 import { formatCurrency } from "../../utils/currency";
-import { formatDate, getTodayISO } from "../../utils/date";
+import {
+  formatDate,
+  getTodayISO,
+} from "../../utils/date";
 
 import Button from "../../components/ui/Button";
 import StatusBadge from "../../components/ui/StatusBadge";
 
 import "./PartyDetails.css";
 
+
+// =========================================================
+// HELPERS
+// =========================================================
+
 function normalize(value) {
   return String(value ?? "")
     .trim()
     .toLowerCase();
 }
+
 
 function getPartyName(trip) {
   return String(
@@ -46,6 +54,7 @@ function getPartyName(trip) {
       "",
   ).trim();
 }
+
 
 function getTripAmount(trip) {
   const directAmount = Number(
@@ -81,9 +90,8 @@ function getTripAmount(trip) {
   });
 }
 
-function getPaymentPartyName(
-  payment,
-) {
+
+function getPaymentPartyName(payment) {
   return String(
     payment?.partyName ??
       payment?.party ??
@@ -92,9 +100,8 @@ function getPaymentPartyName(
   ).trim();
 }
 
-function getPaymentAmount(
-  payment,
-) {
+
+function getPaymentAmount(payment) {
   const amount = Number(
     payment?.amount ??
       payment?.received ??
@@ -108,12 +115,15 @@ function getPaymentAmount(
     : 0;
 }
 
+
 function getInitials(name) {
   const value = String(
     name || "",
   ).trim();
 
-  if (!value) return "PT";
+  if (!value) {
+    return "PT";
+  }
 
   const parts = value
     .split(/\s+/)
@@ -125,8 +135,10 @@ function getInitials(name) {
       .toUpperCase();
   }
 
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`
+    .toUpperCase();
 }
+
 
 function getTripType(trip) {
   const value = normalize(
@@ -136,12 +148,9 @@ function getTripType(trip) {
   );
 
   if (
-    value ===
-      "loading + unloading" ||
-    value ===
-      "loading and unloading" ||
-    value ===
-      "loading/unloading"
+    value === "loading + unloading" ||
+    value === "loading and unloading" ||
+    value === "loading/unloading"
   ) {
     return "Loading + Unloading";
   }
@@ -174,6 +183,65 @@ function getTripType(trip) {
   );
 }
 
+
+function getRecordDate(record) {
+  return (
+    record?.date ||
+    record?.createdAt?.split("T")[0] ||
+    ""
+  );
+}
+
+
+function getLocalDateISO(date = new Date()) {
+  const year = date.getFullYear();
+
+  const month = String(
+    date.getMonth() + 1,
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getDate(),
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+
+function escapeCSV(value) {
+  const text = String(
+    value ?? "",
+  );
+
+  if (
+    text.includes(",") ||
+    text.includes('"') ||
+    text.includes("\n")
+  ) {
+    return `"${text.replace(
+      /"/g,
+      '""',
+    )}"`;
+  }
+
+  return text;
+}
+
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+// =========================================================
+// DETAIL METRIC
+// =========================================================
+
 function DetailMetric({
   icon,
   label,
@@ -196,6 +264,11 @@ function DetailMetric({
   );
 }
 
+
+// =========================================================
+// PARTY DETAILS
+// =========================================================
+
 function PartyDetails({
   party,
   trips = [],
@@ -207,30 +280,32 @@ function PartyDetails({
   onViewTrip,
 }) {
   const today = getTodayISO();
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedTripForView, setSelectedTripForView] = useState(null);
 
-  const safeTrips = Array.isArray(
-    trips,
-  )
+  const [selectedDate, setSelectedDate] =
+    useState(today);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState(false);
+
+  const safeTrips = Array.isArray(trips)
     ? trips
     : [];
 
-  const safePayments =
-    Array.isArray(payments)
-      ? payments
-      : [];
+  const safePayments = Array.isArray(
+    payments,
+  )
+    ? payments
+    : [];
+
 
   // =========================================================
   // ACCOUNT CALCULATIONS
   // =========================================================
 
   const account = useMemo(() => {
-    const partyName =
-      normalize(
-        party?.partyName,
-      );
+    const partyName = normalize(
+      party?.partyName,
+    );
 
     const partyTrips =
       safeTrips.filter(
@@ -250,6 +325,7 @@ function PartyDetails({
           ) === partyName,
       );
 
+
     const billing =
       partyTrips.reduce(
         (sum, trip) =>
@@ -258,26 +334,27 @@ function PartyDetails({
         0,
       );
 
+
     const received =
       partyPayments.reduce(
         (sum, payment) =>
           sum +
-          getPaymentAmount(
-            payment,
-          ),
+          getPaymentAmount(payment),
         0,
       );
+
 
     const due = Math.max(
       0,
       billing - received,
     );
 
-    const advance =
-      Math.max(
-        0,
-        received - billing,
-      );
+
+    const advance = Math.max(
+      0,
+      received - billing,
+    );
+
 
     const loading =
       partyTrips.filter(
@@ -286,12 +363,14 @@ function PartyDetails({
           "Loading",
       ).length;
 
+
     const unloading =
       partyTrips.filter(
         (trip) =>
           getTripType(trip) ===
           "Unloading",
       ).length;
+
 
     const combined =
       partyTrips.filter(
@@ -300,6 +379,7 @@ function PartyDetails({
           "Loading + Unloading",
       ).length;
 
+
     const siteToSite =
       partyTrips.filter(
         (trip) =>
@@ -307,91 +387,136 @@ function PartyDetails({
           "Site to Site",
       ).length;
 
-    // =========================================================
-    // SMART REMINDER — Check if due > 30 days old
-    // =========================================================
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // =======================================================
+    // SMART REMINDER
+    // =======================================================
 
-    const oldDueTrips = partyTrips.filter((trip) => {
-      const tripDate = new Date(trip?.date || 0);
-      return getAmount(trip) > 0 && tripDate < thirtyDaysAgo;
+    const thirtyDaysAgo =
+      new Date();
+
+    thirtyDaysAgo.setDate(
+      thirtyDaysAgo.getDate() - 30,
+    );
+
+
+    const oldDueTrips =
+      partyTrips.filter((trip) => {
+        const tripDate = new Date(
+          getRecordDate(trip) || 0,
+        );
+
+        return (
+          getTripAmount(trip) > 0 &&
+          tripDate < thirtyDaysAgo
+        );
+      });
+
+
+    const hasOldDue =
+      oldDueTrips.length > 0 &&
+      due > 0;
+
+
+    // =======================================================
+    // ACCOUNT ACTIVITY
+    // =======================================================
+
+    const activity = [
+      ...partyTrips.map(
+        (trip, index) => ({
+          id:
+            trip?.id ||
+            trip?._id ||
+            `trip-${index}`,
+
+          date:
+            getRecordDate(trip),
+
+          kind: "trip",
+
+          title:
+            getTripType(trip),
+
+          description:
+            trip?.material ||
+            trip?.product ||
+            trip?.site ||
+            trip?.location ||
+            "Transport trip",
+
+          amount:
+            getTripAmount(trip),
+
+          vehicle:
+            trip?.vehicleNumber ||
+            trip?.tractorNumber ||
+            "—",
+
+          quantity:
+            trip?.quantity ||
+            trip?.qty ||
+            0,
+
+          rate:
+            trip?.rate ||
+            trip?.price ||
+            0,
+
+          tripData: trip,
+        }),
+      ),
+
+      ...partyPayments.map(
+        (payment, index) => ({
+          id:
+            payment?.id ||
+            payment?._id ||
+            `payment-${index}`,
+
+          date:
+            getRecordDate(payment),
+
+          kind: "payment",
+
+          title:
+            "Payment Received",
+
+          description:
+            payment?.paymentMode ||
+            payment?.mode ||
+            payment?.reference ||
+            "Payment received",
+
+          amount:
+            getPaymentAmount(
+              payment,
+            ),
+
+          mode:
+            payment?.paymentMode ||
+            payment?.mode ||
+            "—",
+
+          reference:
+            payment?.reference ||
+            "—",
+        }),
+      ),
+    ].sort((a, b) => {
+      const dateA =
+        new Date(
+          a?.date || 0,
+        ).getTime();
+
+      const dateB =
+        new Date(
+          b?.date || 0,
+        ).getTime();
+
+      return dateB - dateA;
     });
 
-    const hasOldDue = oldDueTrips.length > 0 && due > 0;
-
-    const activity =
-      [
-        ...partyTrips.map(
-          (trip, index) => ({
-            id:
-              trip?.id ||
-              `trip-${index}`,
-            date: trip?.date,
-            kind: "trip",
-            title:
-              getTripType(trip),
-            description:
-              trip?.material ||
-              trip?.product ||
-              trip?.site ||
-              trip?.location ||
-              "Transport trip",
-            amount:
-              getTripAmount(trip),
-            vehicle:
-              trip?.vehicleNumber ||
-              trip?.tractorNumber ||
-              "—",
-            quantity:
-              trip?.quantity || 0,
-            rate:
-              trip?.rate || 0,
-            tripData: trip,
-          }),
-        ),
-
-        ...partyPayments.map(
-          (payment, index) => ({
-            id:
-              payment?.id ||
-              payment?._id ||
-              `payment-${index}`,
-            date: payment?.date,
-            kind: "payment",
-            title:
-              "Payment Received",
-            description:
-              payment?.paymentMode ||
-              payment?.mode ||
-              payment?.reference ||
-              "Payment received",
-            amount:
-              getPaymentAmount(
-                payment,
-              ),
-            mode:
-              payment?.paymentMode ||
-              "—",
-            reference:
-              payment?.reference ||
-              "—",
-          }),
-        ),
-      ].sort((a, b) => {
-        const dateA =
-          new Date(
-            a?.date || 0,
-          ).getTime();
-
-        const dateB =
-          new Date(
-            b?.date || 0,
-          ).getTime();
-
-        return dateB - dateA;
-      });
 
     return {
       partyTrips,
@@ -414,65 +539,183 @@ function PartyDetails({
     safePayments,
   ]);
 
+
   // =========================================================
-  // DAILY ACTIVITY (Date-wise Filter)
+  // DAILY ACTIVITY
   // =========================================================
 
   const dailyActivity = useMemo(() => {
-    const partyName = normalize(party?.partyName);
+    const partyName =
+      normalize(
+        party?.partyName,
+      );
 
-    const dayTrips = safeTrips.filter(
-      (trip) => {
-        const tripDate = trip?.date || trip?.createdAt?.split('T')[0] || "";
-        return normalize(getPartyName(trip)) === partyName &&
-               tripDate === selectedDate;
-      }
-    );
 
-    const dayPayments = safePayments.filter(
-      (payment) => {
-        const paymentDate = payment?.date || payment?.createdAt?.split('T')[0] || "";
-        return normalize(getPaymentPartyName(payment)) === partyName &&
-               paymentDate === selectedDate;
-      }
-    );
+    const dayTrips =
+      safeTrips.filter(
+        (trip) => {
+          const tripDate =
+            getRecordDate(trip);
+
+          return (
+            normalize(
+              getPartyName(trip),
+            ) === partyName &&
+            tripDate === selectedDate
+          );
+        },
+      );
+
+
+    const dayPayments =
+      safePayments.filter(
+        (payment) => {
+          const paymentDate =
+            getRecordDate(payment);
+
+          return (
+            normalize(
+              getPaymentPartyName(
+                payment,
+              ),
+            ) === partyName &&
+            paymentDate === selectedDate
+          );
+        },
+      );
+
 
     const dayActivity = [
-      ...dayTrips.map((trip, index) => ({
-        id: trip?.id || `trip-${index}`,
-        date: trip?.date,
-        kind: "trip",
-        title: getTripType(trip),
-        description: trip?.material || trip?.product || trip?.site || "Transport trip",
-        amount: getTripAmount(trip),
-        vehicle: trip?.vehicleNumber || "—",
-        quantity: trip?.quantity || 0,
-        rate: trip?.rate || 0,
-        tripData: trip,
-      })),
-      ...dayPayments.map((payment, index) => ({
-        id: payment?.id || `payment-${index}`,
-        date: payment?.date,
-        kind: "payment",
-        title: "Payment Received",
-        description: payment?.paymentMode || payment?.mode || "Payment",
-        amount: getPaymentAmount(payment),
-        mode: payment?.paymentMode || "—",
-        reference: payment?.reference || "—",
-      })),
+      ...dayTrips.map(
+        (trip, index) => ({
+          id:
+            trip?.id ||
+            trip?._id ||
+            `trip-${index}`,
+
+          date:
+            getRecordDate(trip),
+
+          kind: "trip",
+
+          title:
+            getTripType(trip),
+
+          description:
+            trip?.material ||
+            trip?.product ||
+            trip?.site ||
+            "Transport trip",
+
+          amount:
+            getTripAmount(trip),
+
+          vehicle:
+            trip?.vehicleNumber ||
+            trip?.tractorNumber ||
+            "—",
+
+          quantity:
+            trip?.quantity ||
+            trip?.qty ||
+            0,
+
+          rate:
+            trip?.rate ||
+            trip?.price ||
+            0,
+
+          tripData: trip,
+        }),
+      ),
+
+      ...dayPayments.map(
+        (payment, index) => ({
+          id:
+            payment?.id ||
+            payment?._id ||
+            `payment-${index}`,
+
+          date:
+            getRecordDate(payment),
+
+          kind: "payment",
+
+          title:
+            "Payment Received",
+
+          description:
+            payment?.paymentMode ||
+            payment?.mode ||
+            "Payment",
+
+          amount:
+            getPaymentAmount(
+              payment,
+            ),
+
+          mode:
+            payment?.paymentMode ||
+            payment?.mode ||
+            "—",
+
+          reference:
+            payment?.reference ||
+            "—",
+        }),
+      ),
     ].sort((a, b) => {
-      const dateA = new Date(a?.date || 0).getTime();
-      const dateB = new Date(b?.date || 0).getTime();
+      const dateA =
+        new Date(
+          a?.date || 0,
+        ).getTime();
+
+      const dateB =
+        new Date(
+          b?.date || 0,
+        ).getTime();
+
       return dateB - dateA;
     });
 
-    const totalTrips = dayTrips.length;
-    const totalPayments = dayPayments.length;
-    const totalBilling = dayTrips.reduce((s, t) => s + getTripAmount(t), 0);
-    const totalReceived = dayPayments.reduce((s, p) => s + getPaymentAmount(p), 0);
 
-    return { dayActivity, totalTrips, totalPayments, totalBilling, totalReceived };
-  }, [party, safeTrips, safePayments, selectedDate]);
+    const totalTrips =
+      dayTrips.length;
+
+    const totalPayments =
+      dayPayments.length;
+
+    const totalBilling =
+      dayTrips.reduce(
+        (sum, trip) =>
+          sum +
+          getTripAmount(trip),
+        0,
+      );
+
+    const totalReceived =
+      dayPayments.reduce(
+        (sum, payment) =>
+          sum +
+          getPaymentAmount(payment),
+        0,
+      );
+
+
+    return {
+      dayActivity,
+      totalTrips,
+      totalPayments,
+      totalBilling,
+      totalReceived,
+    };
+  }, [
+    party,
+    safeTrips,
+    safePayments,
+    selectedDate,
+  ]);
+
 
   // =========================================================
   // WHATSAPP SHARE
@@ -492,217 +735,555 @@ function PartyDetails({
       `---%0A` +
       `SAO AUTO TRACTOR`;
 
-    window.open(`https://wa.me/?text=${message}`, "_blank");
+    window.open(
+      `https://wa.me/?text=${message}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
+
 
   // =========================================================
   // PRINT STATEMENT
   // =========================================================
 
   const printStatement = () => {
-    const printWindow = window.open("", "_blank", "width=900,height=700");
+    const printWindow =
+      window.open(
+        "",
+        "_blank",
+        "width=900,height=700",
+      );
+
     if (!printWindow) {
-      alert("Please allow pop-ups to print.");
+      alert(
+        "Please allow pop-ups to print.",
+      );
       return;
     }
 
-    const companyName = "SAO AUTO TRACTOR";
-    const currentDate = new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
 
-    let tableRows = account.activity.slice(0, 20).map((item) => `
-      <tr>
-        <td>${formatDate(item.date)}</td>
-        <td>${item.title}</td>
-        <td>${item.description}</td>
-        <td style="text-align:right;">${formatCurrency(item.amount)}</td>
-      </tr>
-    `).join("");
+    const companyName =
+      "SAO AUTO TRACTOR";
+
+    const partyName =
+      party?.partyName ||
+      "Party";
+
+
+    const currentDate =
+      new Date().toLocaleDateString(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        },
+      );
+
+
+    let tableRows =
+      account.activity
+        .slice(0, 20)
+        .map(
+          (item) => `
+            <tr>
+              <td>${escapeHtml(
+                formatDate(item.date),
+              )}</td>
+
+              <td>${escapeHtml(
+                item.title,
+              )}</td>
+
+              <td>${escapeHtml(
+                item.description,
+              )}</td>
+
+              <td style="text-align:right;">
+                ${escapeHtml(
+                  formatCurrency(
+                    item.amount,
+                  ),
+                )}
+              </td>
+            </tr>
+          `,
+        )
+        .join("");
+
 
     if (tableRows === "") {
-      tableRows = `<tr><td colspan="4" style="text-align:center;padding:20px;">No activity recorded.</td></tr>`;
+      tableRows = `
+        <tr>
+          <td
+            colspan="4"
+            style="text-align:center;padding:20px;"
+          >
+            No activity recorded.
+          </td>
+        </tr>
+      `;
     }
+
 
     printWindow.document.write(`
       <!DOCTYPE html>
+
       <html>
         <head>
           <meta charset="UTF-8" />
-          <title>${companyName} - Party Statement</title>
+
+          <title>
+            ${escapeHtml(
+              companyName,
+            )} - Party Statement
+          </title>
+
           <style>
-            * { box-sizing: border-box; }
+            * {
+              box-sizing: border-box;
+            }
+
             body {
-              font-family: Arial, Helvetica, sans-serif;
+              font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
               padding: 20px;
+
               color: #152033;
+
               background: #fff;
             }
+
             .header {
               display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              border-bottom: 2px solid #1A5F7A;
-              padding-bottom: 12px;
-              margin-bottom: 20px;
+
+              justify-content:
+                space-between;
+
+              align-items:
+                flex-start;
+
+              border-bottom:
+                2px solid #1b4b73;
+
+              padding-bottom:
+                12px;
+
+              margin-bottom:
+                20px;
             }
+
             .header h1 {
-              font-size: 24px;
-              margin: 0;
-              color: #1A5F7A;
+              font-size:
+                24px;
+
+              margin:
+                0;
+
+              color:
+                #1b4b73;
             }
+
             .header p {
-              margin: 4px 0 0;
-              color: #6d675e;
-              font-size: 12px;
+              margin:
+                4px 0 0;
+
+              color:
+                #6d675e;
+
+              font-size:
+                12px;
             }
+
             .header .meta {
-              text-align: right;
-              font-size: 12px;
-              color: #6d675e;
+              text-align:
+                right;
+
+              font-size:
+                12px;
+
+              color:
+                #6d675e;
             }
+
             .summary {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 12px;
-              margin-bottom: 20px;
+              display:
+                grid;
+
+              grid-template-columns:
+                repeat(4, 1fr);
+
+              gap:
+                12px;
+
+              margin-bottom:
+                20px;
             }
+
             .summary .stat {
-              padding: 12px;
-              border: 1px solid #ddd6ca;
-              border-radius: 8px;
-              background: #faf8f3;
+              padding:
+                12px;
+
+              border:
+                1px solid #ddd6ca;
+
+              border-radius:
+                8px;
+
+              background:
+                #faf8f3;
             }
+
             .summary .stat span {
-              display: block;
-              font-size: 10px;
-              color: #6d675e;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
+              display:
+                block;
+
+              font-size:
+                10px;
+
+              color:
+                #6d675e;
+
+              text-transform:
+                uppercase;
+
+              letter-spacing:
+                0.05em;
             }
+
             .summary .stat strong {
-              display: block;
-              font-size: 18px;
-              margin-top: 4px;
+              display:
+                block;
+
+              font-size:
+                18px;
+
+              margin-top:
+                4px;
             }
+
             table {
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 11px;
+              width:
+                100%;
+
+              border-collapse:
+                collapse;
+
+              font-size:
+                11px;
             }
+
             th {
-              background: #f3efe6;
-              padding: 10px 8px;
-              border: 1px solid #d8d3c9;
-              text-align: left;
-              font-size: 9px;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
+              background:
+                #f3efe6;
+
+              padding:
+                10px 8px;
+
+              border:
+                1px solid #d8d3c9;
+
+              text-align:
+                left;
+
+              font-size:
+                9px;
+
+              text-transform:
+                uppercase;
+
+              letter-spacing:
+                0.05em;
             }
+
             td {
-              padding: 8px;
-              border: 1px solid #d8d3c9;
+              padding:
+                8px;
+
+              border:
+                1px solid #d8d3c9;
             }
+
             .footer {
-              margin-top: 24px;
-              padding-top: 12px;
-              border-top: 1px solid #d8d3c9;
-              font-size: 10px;
-              color: #6d675e;
-              display: flex;
-              justify-content: space-between;
+              margin-top:
+                24px;
+
+              padding-top:
+                12px;
+
+              border-top:
+                1px solid #d8d3c9;
+
+              font-size:
+                10px;
+
+              color:
+                #6d675e;
+
+              display:
+                flex;
+
+              justify-content:
+                space-between;
             }
+
             @media print {
-              body { padding: 10px; }
+              body {
+                padding:
+                  10px;
+              }
             }
           </style>
         </head>
+
         <body>
+
           <div class="header">
+
             <div>
-              <h1>${companyName}</h1>
-              <p>Transport Management System</p>
+              <h1>
+                ${escapeHtml(
+                  companyName,
+                )}
+              </h1>
+
+              <p>
+                Transport Management System
+              </p>
             </div>
+
             <div class="meta">
-              <strong>Party Statement</strong><br />
-              ${party?.partyName || "Party"}<br />
-              Generated: ${currentDate}
+
+              <strong>
+                Party Statement
+              </strong>
+
+              <br />
+
+              ${escapeHtml(
+                partyName,
+              )}
+
+              <br />
+
+              Generated:
+              ${escapeHtml(
+                currentDate,
+              )}
+
             </div>
+
           </div>
+
 
           <div class="summary">
-            <div class="stat"><span>Total Bill</span><strong>${formatCurrency(account.billing)}</strong></div>
-            <div class="stat"><span>Received</span><strong>${formatCurrency(account.received)}</strong></div>
-            <div class="stat"><span>Due</span><strong>${formatCurrency(account.due)}</strong></div>
-            <div class="stat"><span>Advance</span><strong>${formatCurrency(account.advance)}</strong></div>
+
+            <div class="stat">
+              <span>
+                Total Bill
+              </span>
+
+              <strong>
+                ${escapeHtml(
+                  formatCurrency(
+                    account.billing,
+                  ),
+                )}
+              </strong>
+            </div>
+
+
+            <div class="stat">
+              <span>
+                Received
+              </span>
+
+              <strong>
+                ${escapeHtml(
+                  formatCurrency(
+                    account.received,
+                  ),
+                )}
+              </strong>
+            </div>
+
+
+            <div class="stat">
+              <span>
+                Due
+              </span>
+
+              <strong>
+                ${escapeHtml(
+                  formatCurrency(
+                    account.due,
+                  ),
+                )}
+              </strong>
+            </div>
+
+
+            <div class="stat">
+              <span>
+                Advance
+              </span>
+
+              <strong>
+                ${escapeHtml(
+                  formatCurrency(
+                    account.advance,
+                  ),
+                )}
+              </strong>
+            </div>
+
           </div>
+
 
           <table>
+
             <thead>
-              <tr><th>Date</th><th>Type</th><th>Description</th><th style="text-align:right;">Amount</th></tr>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+
+                <th
+                  style="
+                    text-align:right;
+                  "
+                >
+                  Amount
+                </th>
+              </tr>
             </thead>
-            <tbody>${tableRows}</tbody>
+
+            <tbody>
+              ${tableRows}
+            </tbody>
+
           </table>
 
+
           <div class="footer">
-            <span>${companyName} - Transport Management System</span>
-            <span>Page 1 of 1</span>
+
+            <span>
+              ${escapeHtml(
+                companyName,
+              )}
+              -
+              Transport Management System
+            </span>
+
+            <span>
+              Page 1 of 1
+            </span>
+
           </div>
 
+
           <script>
-            window.onload = function() {
+            window.onload = function () {
               window.focus();
               window.print();
             };
-            window.onafterprint = function() {
+
+            window.onafterprint = function () {
               window.close();
             };
           </script>
+
         </body>
       </html>
     `);
+
     printWindow.document.close();
   };
+
 
   // =========================================================
   // CLONE PARTY
   // =========================================================
 
   const cloneParty = () => {
-    const newPartyName = prompt(
-      "Enter new party name for cloned party:",
-      `${party?.partyName} (Clone)`
-    );
+    const newPartyName =
+      prompt(
+        "Enter new party name for cloned party:",
+        `${party?.partyName} (Clone)`,
+      );
 
-    if (!newPartyName || newPartyName.trim() === "") {
+
+    if (
+      !newPartyName ||
+      newPartyName.trim() === ""
+    ) {
       return;
     }
 
-    const currentParties = JSON.parse(
-      localStorage.getItem("saoAutoTractorParties") || "[]"
-    );
+
+    const currentParties =
+      JSON.parse(
+        localStorage.getItem(
+          "saoAutoTractorParties",
+        ) || "[]",
+      );
+
 
     const newParty = {
       ...party,
+
       id: undefined,
+
       _id: undefined,
-      partyName: newPartyName.trim(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+
+      partyName:
+        newPartyName.trim(),
+
+      createdAt:
+        new Date().toISOString(),
+
+      updatedAt:
+        new Date().toISOString(),
     };
+
 
     delete newParty.__id;
 
-    const updatedParties = [newParty, ...currentParties];
-    localStorage.setItem("saoAutoTractorParties", JSON.stringify(updatedParties));
-    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
 
-    alert(`Party "${newParty.partyName}" cloned successfully!`);
+    const updatedParties = [
+      newParty,
+      ...currentParties,
+    ];
+
+
+    localStorage.setItem(
+      "saoAutoTractorParties",
+      JSON.stringify(
+        updatedParties,
+      ),
+    );
+
+
+    window.dispatchEvent(
+      new Event(
+        "saoAutoTractorDataChanged",
+      ),
+    );
+
+
+    alert(
+      `Party "${newParty.partyName}" cloned successfully!`,
+    );
+
+
     onRefresh?.();
     onClose();
   };
+
 
   // =========================================================
   // EXPORT CSV
@@ -710,83 +1291,189 @@ function PartyDetails({
 
   const exportCSV = () => {
     if (!account.activity.length) {
-      alert("No activity to export.");
+      alert(
+        "No activity to export.",
+      );
       return;
     }
 
-    const headers = ["Date", "Type", "Description", "Amount"];
-    const rows = account.activity.map((item) => [
-      formatDate(item.date),
-      item.title,
-      item.description,
-      item.amount,
-    ]);
+
+    const headers = [
+      "Date",
+      "Type",
+      "Description",
+      "Amount",
+    ];
+
+
+    const rows =
+      account.activity.map(
+        (item) => [
+          formatDate(item.date),
+          item.title,
+          item.description,
+          item.amount,
+        ],
+      );
+
 
     const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
+      headers.map(escapeCSV).join(","),
+      ...rows.map(
+        (row) =>
+          row
+            .map(escapeCSV)
+            .join(","),
+      ),
     ].join("\n");
 
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+
+    const blob = new Blob(
+      [
+        "\ufeff" +
+          csvContent,
+      ],
+      {
+        type:
+          "text/csv;charset=utf-8;",
+      },
+    );
+
+
+    const url =
+      URL.createObjectURL(
+        blob,
+      );
+
+
+    const link =
+      document.createElement(
+        "a",
+      );
+
+
     link.href = url;
-    link.download = `${party?.partyName || "party"}-statement-${getTodayISO()}.csv`;
-    document.body.appendChild(link);
+
+    link.download =
+      `${party?.partyName || "party"}-statement-${getTodayISO()}.csv`;
+
+
+    document.body.appendChild(
+      link,
+    );
+
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+
+    document.body.removeChild(
+      link,
+    );
+
+    URL.revokeObjectURL(
+      url,
+    );
   };
+
 
   // =========================================================
   // DELETE PARTY
   // =========================================================
 
   const confirmDelete = () => {
-    const currentParties = JSON.parse(
-      localStorage.getItem("saoAutoTractorParties") || "[]"
+    const currentParties =
+      JSON.parse(
+        localStorage.getItem(
+          "saoAutoTractorParties",
+        ) || "[]",
+      );
+
+
+    const updatedParties =
+      currentParties.filter(
+        (p) =>
+          p?.id !== party?.id,
+      );
+
+
+    localStorage.setItem(
+      "saoAutoTractorParties",
+      JSON.stringify(
+        updatedParties,
+      ),
     );
 
-    const updatedParties = currentParties.filter(
-      (p) => p?.id !== party?.id
+
+    window.dispatchEvent(
+      new Event(
+        "saoAutoTractorDataChanged",
+      ),
     );
 
-    localStorage.setItem("saoAutoTractorParties", JSON.stringify(updatedParties));
-    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
 
-    setShowDeleteConfirm(false);
+    setShowDeleteConfirm(
+      false,
+    );
+
     onDelete?.();
     onClose();
     onRefresh?.();
   };
+
 
   // =========================================================
   // QUICK TRIP VIEW
   // =========================================================
 
   const openTripView = (item) => {
-    if (item.kind === "trip" && item.tripData) {
-      onViewTrip?.(item.tripData);
+    if (
+      item.kind === "trip" &&
+      item.tripData
+    ) {
+      onViewTrip?.(
+        item.tripData,
+      );
     }
   };
+
 
   // =========================================================
   // DATE FILTER HANDLERS
   // =========================================================
 
-  const handleDateChange = (event) => {
-    setSelectedDate(event.target.value);
+  const handleDateChange = (
+    event,
+  ) => {
+    setSelectedDate(
+      event.target.value,
+    );
   };
+
 
   const setToday = () => {
-    setSelectedDate(getTodayISO());
+    setSelectedDate(
+      getTodayISO(),
+    );
   };
 
+
   const setYesterday = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    setSelectedDate(yesterday.toISOString().split('T')[0]);
+    const yesterday =
+      new Date();
+
+    yesterday.setDate(
+      yesterday.getDate() - 1,
+    );
+
+    setSelectedDate(
+      getLocalDateISO(
+        yesterday,
+      ),
+    );
   };
+
+
+  // =========================================================
+  // BALANCE STATUS
+  // =========================================================
 
   const balanceStatus =
     account.due > 0
@@ -795,8 +1482,14 @@ function PartyDetails({
       ? "advance"
       : "paid";
 
+
+  // =========================================================
+  // RENDER
+  // =========================================================
+
   return (
     <div className="party-details-overlay">
+
       <button
         type="button"
         className="party-details-backdrop"
@@ -804,12 +1497,22 @@ function PartyDetails({
         aria-label="Close party details"
       />
 
+
       <aside
         className="party-details-drawer"
+        role="dialog"
+        aria-modal="true"
         aria-label="Party account details"
       >
+
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
         <header className="pd-header">
+
           <div>
+
             <span className="pd-eyebrow">
               PARTY ACCOUNT
             </span>
@@ -823,143 +1526,250 @@ function PartyDetails({
               Complete account summary,
               activity and payment history.
             </p>
+
           </div>
 
+
           <div className="pd-header-actions">
-            {/* =================================================
-                SMART REMINDER BADGE
-            ================================================= */}
+
+            {/* SMART REMINDER */}
 
             {account.hasOldDue && (
-              <div className="pd-reminder-badge" title="Payment overdue for 30+ days">
+              <div
+                className="pd-reminder-badge"
+                title="Payment overdue for 30+ days"
+              >
                 <Bell size={15} />
-                <span>Reminder</span>
+
+                <span>
+                  Reminder
+                </span>
               </div>
             )}
+
+
+            {/* WHATSAPP */}
 
             <button
               type="button"
               className="pd-action-btn"
               onClick={shareWhatsApp}
               title="Share on WhatsApp"
+              aria-label="Share party statement on WhatsApp"
             >
-              <MessageCircle size={17} color="#25D366" />
+              <MessageCircle
+                size={17}
+                color="#25D366"
+              />
             </button>
+
+
+            {/* PRINT */}
 
             <button
               type="button"
               className="pd-action-btn"
               onClick={printStatement}
               title="Print Statement"
+              aria-label="Print party statement"
             >
               <Printer size={17} />
             </button>
+
+
+            {/* CLONE */}
 
             <button
               type="button"
               className="pd-action-btn"
               onClick={cloneParty}
               title="Clone Party"
+              aria-label="Clone party"
             >
-              <Copy size={17} color="#1A5F7A" />
+              <Copy
+                size={17}
+                color="#1A5F7A"
+              />
             </button>
+
+
+            {/* EXPORT */}
 
             <button
               type="button"
               className="pd-action-btn"
               onClick={exportCSV}
               title="Export CSV"
+              aria-label="Export party statement as CSV"
             >
               <FileDown size={17} />
             </button>
 
+
+            {/* DELETE */}
+
             <button
               type="button"
               className="pd-action-btn pd-danger"
-              onClick={() => setShowDeleteConfirm(true)}
+              onClick={() =>
+                setShowDeleteConfirm(
+                  true,
+                )
+              }
               title="Delete Party"
+              aria-label="Delete party"
             >
               <Trash2 size={17} />
             </button>
+
+
+            {/* CLOSE */}
 
             <button
               type="button"
               className="pd-close"
               onClick={onClose}
-              aria-label="Close"
+              aria-label="Close party details"
+              title="Close"
             >
               <X size={19} />
             </button>
+
           </div>
+
         </header>
+
+
+        {/* =================================================
+            BODY
+        ================================================= */}
 
         <div className="party-details-body">
 
-          {/* ===================================================
+          {/* =================================================
               SMART REMINDER BANNER
-          =================================================== */}
+          ================================================= */}
 
           {account.hasOldDue && (
             <div className="pd-reminder-banner">
+
               <Bell size={18} />
+
               <div>
-                <strong>Payment Reminder</strong>
+
+                <strong>
+                  Payment Reminder
+                </strong>
+
                 <span>
-                  {account.oldDueTrips.length} trip(s) are overdue for 30+ days. 
-                  Total due: {formatCurrency(account.due)}
+                  {
+                    account
+                      .oldDueTrips
+                      .length
+                  }{" "}
+                  trip(s) are overdue
+                  for 30+ days.
+                  Total due:{" "}
+                  {formatCurrency(
+                    account.due,
+                  )}
                 </span>
+
               </div>
+
             </div>
           )}
 
-          {/* ===================================================
+
+          {/* =================================================
               DELETE CONFIRMATION
-          =================================================== */}
+          ================================================= */}
 
           {showDeleteConfirm && (
-            <div className="pd-delete-overlay">
-              <div className="pd-delete-modal">
+            <div
+              className="pd-delete-overlay"
+              role="presentation"
+            >
+
+              <div
+                className="pd-delete-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pd-delete-title"
+              >
+
                 <div className="pd-delete-icon">
                   <Trash2 size={24} />
                 </div>
-                <h3>Delete Party?</h3>
+
+
+                <h3 id="pd-delete-title">
+                  Delete Party?
+                </h3>
+
+
                 <p>
-                  Are you sure you want to delete <strong>"{party?.partyName}"</strong>?
-                  This action cannot be undone.
+                  Are you sure you want
+                  to delete{" "}
+                  <strong>
+                    "{party?.partyName}"
+                  </strong>
+                  ?
+
+                  This action cannot
+                  be undone.
                 </p>
+
+
                 <div className="pd-delete-actions">
+
                   <button
                     type="button"
                     className="pd-delete-cancel"
-                    onClick={() => setShowDeleteConfirm(false)}
+                    onClick={() =>
+                      setShowDeleteConfirm(
+                        false,
+                      )
+                    }
                   >
                     Cancel
                   </button>
+
+
                   <button
                     type="button"
                     className="pd-delete-confirm"
                     onClick={confirmDelete}
                   >
-                    <Trash2 size={16} /> Delete Party
+                    <Trash2 size={16} />
+                    Delete Party
                   </button>
+
                 </div>
+
               </div>
+
             </div>
           )}
 
-          {/* ===================================================
+
+          {/* =================================================
               PROFILE CARD
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-profile-card">
+
             <div className="pd-profile-main">
+
               <div className="pd-avatar">
                 {getInitials(
                   party?.partyName,
                 )}
               </div>
 
+
               <div className="pd-profile-info">
+
                 <strong>
                   {party?.partyName ||
                     "Unnamed Party"}
@@ -974,8 +1784,11 @@ function PartyDetails({
                   {party?.contact ||
                     "No contact number"}
                 </small>
+
               </div>
+
             </div>
+
 
             <StatusBadge
               status={
@@ -990,14 +1803,18 @@ function PartyDetails({
                   : "Active"
               }
             />
+
           </section>
 
-          {/* ===================================================
+
+          {/* =================================================
               BALANCE BANNER
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-balance-banner">
+
             <div>
+
               <span>
                 CURRENT BALANCE
               </span>
@@ -1007,7 +1824,9 @@ function PartyDetails({
                   account.due || 0,
                 )}
               </strong>
+
             </div>
+
 
             <div
               className={`pd-balance-status ${balanceStatus}`}
@@ -1020,13 +1839,16 @@ function PartyDetails({
                 ? "Advance"
                 : "Fully Paid"}
             </div>
+
           </section>
 
-          {/* ===================================================
+
+          {/* =================================================
               METRICS GRID
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-metrics-grid">
+
             <DetailMetric
               icon={
                 <ReceiptText size={17} />
@@ -1036,6 +1858,7 @@ function PartyDetails({
                 account.billing,
               )}
             />
+
 
             <DetailMetric
               icon={
@@ -1048,6 +1871,7 @@ function PartyDetails({
                 account.received,
               )}
             />
+
 
             <DetailMetric
               icon={
@@ -1064,6 +1888,7 @@ function PartyDetails({
               }
             />
 
+
             <DetailMetric
               icon={
                 <Activity size={17} />
@@ -1074,15 +1899,20 @@ function PartyDetails({
                   .length
               }
             />
+
           </section>
 
-          {/* ===================================================
+
+          {/* =================================================
               TRIP BREAKDOWN
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-section">
+
             <div className="pd-section-heading">
+
               <div>
+
                 <span>
                   TRIP BREAKDOWN
                 </span>
@@ -1090,51 +1920,72 @@ function PartyDetails({
                 <h3>
                   Transport Activity
                 </h3>
+
               </div>
+
             </div>
 
+
             <div className="pd-trip-grid">
+
               <div>
-                <span>Loading</span>
+                <span>
+                  Loading
+                </span>
+
                 <strong>
                   {account.loading}
                 </strong>
               </div>
 
+
               <div>
                 <span>
                   Load + Unload
                 </span>
+
                 <strong>
                   {account.combined}
                 </strong>
               </div>
 
+
               <div>
-                <span>Unloading</span>
+                <span>
+                  Unloading
+                </span>
+
                 <strong>
                   {account.unloading}
                 </strong>
               </div>
 
+
               <div>
                 <span>
                   Site to Site
                 </span>
+
                 <strong>
                   {account.siteToSite}
                 </strong>
               </div>
+
             </div>
+
           </section>
 
-          {/* ===================================================
+
+          {/* =================================================
               PARTY INFORMATION
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-section">
+
             <div className="pd-section-heading">
+
               <div>
+
                 <span>
                   PARTY INFORMATION
                 </span>
@@ -1142,14 +1993,20 @@ function PartyDetails({
                 <h3>
                   Contact & Location
                 </h3>
+
               </div>
+
             </div>
 
+
             <div className="pd-info-grid">
+
               <div className="pd-info-item">
+
                 <Phone size={16} />
 
                 <div>
+
                   <span>
                     Contact
                   </span>
@@ -1158,13 +2015,18 @@ function PartyDetails({
                     {party?.contact ||
                       "Not provided"}
                   </strong>
+
                 </div>
+
               </div>
 
+
               <div className="pd-info-item">
+
                 <MapPin size={16} />
 
                 <div>
+
                   <span>
                     Site
                   </span>
@@ -1173,13 +2035,18 @@ function PartyDetails({
                     {party?.siteInfo ||
                       "Not specified"}
                   </strong>
+
                 </div>
+
               </div>
 
+
               <div className="pd-info-item pd-info-full">
+
                 <MapPin size={16} />
 
                 <div>
+
                   <span>
                     Address
                   </span>
@@ -1188,18 +2055,26 @@ function PartyDetails({
                     {party?.address ||
                       "Not specified"}
                   </strong>
+
                 </div>
+
               </div>
+
             </div>
+
           </section>
 
-          {/* ===================================================
+
+          {/* =================================================
               PAYMENT INFORMATION
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-section">
+
             <div className="pd-section-heading">
+
               <div>
+
                 <span>
                   PAYMENT INFORMATION
                 </span>
@@ -1207,13 +2082,18 @@ function PartyDetails({
                 <h3>
                   Payment Details
                 </h3>
+
               </div>
+
             </div>
 
+
             <div className="pd-payment-card">
+
               <IndianRupee size={17} />
 
               <div>
+
                 <span>
                   UPI / Payment Information
                 </span>
@@ -1222,12 +2102,15 @@ function PartyDetails({
                   {party?.paymentQr ||
                     "No payment information added"}
                 </strong>
+
               </div>
+
             </div>
 
-            {account.advance >
-              0 && (
+
+            {account.advance > 0 && (
               <div className="pd-advance-note">
+
                 <ArrowUpRight
                   size={16}
                 />
@@ -1242,17 +2125,23 @@ function PartyDetails({
                   </strong>
                   .
                 </span>
+
               </div>
             )}
+
           </section>
 
-          {/* ===================================================
-              DAILY ACTIVITY (Date-wise Filter)
-          =================================================== */}
+
+          {/* =================================================
+              DAILY ACTIVITY
+          ================================================= */}
 
           <section className="pd-section pd-daily-section">
+
             <div className="pd-section-heading">
+
               <div>
+
                 <span>
                   DAILY ACTIVITY
                 </span>
@@ -1260,17 +2149,28 @@ function PartyDetails({
                 <h3>
                   Date Wise Activity
                 </h3>
+
               </div>
+
             </div>
 
+
             <div className="pd-daily-controls">
+
               <button
                 type="button"
-                className={`pd-date-btn ${selectedDate === today ? 'active' : ''}`}
+                className={`pd-date-btn ${
+                  selectedDate ===
+                  today
+                    ? "active"
+                    : ""
+                }`}
                 onClick={setToday}
               >
                 Today
               </button>
+
+
               <button
                 type="button"
                 className="pd-date-btn"
@@ -1278,82 +2178,205 @@ function PartyDetails({
               >
                 Yesterday
               </button>
+
+
               <input
                 type="date"
                 value={selectedDate}
-                onChange={handleDateChange}
+                onChange={
+                  handleDateChange
+                }
                 className="pd-date-input"
                 aria-label="Select date"
               />
+
             </div>
+
 
             <div className="pd-daily-summary">
+
               <div className="pd-daily-stat">
-                <span>Trips</span>
-                <strong>{dailyActivity.totalTrips}</strong>
+
+                <span>
+                  Trips
+                </span>
+
+                <strong>
+                  {
+                    dailyActivity
+                      .totalTrips
+                  }
+                </strong>
+
               </div>
+
+
               <div className="pd-daily-stat">
-                <span>Payments</span>
-                <strong>{dailyActivity.totalPayments}</strong>
+
+                <span>
+                  Payments
+                </span>
+
+                <strong>
+                  {
+                    dailyActivity
+                      .totalPayments
+                  }
+                </strong>
+
               </div>
+
+
               <div className="pd-daily-stat">
-                <span>Billing</span>
-                <strong>{formatCurrency(dailyActivity.totalBilling)}</strong>
+
+                <span>
+                  Billing
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    dailyActivity
+                      .totalBilling,
+                  )}
+                </strong>
+
               </div>
+
+
               <div className="pd-daily-stat pd-daily-received">
-                <span>Received</span>
-                <strong>{formatCurrency(dailyActivity.totalReceived)}</strong>
+
+                <span>
+                  Received
+                </span>
+
+                <strong>
+                  {formatCurrency(
+                    dailyActivity
+                      .totalReceived,
+                  )}
+                </strong>
+
               </div>
+
             </div>
 
-            {dailyActivity.dayActivity.length === 0 ? (
+
+            {dailyActivity
+              .dayActivity
+              .length === 0 ? (
+
               <div className="pd-daily-empty">
+
                 <Activity size={18} />
-                <span>No activity on {formatDate(selectedDate)}</span>
+
+                <span>
+                  No activity on{" "}
+                  {formatDate(
+                    selectedDate,
+                  )}
+                </span>
+
               </div>
+
             ) : (
+
               <div className="pd-daily-list">
-                {dailyActivity.dayActivity.map((item) => (
-                  <div key={item.id} className="pd-daily-item">
-                    <div className={`pd-daily-icon ${item.kind}`}>
-                      {item.kind === "payment" ? (
-                        <ArrowDownLeft size={14} />
-                      ) : (
-                        <ReceiptText size={14} />
-                      )}
-                    </div>
-                    <div className="pd-daily-content">
-                      <strong>{item.title}</strong>
-                      <span>{item.description}</span>
-                    </div>
-                    <div className="pd-daily-actions">
-                      {item.kind === "trip" && item.tripData && (
-                        <button
-                          type="button"
-                          className="pd-daily-view-btn"
-                          onClick={() => openTripView(item)}
-                          title="View trip details"
+
+                {dailyActivity
+                  .dayActivity
+                  .map((item) => (
+
+                    <div
+                      key={item.id}
+                      className="pd-daily-item"
+                    >
+
+                      <div
+                        className={`pd-daily-icon ${item.kind}`}
+                      >
+                        {item.kind ===
+                        "payment" ? (
+                          <ArrowDownLeft
+                            size={14}
+                          />
+                        ) : (
+                          <ReceiptText
+                            size={14}
+                          />
+                        )}
+                      </div>
+
+
+                      <div className="pd-daily-content">
+
+                        <strong>
+                          {item.title}
+                        </strong>
+
+                        <span>
+                          {item.description}
+                        </span>
+
+                      </div>
+
+
+                      <div className="pd-daily-actions">
+
+                        {item.kind ===
+                          "trip" &&
+                          item.tripData && (
+                            <button
+                              type="button"
+                              className="pd-daily-view-btn"
+                              onClick={() =>
+                                openTripView(
+                                  item,
+                                )
+                              }
+                              title="View trip details"
+                              aria-label="View trip details"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          )}
+
+
+                        <strong
+                          className={`pd-daily-amount ${
+                            item.kind ===
+                            "payment"
+                              ? "received"
+                              : ""
+                          }`}
                         >
-                          <Eye size={14} />
-                        </button>
-                      )}
-                      <strong className={`pd-daily-amount ${item.kind === "payment" ? "received" : ""}`}>
-                        {formatCurrency(item.amount)}
-                      </strong>
+                          {formatCurrency(
+                            item.amount,
+                          )}
+                        </strong>
+
+                      </div>
+
                     </div>
-                  </div>
-                ))}
+
+                  ))}
+
               </div>
+
             )}
+
           </section>
 
-          {/* ===================================================
+
+          {/* =================================================
               ACCOUNT HISTORY
-          =================================================== */}
+          ================================================= */}
 
           <section className="pd-section pd-history-section">
+
             <div className="pd-section-heading">
+
               <div>
+
                 <span>
                   ACCOUNT ACTIVITY
                 </span>
@@ -1361,32 +2384,48 @@ function PartyDetails({
                 <h3>
                   Recent History
                 </h3>
+
               </div>
 
+
               <small>
-                {account.activity.length}{" "}
+                {
+                  account.activity
+                    .length
+                }{" "}
                 records
               </small>
+
             </div>
 
-            {account.activity.length ===
-            0 ? (
+
+            {account.activity
+              .length === 0 ? (
+
               <div className="pd-history-empty">
+
                 <Activity size={19} />
 
                 <span>
                   No trip or payment
                   history available.
                 </span>
+
               </div>
+
             ) : (
+
               <div className="pd-history-list">
-                {account.activity.slice(0, 15).map(
-                  (item) => (
+
+                {account.activity
+                  .slice(0, 15)
+                  .map((item) => (
+
                     <div
                       className="pd-history-item"
                       key={item.id}
                     >
+
                       <div
                         className={`pd-history-icon ${item.kind}`}
                       >
@@ -1402,7 +2441,9 @@ function PartyDetails({
                         )}
                       </div>
 
+
                       <div className="pd-history-content">
+
                         <strong>
                           {item.title}
                         </strong>
@@ -1412,6 +2453,7 @@ function PartyDetails({
                         </span>
 
                         <small>
+
                           <CalendarDays
                             size={12}
                           />
@@ -1419,20 +2461,33 @@ function PartyDetails({
                           {formatDate(
                             item.date,
                           )}
+
                         </small>
+
                       </div>
 
+
                       <div className="pd-history-actions">
-                        {item.kind === "trip" && item.tripData && (
-                          <button
-                            type="button"
-                            className="pd-history-view-btn"
-                            onClick={() => openTripView(item)}
-                            title="View trip details"
-                          >
-                            <Eye size={14} />
-                          </button>
-                        )}
+
+                        {item.kind ===
+                          "trip" &&
+                          item.tripData && (
+                            <button
+                              type="button"
+                              className="pd-history-view-btn"
+                              onClick={() =>
+                                openTripView(
+                                  item,
+                                )
+                              }
+                              title="View trip details"
+                              aria-label="View trip details"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          )}
+
+
                         <strong
                           className={
                             item.kind ===
@@ -1445,16 +2500,28 @@ function PartyDetails({
                             item.amount,
                           )}
                         </strong>
+
                       </div>
+
                     </div>
-                  ),
-                )}
+
+                  ))}
+
               </div>
+
             )}
+
           </section>
+
         </div>
 
+
+        {/* =================================================
+            FOOTER
+        ================================================= */}
+
         <footer className="pd-footer">
+
           <Button
             type="button"
             variant="secondary"
@@ -1462,6 +2529,7 @@ function PartyDetails({
           >
             Close
           </Button>
+
 
           <Button
             type="button"
@@ -1472,10 +2540,14 @@ function PartyDetails({
             <Edit3 size={16} />
             Edit Party
           </Button>
+
         </footer>
+
       </aside>
+
     </div>
   );
 }
+
 
 export default PartyDetails;

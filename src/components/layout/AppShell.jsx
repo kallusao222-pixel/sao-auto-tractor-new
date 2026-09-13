@@ -1,84 +1,22 @@
-import { useState } from "react";
-
 import Sidebar from "./Sidebar";
-import Header from "./Header";
-
-import Dashboard from "../../pages/Dashboard/Dashboard";
-
+import Topbar from "./Topbar";
 import "./AppShell.css";
 
-function AppShell() {
-  const [activePage, setActivePage] =
-    useState("Dashboard");
-
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false);
-
-  const handleNavigation = (page) => {
-    setActivePage(page);
-    setMobileMenuOpen(false);
-  };
-
-  const renderPage = () => {
-    switch (activePage) {
-      case "Dashboard":
-        return (
-          <Dashboard
-            onNavigate={handleNavigation}
-          />
-        );
-
-      default:
-        return (
-          <div className="page-placeholder">
-            <span className="page-placeholder-label">
-              SAO AUTO TRACTOR
-            </span>
-
-            <h2>{activePage}</h2>
-
-            <p>
-              This workspace is ready for the{" "}
-              {activePage.toLowerCase()} module.
-            </p>
-          </div>
-        );
-    }
-  };
-
+export default function AppShell({
+  children,
+  title,
+  subtitle,
+  activeNav,
+  onNavigate,
+  onLogout,
+}) {
   return (
-    <div className="app-shell">
-      <Sidebar
-        activePage={activePage}
-        onNavigate={handleNavigation}
-        mobileOpen={mobileMenuOpen}
-      />
-
-      {mobileMenuOpen && (
-        <button
-          type="button"
-          className="mobile-overlay"
-          aria-label="Close navigation"
-          onClick={() =>
-            setMobileMenuOpen(false)
-          }
-        />
-      )}
-
-      <div className="app-main">
-        <Header
-          activePage={activePage}
-          onMenuClick={() =>
-            setMobileMenuOpen(true)
-          }
-        />
-
-        <main className="app-content">
-          {renderPage()}
-        </main>
+    <div className="shell">
+      <Sidebar active={activeNav} onNavigate={onNavigate} onLogout={onLogout} />
+      <div className="shell__main">
+        <Topbar title={title} subtitle={subtitle} />
+        <main className="shell__content">{children}</main>
       </div>
     </div>
   );
 }
-
-export default AppShell;

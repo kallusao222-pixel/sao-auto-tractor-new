@@ -29,6 +29,7 @@ import {
   Download,
   TrendingUp,
   TrendingDown,
+  Save,
 } from "lucide-react";
 
 import { useAppData } from "../../context/AppDataContext";
@@ -128,7 +129,7 @@ const getRecordId = (record, fallback) =>
       fallback,
   );
 
-const todayISO = () => new Date().toISOString().split('T')[0];
+const todayISO = () => new Date().toISOString().split("T")[0];
 
 /* =========================================================
    PARTY LEDGER
@@ -170,6 +171,17 @@ function PartyLedger() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
+
+  // NEW: Inline Payment Modal state
+  const [paymentModal, setPaymentModal] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({
+    date: todayISO(),
+    amount: "",
+    paymentMode: "Cash",
+    reference: "",
+    notes: "",
+  });
+  const [paymentFormError, setPaymentFormError] = useState("");
 
   // Auto-clear toast
   useEffect(() => {
@@ -702,13 +714,13 @@ function PartyLedger() {
     // Date filter
     if (dateFrom) {
       all = all.filter((item) => {
-        const itemDate = String(item.date || "").split('T')[0];
+        const itemDate = String(item.date || "").split("T")[0];
         return itemDate >= dateFrom;
       });
     }
     if (dateTo) {
       all = all.filter((item) => {
-        const itemDate = String(item.date || "").split('T')[0];
+        const itemDate = String(item.date || "").split("T")[0];
         return itemDate <= dateTo;
       });
     }
@@ -882,11 +894,11 @@ function PartyLedger() {
     } else if (type === "week") {
       const start = new Date(today);
       start.setDate(today.getDate() - 7);
-      setFilterDateFrom(start.toISOString().split('T')[0]);
+      setFilterDateFrom(start.toISOString().split("T")[0]);
       setFilterDateTo(todayStr);
     } else if (type === "month") {
       const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      setFilterDateFrom(start.toISOString().split('T')[0]);
+      setFilterDateFrom(start.toISOString().split("T")[0]);
       setFilterDateTo(todayStr);
     } else {
       setFilterDateFrom("");
@@ -953,10 +965,111 @@ function PartyLedger() {
       type: "success",
     });
 
-    // Refresh data
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+    // NOTE: Reload removed — AppDataContext auto-updates via
+    // saoAutoTractorDataChanged event.
+  };
+
+  /* =======================================================
+     NEW: OPEN INLINE PAYMENT MODAL
+     ======================================================= */
+
+  const openPaymentModal = (account) => {
+    if (!account) return;
+
+    const due = toNumber(account.due);
+    if (due <= 0) {
+      setToast({
+        message: "This party has no outstanding due.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setPaymentForm({
+      date: todayISO(),
+      amount: String(due),
+      paymentMode: "Cash",
+      reference: "",
+      notes: "",
+    });
+    setPaymentFormError("");
+    setPaymentModal({
+      partyName: account.name,
+      due: due,
+    });
+  };
+
+  /* =======================================================
+     NEW: SAVE INLINE PAYMENT
+     ======================================================= */
+
+  const saveInlinePayment = () => {
+    if (!paymentModal) return;
+
+    setPaymentFormError("");
+
+    const amount = Number(paymentForm.amount);
+    const due = Number(paymentModal.due) || 0;
+
+    if (!paymentForm.date) {
+      setPaymentFormError("Please select a payment date.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaymentFormError("Please enter a valid amount.");
+      return;
+    }
+    if (amount > due) {
+      setPaymentFormError(
+        `Amount cannot be more than the current due of ₹${formatMoney(due)}.`
+      );
+      return;
+    }
+
+    const newPayment = {
+      id: Date.now(),
+      date: paymentForm.date,
+      partyName: paymentModal.partyName,
+      amount: amount,
+      paymentMode: paymentForm.paymentMode,
+      reference: paymentForm.reference.trim(),
+      notes: paymentForm.notes.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const existing = JSON.parse(
+        localStorage.getItem("saoAutoTractorPayments") || "[]"
+      );
+      const updated = [...existing, newPayment];
+      localStorage.setItem(
+        "saoAutoTractorPayments",
+        JSON.stringify(updated)
+      );
+
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(
+        new CustomEvent("saoAutoTractorDataChanged")
+      );
+
+      setToast({
+        message: `Payment of ₹${formatMoney(amount)} recorded for ${paymentModal.partyName}.`,
+        type: "success",
+      });
+
+      setPaymentModal(null);
+      setPaymentForm({
+        date: todayISO(),
+        amount: "",
+        paymentMode: "Cash",
+        reference: "",
+        notes: "",
+      });
+      setPaymentFormError("");
+    } catch (error) {
+      console.error("Inline payment save error:", error);
+      setPaymentFormError("Payment could not be saved. Please try again.");
+    }
   };
 
   /* =======================================================
@@ -2425,20 +2538,11 @@ function PartyLedger() {
                   Print Ledger
                 </button>
 
+                {/* UPDATED: Add Payment — opens inline modal */}
                 <button
                   type="button"
                   onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent(
-                        "saoAutoTractorAddPayment",
-                        {
-                          detail: {
-                            partyName:
-                              selectedAccount.name,
-                          },
-                        },
-                      ),
-                    )
+                    openPaymentModal(selectedAccount)
                   }
                 >
                   <Plus size={16} />
@@ -2665,7 +2769,17 @@ function PartyLedger() {
 
       {selectedAccount &&
         fullLedger && (
-          <div className="party-ledger-modal-backdrop">
+          <div
+            className="party-ledger-modal-backdrop"
+            onMouseDown={(event) => {
+              if (
+                event.target ===
+                event.currentTarget
+              ) {
+                closeAccount();
+              }
+            }}
+          >
 
             <div className="party-ledger-modal party-ledger-full-modal">
 
@@ -3373,6 +3487,164 @@ function PartyLedger() {
                 Delete
               </button>
 
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================
+          NEW: INLINE PAYMENT MODAL
+          =================================================== */}
+
+      {paymentModal && (
+        <div
+          className="party-ledger-payment-backdrop"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setPaymentModal(null);
+              setPaymentFormError("");
+            }
+          }}
+        >
+          <div className="party-ledger-payment-modal">
+
+            <div className="party-ledger-payment-header">
+              <div>
+                <span>QUICK PAYMENT ENTRY</span>
+                <h3>{paymentModal.partyName}</h3>
+                <p>
+                  Outstanding due:{" "}
+                  <strong>{formatMoney(paymentModal.due)}</strong>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentModal(null);
+                  setPaymentFormError("");
+                }}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="party-ledger-payment-body">
+
+              <label className="ledger-payment-field">
+                <span>Payment Date *</span>
+                <input
+                  type="date"
+                  value={paymentForm.date}
+                  onChange={(e) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      date: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="ledger-payment-field">
+                <span>Amount *</span>
+                <input
+                  type="number"
+                  min="0"
+                  max={paymentModal.due}
+                  step="0.01"
+                  placeholder="0"
+                  value={paymentForm.amount}
+                  onChange={(e) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      amount: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="ledger-payment-field">
+                <span>Payment Mode</span>
+                <select
+                  value={paymentForm.paymentMode}
+                  onChange={(e) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      paymentMode: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank">Bank</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+
+              <label className="ledger-payment-field">
+                <span>Reference</span>
+                <input
+                  type="text"
+                  placeholder="Transaction / receipt no."
+                  value={paymentForm.reference}
+                  onChange={(e) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      reference: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="ledger-payment-field ledger-payment-full">
+                <span>Notes</span>
+                <input
+                  type="text"
+                  placeholder="Optional notes"
+                  value={paymentForm.notes}
+                  onChange={(e) =>
+                    setPaymentForm((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              {paymentFormError && (
+                <div className="ledger-payment-error" role="status" aria-live="polite">
+                  <AlertCircle size={15} />
+                  <span>{paymentFormError}</span>
+                </div>
+              )}
+
+            </div>
+
+            <div className="party-ledger-payment-footer">
+              <button
+                type="button"
+                className="ledger-payment-btn secondary"
+                onClick={() => {
+                  setPaymentModal(null);
+                  setPaymentFormError("");
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="ledger-payment-btn primary"
+                onClick={saveInlinePayment}
+              >
+                <Save size={15} />
+                Save Payment
+              </button>
             </div>
 
           </div>
