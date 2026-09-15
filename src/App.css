@@ -2570,3 +2570,62 @@ html[data-theme="dark"] .confirm-dialog {
   background-color: var(--surface) !important;
   color: var(--text-primary);
 }
+
+
+/* =========================================================
+   🆕 COMMAND PALETTE EXEMPTIONS
+   These override the global [role="dialog"] rules above.
+   Palette, hotkeys, and notif panel MUST stay position:fixed.
+   ========================================================= */
+
+/* Command Palette wrapper — keep full-screen fixed positioning */
+.cmd-palette[role="dialog"] {
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: transparent !important;
+  z-index: var(--z-modal) !important;
+}
+
+/* Command Palette inner panel — surface bg, not affected by global * */
+.cmd-palette__panel,
+.cmd-palette__panel * {
+  /* palette already defines its own surface — nothing to force */
+}
+
+/* Backdrop — must stay absolute, not relative */
+.cmd-palette__backdrop {
+  position: absolute !important;
+}
+
+/* Hotkeys modal — keep full-screen fixed positioning */
+.hotkeys[role="dialog"] {
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: transparent !important;
+  z-index: var(--z-modal) !important;
+}
+
+/* Notification panel wrapper — keep fixed positioning */
+.notif[role="dialog"] {
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: transparent !important;
+  z-index: var(--z-modal) !important;
+}
+
+/* The inner panel of notification — keep absolute */
+.notif__panel {
+  position: absolute !important;
+}
+
+/* Dark mode: ensure palette panel keeps its themed surface */
+html[data-theme="dark"] .cmd-palette__panel {
+  background-color: var(--surface) !important;
+  color: var(--text-primary);
+}
+
+/* Dark mode: hotkeys panel too */
+html[data-theme="dark"] .hotkeys__panel {
+  background-color: var(--surface) !important;
+  color: var(--text-primary);
+}

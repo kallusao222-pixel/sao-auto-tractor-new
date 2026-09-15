@@ -987,6 +987,7 @@ export default function Settings() {
       invoices: Array.isArray(data.invoices)
         ? data.invoices.length
         : 0,
+      settings: backup?.settings ? "Included" : "Not included",
     };
   }
 
@@ -1176,6 +1177,31 @@ export default function Settings() {
     if (!backup) return;
 
     try {
+      /* ---- Auto-snapshot: current data ko pehle download kar lo ---- */
+      try {
+        const preRestoreSnapshot = createBackupObject();
+        preRestoreSnapshot.backupType =
+          "Pre-Restore Safety Snapshot";
+        preRestoreSnapshot.restoredFrom = {
+          createdAt: backup.createdAt || null,
+          version: backup.version || null,
+        };
+
+        downloadJSON(
+          `SAO-AUTO-TRACTOR-PRE-RESTORE-${new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace(/[:T]/g, "-")}.json`,
+          preRestoreSnapshot
+        );
+      } catch (snapshotError) {
+        console.warn(
+          "Pre-restore snapshot failed:",
+          snapshotError
+        );
+        // Snapshot fail ho toh bhi restore rokna nahi
+      }
+
       if (backup.settings) {
         localStorage.setItem(
           STORAGE_KEYS.settings,
@@ -1261,7 +1287,7 @@ export default function Settings() {
       setBackupPreview(null);
 
       showMessage(
-        "Backup restored successfully. Reloading..."
+        "Backup restored. A safety copy of your previous data was also downloaded."
       );
 
       setTimeout(() => {
@@ -3607,6 +3633,8 @@ export default function Settings() {
                   Restore will replace the current saved
                   data for these modules. Your App PIN and
                   Login Password will NOT be restored.
+                  A safety copy of your previous data will
+                  be downloaded automatically.
                 </span>
               </div>
             </div>

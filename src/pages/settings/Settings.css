@@ -2567,6 +2567,23 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 🆕 String values (e.g. "Included" / "Not included") */
+/* Number ki jagah text aane par thoda readable size */
+.backup-preview-grid strong:not(:empty) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Optional: jab value text ho (settings row), left align better */
+.backup-preview-grid > div:has(strong:not([data-numeric])) strong {
+  font-family: var(--font-body, "Outfit", sans-serif);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
 .backup-preview-warning {
   display: flex;
   align-items: flex-start;

@@ -50,6 +50,8 @@ import { useTheme } from "./theme";
 
 import LoadingState from "./components/ui/LoadingState";
 import AppDataProvider from "./context/AppDataContext";
+import { useAppData } from "./context/AppDataContext";
+import { buildAlerts } from "./utils/alerts";
 
 import Dashboard from "./pages/dashboard/Dashboard";
 import TractorManagement from "./pages/TractorManagement/TractorManagement";
@@ -97,7 +99,6 @@ const DEFAULT_WEATHER_LOCATION = {
   region: "Jharkhand",
 };
 
-/* Toast durations by variant — Pro Max: timing follows context */
 const TOAST_DURATION = {
   success: 4000,
   info: 4000,
@@ -885,15 +886,12 @@ function AppLayout({ onLogout }) {
   }, []);
 
   /* ---- Party / edit handlers ---- */
-  const handleViewParty = useCallback(
-    (party) => {
-      setEditTripRecord(null);
-      changePage("party-details");
-      // Store selected party for the details page if needed
-      window.__saoSelectedParty = party;
-    },
-    [changePage],
-  );
+  /* ✅ FIXED: Party card click now stays on Parties page (drawer opens) */
+  const handleViewParty = useCallback((party) => {
+    setEditTripRecord(null);
+    // PartyManagement already opens its own drawer — no page change needed
+    window.__saoSelectedParty = party;
+  }, []);
 
   const handleEditRecord = useCallback(
     (record) => {
@@ -903,13 +901,32 @@ function AppLayout({ onLogout }) {
     [changePage],
   );
 
-  const handleEditComplete = useCallback(() => setEditTripRecord(null), []);
+  /* ---- Fix: handleEditComplete was referenced but undefined ---- */
+  const handleEditComplete = useCallback(() => {
+    setEditTripRecord(null);
+  }, []);
 
   /* ---- Breadcrumb ---- */
   const breadcrumb = useMemo(() => getBreadcrumb(currentPage), [currentPage]);
 
-  /* ---- Notifications (hook to real data later) ---- */
-  const notifications = useMemo(() => [], []);
+  /* ---- Notifications (from live data) ---- */
+  const appData = useAppData();
+
+  const notifications = useMemo(
+    () =>
+      buildAlerts({
+        trips: appData.trips,
+        parties: appData.parties,
+        payments: appData.payments,
+        tractors: appData.tractors,
+      }),
+    [
+      appData.trips,
+      appData.parties,
+      appData.payments,
+      appData.tractors,
+    ]
+  );
 
   /* ---- Render page ---- */
   const renderPage = () => {
