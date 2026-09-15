@@ -48,6 +48,8 @@ import {
 
 import { useTheme } from "./theme";
 
+import CommandPalette from "./components/ui/CommandPalette";
+
 import LoadingState from "./components/ui/LoadingState";
 import AppDataProvider from "./context/AppDataContext";
 import { useAppData } from "./context/AppDataContext";
@@ -119,7 +121,7 @@ const NAVIGATION = [
     icon: Tractor,
     children: [
       { id: "tractors", label: "Tractors", icon: Tractor },
-      { id: "parties", label: "Parties", icon: Users, alsoActive: ["party-details"] },
+      { id: "parties", label: "Parties", icon: Users },
       { id: "materials", label: "Materials", icon: Package },
       { id: "add-trip", label: "Add Trip", icon: Plus },
     ],
@@ -189,7 +191,6 @@ for (const item of NAVIGATION) {
 
 function getPageLabel(pageId) {
   if (pageId === "dashboard") return "Dashboard";
-  if (pageId === "party-details") return "Party Details";
 
   for (const item of NAVIGATION) {
     if (item.kind === "item" && item.id === pageId) return item.label;
@@ -751,6 +752,9 @@ function AppLayout({ onLogout }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [showHotkeys, setShowHotkeys] = useState(false);
 
+  /* Command Palette state */
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia(MOBILE_QUERY).matches;
@@ -775,6 +779,21 @@ function AppLayout({ onLogout }) {
   /* ---- Hotkeys ---- */
   useHotkey("cmd+/", () => setShowHotkeys((v) => !v));
   useHotkey("shift+/", () => setShowHotkeys((v) => !v));
+
+  /* ---- Command Palette hotkey: Ctrl/Cmd + K ---- */
+  useEffect(() => {
+    const handle = (e) => {
+      const isCmdK =
+        (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+
+      if (isCmdK) {
+        e.preventDefault();
+        setCommandPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handle);
+    return () => window.removeEventListener("keydown", handle);
+  }, []);
 
   /* ---- Global Escape — closes overlays ---- */
   useEffect(() => {
@@ -837,12 +856,13 @@ function AppLayout({ onLogout }) {
 
   /* ---- Body scroll lock ---- */
   useEffect(() => {
-    const anyOpen = drawerOpen || notifOpen || showHotkeys;
+    const anyOpen =
+      drawerOpen || notifOpen || showHotkeys || commandPaletteOpen;
     document.body.style.overflow = anyOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [drawerOpen, notifOpen, showHotkeys]);
+  }, [drawerOpen, notifOpen, showHotkeys, commandPaletteOpen]);
 
   /* ---- Inert main while drawer open ---- */
   useEffect(() => {
@@ -885,11 +905,9 @@ function AppLayout({ onLogout }) {
     setOpenMenu((cur) => (cur === menuId ? null : menuId));
   }, []);
 
-  /* ---- Party / edit handlers ---- */
-  /* ✅ FIXED: Party card click now stays on Parties page (drawer opens) */
+  /* ---- Party view handler (no-op; PartyManagement opens its own drawer) ---- */
   const handleViewParty = useCallback((party) => {
     setEditTripRecord(null);
-    // PartyManagement already opens its own drawer — no page change needed
     window.__saoSelectedParty = party;
   }, []);
 
@@ -933,7 +951,7 @@ function AppLayout({ onLogout }) {
     switch (currentPage) {
       case "dashboard": return <Dashboard onNavigate={changePage} />;
       case "tractors": return <TractorManagement />;
-      case "parties": return <PartyManagement onViewParty={handleViewParty} />;
+      case "parties": return <PartyManagement />;
       case "materials": return <MaterialManagement />;
       case "add-trip":
         return (
@@ -954,7 +972,6 @@ function AppLayout({ onLogout }) {
       case "expenses": return <Expenses />;
       case "staff": return <StaffManagement />;
       case "settings": return <Settings />;
-      case "party-details": return <PagePlaceholder page="party-details" />;
       default: return <Dashboard onNavigate={changePage} />;
     }
   };
@@ -1385,6 +1402,13 @@ function AppLayout({ onLogout }) {
         onNavigate={changePage}
       />
 
+      {/* ---- Command Palette ---- */}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNavigate={changePage}
+      />
+
       {/* ---- Hotkeys help ---- */}
       {showHotkeys && (
         <div
@@ -1402,6 +1426,9 @@ function AppLayout({ onLogout }) {
           <div className="hotkeys__panel">
             <h3>Keyboard shortcuts</h3>
             <ul>
+              <li>
+                <kbd>⌘</kbd> <kbd>K</kbd> <span>Global search</span>
+              </li>
               <li>
                 <kbd>⌘</kbd> <kbd>/</kbd> <span>Show shortcuts</span>
               </li>

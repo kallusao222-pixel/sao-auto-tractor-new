@@ -10,10 +10,13 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
 
-      includeAssets: ["icons/*.png", "favicon.ico"],
+      includeAssets: [
+        "icons/*.png",
+        "favicon.svg",
+      ],
 
       manifest: {
-        name: "SAO Transport",
+        name: "SAO Transport Management",
         short_name: "SAO Transport",
         description:
           "Transport Management System for tractor and fleet business",
@@ -34,17 +37,19 @@ export default defineConfig({
             src: "/icons/icon-192.png",
             sizes: "192x192",
             type: "image/png",
+            purpose: "any",
           },
           {
             src: "/icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any",
           },
           {
             src: "/icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "maskable",
           },
         ],
       },
@@ -52,52 +57,57 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
 
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//],
+
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
-
             options: {
               cacheName: "google-fonts-cache",
-
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365,
               },
             },
           },
-
           {
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: "CacheFirst",
-
             options: {
               cacheName: "google-fonts-files",
-
               expiration: {
                 maxEntries: 20,
                 maxAgeSeconds: 60 * 60 * 24 * 365,
               },
             },
           },
-
           {
             urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
             handler: "NetworkFirst",
-
             options: {
               cacheName: "weather-cache",
-
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60,
               },
             },
           },
+          {
+            urlPattern: /^https:\/\/nominatim\.openstreetmap\.org\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "geocode-cache",
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
+              },
+            },
+          },
         ],
       },
 
-      // Enable PWA during development
       devOptions: {
         enabled: true,
       },
@@ -136,10 +146,24 @@ export default defineConfig({
     open: true,
     host: true,
 
-    https: {
-      cert: fs.readFileSync("./certs/localhost.pem"),
-      key: fs.readFileSync("./certs/localhost-key.pem"),
-    },
+    // ✅ HTTPS sirf local dev ke liye (jab certs folder exist kare)
+    // Vercel/production mein automatically skip ho jayega
+    https: (() => {
+      try {
+        if (
+          fs.existsSync("./certs/localhost.pem") &&
+          fs.existsSync("./certs/localhost-key.pem")
+        ) {
+          return {
+            cert: fs.readFileSync("./certs/localhost.pem"),
+            key: fs.readFileSync("./certs/localhost-key.pem"),
+          };
+        }
+      } catch {
+        /* ignore — fall back to HTTP */
+      }
+      return undefined;
+    })(),
   },
 
   preview: {

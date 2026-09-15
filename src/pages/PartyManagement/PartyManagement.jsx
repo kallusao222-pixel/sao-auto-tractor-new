@@ -189,6 +189,20 @@ function getPartyStats(party, trips, payments) {
   };
 }
 
+/* Time-only formatter — safe fallback if formatDate doesn't support timeOnly */
+function formatTimeOnly(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function PartyForm({ initialValue, onCancel, onSave }) {
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
@@ -815,9 +829,7 @@ function PartyDetails({
                           className="party-daily-trip-row"
                         >
                           <span className="party-daily-trip-time">
-                            {formatDate(time, {
-                              timeOnly: true,
-                            }) || "N/A"}
+                            {formatTimeOnly(time) || "N/A"}
                           </span>
 
                           <span className="party-daily-trip-material">
@@ -953,7 +965,8 @@ function PartyDetails({
   );
 }
 
-function PartyManagement({ onViewParty }) {
+/* ✏️ FIX: `onViewParty` prop removed — drawer already handles details */
+function PartyManagement() {
   const {
     parties = [],
     trips = [],
@@ -1287,12 +1300,9 @@ function PartyManagement({ onViewParty }) {
     setEditingParty(null);
   };
 
+  /* ✏️ FIX: onViewParty call removed — drawer already handles it */
   const openPartyDetails = (party) => {
     setSelectedParty(party);
-
-    if (onViewParty) {
-      onViewParty(party);
-    }
   };
 
   return (
