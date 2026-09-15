@@ -2586,12 +2586,6 @@ html[data-theme="dark"] .confirm-dialog {
   z-index: var(--z-modal) !important;
 }
 
-/* Command Palette inner panel — surface bg, not affected by global * */
-.cmd-palette__panel,
-.cmd-palette__panel * {
-  /* palette already defines its own surface — nothing to force */
-}
-
 /* Backdrop — must stay absolute, not relative */
 .cmd-palette__backdrop {
   position: absolute !important;
