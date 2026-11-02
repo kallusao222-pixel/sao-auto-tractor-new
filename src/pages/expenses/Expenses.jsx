@@ -5,7 +5,7 @@ import {
   Car,
   Check,
   ChevronDown,
-  CircleDollarSign,
+  IndianRupee,
   Copy,
   Download,
   Eye,
@@ -30,8 +30,20 @@ import {
   X,
 } from "lucide-react";
 import "./Expenses.css";
+import { buildCsv } from "../../utils/csv";
 
 const EXPENSES_KEY = "saoAutoTractorExpenses";
+
+function writeExpenses(nextExpenses) {
+  try {
+    localStorage.setItem(EXPENSES_KEY, JSON.stringify(nextExpenses));
+    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    return true;
+  } catch (error) {
+    console.error("Expense save error:", error);
+    return false;
+  }
+}
 const TRACTORS_KEY = "saoAutoTractorTractors";
 const PARTIES_KEY = "saoAutoTractorParties";
 const STAFF_KEY = "saoAutoTractorStaff";
@@ -102,6 +114,11 @@ const EMPTY_EXPENSE = {
   paymentMode: "Cash",
   reference: "",
   description: "",
+  receiptData: "",
+  receiptName: "",
+  receiptType: "",
+  fuelLitres: "",
+  engineHours: "",
 };
 
 const clean = (value) => String(value ?? "").trim();
@@ -427,15 +444,12 @@ export default function Expenses() {
     window.addEventListener("storage", sync);
     window.addEventListener("saoAutoTractorDataChanged", sync);
 
-    const timer = setInterval(loadData, 1500);
-
     return () => {
       window.removeEventListener("storage", sync);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         sync
       );
-      clearInterval(timer);
     };
   }, []);
 
@@ -657,11 +671,15 @@ export default function Expenses() {
   const fuelSplit = useMemo(() => {
     let diesel = 0;
     let nonDiesel = 0;
+    let litres = 0;
+    const meterReadings = [];
 
     expenses.forEach((expense) => {
       const amount = getAmount(expense);
       if (isDieselCategory(getCategory(expense))) {
         diesel += amount;
+        litres += Number(expense?.fuelLitres) || 0;
+        if (Number(expense?.engineHours) > 0 && getTractor(expense)) meterReadings.push(expense);
       } else {
         nonDiesel += amount;
       }
@@ -671,7 +689,26 @@ export default function Expenses() {
     const dieselPercent =
       total > 0 ? (diesel / total) * 100 : 0;
 
-    return { diesel, nonDiesel, total, dieselPercent };
+    const byTractor = new Map();
+    meterReadings.forEach((item) => {
+      const key = normalize(getTractor(item));
+      byTractor.set(key, [...(byTractor.get(key) || []), item]);
+    });
+    let measuredLitres = 0;
+    let measuredHours = 0;
+    byTractor.forEach((rows) => {
+      rows.sort((a, b) => String(getDate(a)).localeCompare(String(getDate(b))));
+      rows.slice(1).forEach((item, index) => {
+        const previous = rows[index];
+        const hours = Number(item.engineHours) - Number(previous.engineHours);
+        if (hours > 0 && hours <= 1000) {
+          measuredHours += hours;
+          measuredLitres += Number(item.fuelLitres) || 0;
+        }
+      });
+    });
+    const litresPerHour = measuredHours > 0 ? measuredLitres / measuredHours : null;
+    return { diesel, nonDiesel, total, dieselPercent, litres, litresPerHour };
   }, [expenses]);
 
   const activeFilters =
@@ -720,6 +757,11 @@ export default function Expenses() {
       paymentMode: getMode(expense),
       reference: getReference(expense),
       description: getDescription(expense),
+      receiptData: expense?.receiptData || "",
+      receiptName: expense?.receiptName || "",
+      receiptType: expense?.receiptType || "",
+      fuelLitres: expense?.fuelLitres ?? "",
+      engineHours: expense?.engineHours ?? "",
     });
 
     setFormOpen(true);
@@ -738,6 +780,11 @@ export default function Expenses() {
       paymentMode: getMode(expense),
       reference: getReference(expense),
       description: getDescription(expense),
+      receiptData: "",
+      receiptName: "",
+      receiptType: "",
+      fuelLitres: "",
+      engineHours: "",
     });
 
     setFormOpen(true);
@@ -785,6 +832,12 @@ export default function Expenses() {
 
       description: clean(form.description),
       notes: clean(form.description),
+      receiptData: form.receiptData || "",
+      receiptName: clean(form.receiptName),
+      receiptType: clean(form.receiptType),
+      fuelLitres: isDieselCategory(form.category) ? Math.max(0, Number(form.fuelLitres) || 0) : 0,
+      engineHours: Math.max(0, Number(form.engineHours) || 0),
+      driverStaffId: staff.find((person) => normalize(person.name) === normalize(form.driverName))?.id ?? "",
 
       createdAt:
         editing?.expense?.createdAt ||
@@ -801,14 +854,10 @@ export default function Expenses() {
       next.push(expense);
     }
 
-    localStorage.setItem(
-      EXPENSES_KEY,
-      JSON.stringify(next)
-    );
-
-    window.dispatchEvent(
-      new Event("saoAutoTractorDataChanged")
-    );
+    if (!writeExpenses(next)) {
+      alert("Expense could not be saved. Your form is still open; no change was made.");
+      return;
+    }
 
     setFormOpen(false);
     setEditing(null);
@@ -835,14 +884,10 @@ export default function Expenses() {
       (_, itemIndex) => itemIndex !== index
     );
 
-    localStorage.setItem(
-      EXPENSES_KEY,
-      JSON.stringify(next)
-    );
-
-    window.dispatchEvent(
-      new Event("saoAutoTractorDataChanged")
-    );
+    if (!writeExpenses(next)) {
+      alert("Expense could not be deleted because browser storage is unavailable. No change was made.");
+      return;
+    }
 
     setViewExpense(null);
 
@@ -861,14 +906,10 @@ export default function Expenses() {
 
     const restored = [...expenses, ...undoData.items];
 
-    localStorage.setItem(
-      EXPENSES_KEY,
-      JSON.stringify(restored)
-    );
-
-    window.dispatchEvent(
-      new Event("saoAutoTractorDataChanged")
-    );
+    if (!writeExpenses(restored)) {
+      alert("Expense could not be restored because browser storage is unavailable. Please retry.");
+      return;
+    }
 
     setUndoData(null);
     loadData();
@@ -893,14 +934,10 @@ export default function Expenses() {
       (e) => !selectedIds.includes(e.id)
     );
 
-    localStorage.setItem(
-      EXPENSES_KEY,
-      JSON.stringify(next)
-    );
-
-    window.dispatchEvent(
-      new Event("saoAutoTractorDataChanged")
-    );
+    if (!writeExpenses(next)) {
+      alert("Selected expenses could not be deleted. No change was made.");
+      return;
+    }
 
     setUndoData({
       type: "bulk",
@@ -949,19 +986,19 @@ export default function Expenses() {
       return;
     }
 
-    const escapeCSV = (value) =>
-      `"${String(value ?? "").replaceAll('"', '""')}"`;
-
     const rows = [
       [
         "Date",
         "Category",
         "Amount",
         "Tractor",
+        "Fuel Litres",
+        "Engine Hours Reading",
         "Driver",
         "Vendor",
         "Payment Mode",
         "Reference",
+        "Receipt File",
         "Description",
       ],
 
@@ -970,19 +1007,18 @@ export default function Expenses() {
         getCategory(expense),
         getAmount(expense),
         getTractor(expense),
+        Number(expense?.fuelLitres) || 0,
+        Number(expense?.engineHours) || 0,
         getDriver(expense),
         getVendor(expense),
         getMode(expense),
         getReference(expense),
+        expense?.receiptName || "",
         getDescription(expense),
       ]),
     ];
 
-    const csv = rows
-      .map((row) => row.map(escapeCSV).join(","))
-      .join("\n");
-
-    const blob = new Blob(["\ufeff" + csv], {
+    const blob = new Blob([buildCsv(rows)], {
       type: "text/csv;charset=utf-8;",
     });
 
@@ -1063,7 +1099,7 @@ export default function Expenses() {
       <section className="expenses-overview">
         <div className="expenses-overview-card featured">
           <div className="expenses-overview-icon">
-            <CircleDollarSign size={20} />
+            <IndianRupee size={20} />
           </div>
 
           <div>
@@ -1125,6 +1161,7 @@ export default function Expenses() {
             <small>
               {money(fuelSplit.diesel)} of {money(fuelSplit.total)}
             </small>
+            <small>{fuelSplit.litres.toLocaleString("en-IN")} L recorded{fuelSplit.litresPerHour ? ` · ${fuelSplit.litresPerHour.toFixed(2)} L/engine hr` : " · Add meter readings on 2+ fill-ups for efficiency"}</small>
           </div>
         </div>
       </section>
@@ -1247,6 +1284,7 @@ export default function Expenses() {
               <input
                 type="date"
                 value={dateFrom}
+                max={dateTo || undefined}
                 onChange={(event) => {
                   setDateFrom(event.target.value);
                   setQuickFilter("custom");
@@ -1259,6 +1297,7 @@ export default function Expenses() {
               <input
                 type="date"
                 value={dateTo}
+                min={dateFrom || undefined}
                 onChange={(event) => {
                   setDateTo(event.target.value);
                   setQuickFilter("custom");
@@ -1322,6 +1361,10 @@ export default function Expenses() {
               <strong>{money(filteredTotal)}</strong>
             </div>
           </div>
+        )}
+
+        {dateFrom && dateTo && dateFrom > dateTo && (
+          <p className="finance-range-error" role="alert">From date must be on or before the To date.</p>
         )}
 
         <div className="expenses-card-heading">
@@ -1745,6 +1788,17 @@ export default function Expenses() {
                 </select>
               </label>
 
+              {isDieselCategory(form.category) && <>
+                <label className="expenses-field">
+                  <span>Fuel quantity (litres)</span>
+                  <input type="number" min="0" step="0.01" value={form.fuelLitres} onChange={(event) => setForm({ ...form, fuelLitres: event.target.value })} placeholder="Optional — e.g. 40" />
+                </label>
+                <label className="expenses-field">
+                  <span>Engine hours at fill-up</span>
+                  <input type="number" min="0" step="0.1" value={form.engineHours} onChange={(event) => setForm({ ...form, engineHours: event.target.value })} placeholder="Optional meter reading" />
+                </label>
+              </>}
+
               <label className="expenses-field">
                 <span>Driver</span>
                 <input
@@ -1826,6 +1880,43 @@ export default function Expenses() {
                   placeholder="Enter expense details..."
                 />
               </label>
+
+              <label className="expenses-field full">
+                <span>Receipt / Bill Attachment <small>(optional, image or PDF up to 1 MB)</small></span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 1024 * 1024) {
+                      alert("Receipt file must be 1 MB or smaller.");
+                      event.target.value = "";
+                      return;
+                    }
+                    if (!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) {
+                      alert("Choose a PNG, JPG, WebP image, or PDF receipt.");
+                      event.target.value = "";
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => setForm((current) => ({
+                      ...current,
+                      receiptData: String(reader.result || ""),
+                      receiptName: file.name,
+                      receiptType: file.type,
+                    }));
+                    reader.onerror = () => alert("Receipt could not be read. Please choose the file again.");
+                    reader.readAsDataURL(file);
+                  }}
+                />
+                {form.receiptName && (
+                  <span className="expense-receipt-selected">
+                    {form.receiptName}
+                    <button type="button" onClick={() => setForm((current) => ({ ...current, receiptData: "", receiptName: "", receiptType: "" }))}>Remove</button>
+                  </span>
+                )}
+              </label>
             </div>
 
             <div className="expenses-form-actions">
@@ -1890,6 +1981,11 @@ export default function Expenses() {
                   {getTractor(viewExpense) || "Business"}
                 </strong>
               </div>
+
+              {isDieselCategory(getCategory(viewExpense)) && <>
+                <div><span>Fuel quantity</span><strong>{Number(viewExpense?.fuelLitres) ? `${Number(viewExpense.fuelLitres).toLocaleString("en-IN")} L` : "Not recorded"}</strong></div>
+                <div><span>Engine hour meter</span><strong>{Number(viewExpense?.engineHours) ? `${Number(viewExpense.engineHours).toLocaleString("en-IN")} hrs` : "Not recorded"}</strong></div>
+              </>}
 
               <div>
                 <span>Driver</span>
@@ -2032,6 +2128,12 @@ export default function Expenses() {
                     {money(getAmount(previewExpense))}
                   </strong>
                 </div>
+
+                {previewExpense?.receiptData && (
+                  <a className="expense-receipt-link" href={previewExpense.receiptData} download={previewExpense.receiptName || "expense-receipt"} target="_blank" rel="noopener noreferrer">
+                    View attached receipt: {previewExpense.receiptName || "Open file"}
+                  </a>
+                )}
 
                 {getDescription(previewExpense) && (
                   <div className="print-voucher-notes">

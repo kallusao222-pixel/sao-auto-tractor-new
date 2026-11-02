@@ -27,6 +27,11 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import "./Invoice.css";
+import { buildUpiQrUrl, SAO_UPI_PAYEE, SAO_UPI_VPA } from "../../utils/upiPayment";
+import { getActivePaymentAmount, isPaymentReversed } from "../../utils/paymentRecords";
+import { getInvoiceAllocatedAmount, getInvoiceFinance } from "../../utils/financeReconciliation";
+import { amountInIndianWords } from "../../utils/amountInWords";
+import { buildCsv } from "../../utils/csv";
 
 /* =========================================================
    STORAGE
@@ -103,6 +108,10 @@ function writeStorage(key, value) {
     console.error(`Unable to write ${key}:`, error);
     return false;
   }
+}
+
+function getInvoicePayableAmount(invoice, payments = []) {
+  return getInvoiceFinance(invoice, payments).due;
 }
 
 function normalizeText(value) {
@@ -514,6 +523,9 @@ function Invoice() {
   const [receivedAmount, setReceivedAmount] =
     useState("");
 
+  const [showPaidStamp, setShowPaidStamp] =
+    useState(false);
+
   /* =======================================================
      HISTORY FILTER
      ======================================================= */
@@ -645,11 +657,6 @@ function Invoice() {
       handleAppDataChange
     );
 
-    const interval = setInterval(
-      loadData,
-      1500
-    );
-
     return () => {
       window.removeEventListener(
         "storage",
@@ -661,139 +668,50 @@ function Invoice() {
         handleAppDataChange
       );
 
-      clearInterval(interval);
     };
   }, [businessOpen]);
 
   /* =======================================================
      INVOICE NUMBER
-     
-     FORMAT:
-     SAT-09260000
-     SAT-09260001
-     SAT-09260002
+     FORMAT: SAT-MMYY####
      ======================================================= */
 
-  const getNextMonthlyInvoiceNumber = (
-    history = invoiceHistory
-  ) => {
+  const getNextMonthlyInvoiceNumber = (history = invoiceHistory) => {
     const now = new Date();
-
-    const month = String(
-      now.getMonth() + 1
-    ).padStart(2, "0");
-
-    const year = String(
-      now.getFullYear()
-    ).slice(-2);
-
-    const prefix =
-      `SAT-${month}${year}`;
-
-    const monthlyNumbers = (
-      Array.isArray(history)
-        ? history
-        : []
-    )
-      .map((invoice) =>
-        String(
-          invoice?.invoiceNumber || ""
-        )
-      )
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = String(now.getFullYear()).slice(-2);
+    const prefix = `SAT-${month}${year}`;
+    const monthlyNumbers = (Array.isArray(history) ? history : [])
+      .map((invoice) => String(invoice?.invoiceNumber || ""))
       .map((number) => {
-        const match = number.match(
-          /^SAT-(\d{2})(\d{2})(\d{4})$/
-        );
-
-        if (!match) return null;
-
-        if (
-          match[1] !== month ||
-          match[2] !== year
-        ) {
-          return null;
-        }
-
+        const match = number.match(/^SAT-(\d{2})(\d{2})(\d{4})$/);
+        if (!match || match[1] !== month || match[2] !== year) return null;
         return Number(match[3]);
       })
-      .filter(
-        (number) =>
-          Number.isFinite(number)
-      );
-
-    /*
-      First invoice of a month = 0000
-      Then 0001, 0002, 0003...
-    */
-    const highestSaved =
-      monthlyNumbers.length > 0
-        ? Math.max(
-            ...monthlyNumbers
-          )
-        : -1;
-
-    /*
-      FIX 1: Also consider the stored sequence in
-      INVOICE_NUMBER_KEY. This prevents invoice numbers
-      from being reused after an invoice is deleted.
-    */
+      .filter(Number.isFinite);
+    const highestSaved = monthlyNumbers.length ? Math.max(...monthlyNumbers) : -1;
     let storedSequence = -1;
-
     try {
-      const rawStored = localStorage.getItem(
-        INVOICE_NUMBER_KEY
-      );
-
-      if (rawStored !== null) {
-        const parsedStored = Number(rawStored);
-
-        if (Number.isFinite(parsedStored)) {
-          storedSequence = parsedStored;
-        }
-      }
-    } catch (error) {
-      // ignore — localStorage not available
+      const rawStored = localStorage.getItem(INVOICE_NUMBER_KEY);
+      if (rawStored !== null && Number.isFinite(Number(rawStored))) storedSequence = Number(rawStored);
+    } catch {
+      // Ignore unavailable localStorage; saved invoice history is the fallback.
     }
-
-    const highest = Math.max(
-      highestSaved,
-      storedSequence
-    );
-
-    const next = highest + 1;
-
-    return `${prefix}${String(next).padStart(
-      4,
-      "0"
-    )}`;
+    return `${prefix}${String(Math.max(highestSaved, storedSequence) + 1).padStart(4, "0")}`;
   };
 
-  const generateNextInvoiceNumber = () => {
-    return getNextMonthlyInvoiceNumber(
-      invoiceHistory
-    );
-  };
+  const generateNextInvoiceNumber = () => getNextMonthlyInvoiceNumber(invoiceHistory);
 
   const reserveNextInvoiceNumber = () => {
-    const nextNumber =
-      getNextMonthlyInvoiceNumber(
-        invoiceHistory
-      );
-
-    const match =
-      nextNumber.match(
-        /^SAT-\d{2}\d{2}(\d{4})$/
-      );
-
+    const nextNumber = getNextMonthlyInvoiceNumber(invoiceHistory);
+    const match = nextNumber.match(/^SAT-\d{2}\d{2}(\d{4})$/);
     if (match) {
-      localStorage.setItem(
-        INVOICE_NUMBER_KEY,
-        String(
-          Number(match[1]) || 0
-        )
-      );
+      try {
+        localStorage.setItem(INVOICE_NUMBER_KEY, String(Number(match[1]) || 0));
+      } catch (error) {
+        console.warn("Invoice sequence cache unavailable; invoice history remains the source of truth.", error);
+      }
     }
-
     return nextNumber;
   };
 
@@ -868,6 +786,26 @@ function Invoice() {
     setPartyGSTIN(party.gstin);
     setPartySearchOpen(false);
   };
+
+  useEffect(() => {
+    const handleQuickAction = (event) => {
+      if (event.detail?.action !== "prefill-invoice-party") return;
+      const name = String(event.detail?.payload?.partyName || "").trim();
+      if (!name) return;
+      const matchedParty = normalizedParties.find(
+        (party) => normalizeText(party.name) === normalizeText(name),
+      );
+      if (matchedParty) {
+        selectParty(matchedParty);
+      } else {
+        setPartyName(name);
+        setPartySearchOpen(true);
+      }
+    };
+
+    window.addEventListener("saoAutoTractorQuickAction", handleQuickAction);
+    return () => window.removeEventListener("saoAutoTractorQuickAction", handleQuickAction);
+  }, [normalizedParties]);
 
   /* =======================================================
      TRACTOR MAP
@@ -1284,8 +1222,16 @@ function Invoice() {
     Number(receivedAmount) || 0
   );
 
+  const allocatedReceiptsForEditing = editingInvoiceId
+    ? getInvoiceFinance(
+        invoiceHistory.find((invoice) => invoice.id === editingInvoiceId),
+        payments,
+      ).allocatedReceived
+    : 0;
+  const totalReceived = received + allocatedReceiptsForEditing;
+
   const rawDue =
-    grandTotal - received;
+    grandTotal - totalReceived;
 
   const due =
     rawDue > 0.005
@@ -1296,19 +1242,21 @@ function Invoice() {
 
   const advance = Math.max(
     0,
-    received - grandTotal
+    totalReceived - grandTotal
   );
 
   const paymentStatus =
     grandTotal <= 0
       ? "Draft"
-      : received >= grandTotal
-      ? received > grandTotal
+      : totalReceived >= grandTotal
+      ? totalReceived > grandTotal
         ? "Advance"
         : "Paid"
-      : received > 0
+      : totalReceived > 0
       ? "Partially Paid"
       : "Unpaid";
+
+  const formBalanceDue = due;
 
   /* =======================================================
      PAYMENT SUMMARY
@@ -1322,6 +1270,7 @@ function Invoice() {
 
       return payments.filter(
         (payment) =>
+          !isPaymentReversed(payment) &&
           normalizeText(
             getPartyName(payment)
           ) ===
@@ -1337,13 +1286,7 @@ function Invoice() {
   const partyReceived =
     partyPayments.reduce(
       (sum, payment) =>
-        sum +
-        Math.max(
-          0,
-          Number(
-            payment?.amount
-          ) || 0
-        ),
+        sum + Math.max(0, getActivePaymentAmount(payment)),
       0
     );
 
@@ -1561,6 +1504,7 @@ function Invoice() {
     setGstRate("18");
 
     setReceivedAmount("");
+    setShowPaidStamp(false);
 
     setNotes("");
 
@@ -1642,6 +1586,18 @@ function Invoice() {
       grandTotal <= 0
     ) {
       return "Received amount cannot be added to a zero invoice.";
+    }
+
+    if (editingInvoiceId) {
+      const savedInvoice = invoiceHistory.find((invoice) => invoice.id === editingInvoiceId);
+      const allocated = savedInvoice ? getInvoiceAllocatedAmount(savedInvoice, payments) : 0;
+      const partyChanged = savedInvoice && normalizeText(savedInvoice.partyName) !== normalizeText(partyName);
+      if (allocated > 0 && partyChanged) {
+        return "This invoice has allocated receipts. Keep its party unchanged or reverse those receipts before changing the party.";
+      }
+      if (grandTotal + 0.005 < received + allocated) {
+        return `Invoice total cannot be lower than its received and allocated amount of ${currency(received + allocated)}.`;
+      }
     }
 
     return "";
@@ -1806,6 +1762,8 @@ function Invoice() {
 
       advance,
 
+      showPaidStamp,
+
       status:
         paymentStatus,
 
@@ -1866,23 +1824,22 @@ function Invoice() {
           const visibleSequence =
             Number(match[1]);
 
-          const storedSequence =
-            Number(
-              localStorage.getItem(
-                INVOICE_NUMBER_KEY
-              )
-            ) || -1;
+          let storedSequence = -1;
+          try {
+            storedSequence = Number(localStorage.getItem(INVOICE_NUMBER_KEY)) || -1;
+          } catch (error) {
+            console.warn("Invoice sequence cache unavailable; invoice history will be used.", error);
+          }
 
           if (
             visibleSequence >
             storedSequence
           ) {
-            localStorage.setItem(
-              INVOICE_NUMBER_KEY,
-              String(
-                visibleSequence
-              )
-            );
+            try {
+              localStorage.setItem(INVOICE_NUMBER_KEY, String(visibleSequence));
+            } catch (error) {
+              console.warn("Invoice sequence cache unavailable; saved invoice history will preserve numbering.", error);
+            }
           }
         }
       }
@@ -1899,10 +1856,7 @@ function Invoice() {
       return;
     }
 
-    const invoice =
-      buildInvoiceObject(
-        finalInvoiceNumber
-      );
+    const invoice = buildInvoiceObject(finalInvoiceNumber);
 
     let updatedHistory = [];
 
@@ -2118,6 +2072,8 @@ function Invoice() {
         : ""
     );
 
+    setShowPaidStamp(Boolean(invoice.showPaidStamp));
+
     setNotes(
       invoice.notes || ""
     );
@@ -2251,10 +2207,26 @@ function Invoice() {
      PRINT
      ======================================================= */
 
-  const printInvoice = () => {
-    setTimeout(() => {
-      window.print();
-    }, 80);
+  const printInvoice = async () => {
+    const qrImage = document.querySelector(".print-invoice .print-qr");
+    if (qrImage && !qrImage.complete) {
+      await new Promise((resolve) => {
+        const finish = () => {
+          window.clearTimeout(timeoutId);
+          resolve();
+        };
+        const timeoutId = window.setTimeout(finish, 8000);
+        qrImage.addEventListener("load", finish, { once: true });
+        qrImage.addEventListener("error", finish, { once: true });
+      });
+    }
+
+    if (qrImage && qrImage.naturalWidth === 0) {
+      setError("Payment QR could not load. Check your connection and try Print again.");
+      return;
+    }
+
+    window.print();
   };
 
   /* =======================================================
@@ -2272,10 +2244,11 @@ function Invoice() {
         ...invoiceHistory,
       ]
         .filter((invoice) => {
+          const currentFinance = getInvoiceFinance(invoice, payments);
           if (
             historyStatus !==
               "All" &&
-            invoice.status !==
+            currentFinance.status !==
               historyStatus
           ) {
             return false;
@@ -2311,6 +2284,7 @@ function Invoice() {
       invoiceHistory,
       historySearch,
       historyStatus,
+      payments,
     ]);
 
   /* =======================================================
@@ -2328,15 +2302,10 @@ function Invoice() {
               invoice?.grandTotal
             ) || 0;
 
-          summary.received +=
-            Number(
-              invoice?.received
-            ) || 0;
+          const finance = getInvoiceFinance(invoice, payments);
+          summary.received += finance.received;
 
-          const invoiceDue =
-            Number(
-              invoice?.due
-            ) || 0;
+          const invoiceDue = finance.due;
 
           summary.due +=
             invoiceDue > 0.005
@@ -2356,7 +2325,7 @@ function Invoice() {
           due: 0,
         }
       );
-    }, [filteredHistory]);
+    }, [filteredHistory, payments]);
 
   /* =======================================================
      EXPORT HISTORY
@@ -2383,51 +2352,36 @@ function Invoice() {
       "Discount",
       "GST",
       "Grand Total",
-      "Received",
+      "Legacy Received",
+      "Allocated Receipts",
+      "Received Total",
       "Due",
       "Advance",
     ];
 
     const rows =
       filteredHistory.map(
-        (invoice) => [
+        (invoice) => {
+          const finance = getInvoiceFinance(invoice, payments);
+          return [
           invoice.invoiceNumber,
           invoice.invoiceDate,
           invoice.partyName,
-          invoice.status,
+          finance.status,
           invoice.subtotal,
           invoice.discount,
           invoice.gstAmount,
           invoice.grandTotal,
-          invoice.received,
-          invoice.due,
-          invoice.advance,
-        ]
+          finance.legacyReceived,
+          finance.allocatedReceived,
+          finance.received,
+          finance.due,
+          finance.advance,
+          ];
+        }
       );
 
-    const escapeCSV = (
-      value
-    ) => {
-      const text =
-        String(value ?? "");
-
-      return `"${text.replace(
-        /"/g,
-        '""'
-      )}"`;
-    };
-
-    const csv = [
-      headers
-        .map(escapeCSV)
-        .join(","),
-      ...rows.map(
-        (row) =>
-          row
-            .map(escapeCSV)
-            .join(",")
-      ),
-    ].join("\n");
+    const csv = buildCsv([headers, ...rows]);
 
     const blob =
       new Blob(
@@ -2485,6 +2439,9 @@ function Invoice() {
       invoiceNumber ||
         generateNextInvoiceNumber()
     );
+  const currentPreviewFinance = getInvoiceFinance(currentPreviewInvoice, payments);
+  const previewPayableAmount = getInvoicePayableAmount(currentPreviewInvoice, payments);
+  const previewQrUrl = buildUpiQrUrl(previewPayableAmount);
 
   /* =======================================================
      RENDER
@@ -2587,7 +2544,7 @@ function Invoice() {
 
           <div>
             <span>Received</span>
-            <strong>{currency(received)}</strong>
+            <strong>{currency(totalReceived)}</strong>
           </div>
         </div>
 
@@ -2621,6 +2578,8 @@ function Invoice() {
 
       </section>
 
+      <div className="invoice-creation-layout">
+        <div className="invoice-creation-form">
       {/* ===================================================
           BUSINESS DETAILS
       =================================================== */}
@@ -4145,6 +4104,23 @@ function Invoice() {
                   placeholder="0"
                 />
               </div>
+
+              <div className="invoice-paid-stamp-option">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={showPaidStamp}
+                    onChange={(event) => setShowPaidStamp(event.target.checked)}
+                  />
+                  <span>
+                    <strong>Show PAID stamp on invoice</strong>
+                    <small>The stamp appears only when the full balance is received.</small>
+                  </span>
+                </label>
+                {showPaidStamp && formBalanceDue > 0.005 && (
+                  <p>Full payment is still due. Record or allocate the remaining payment for the PAID stamp to appear.</p>
+                )}
+              </div>
             </div>
 
             {/* NOTES */}
@@ -4178,6 +4154,10 @@ function Invoice() {
               {currency(
                 grandTotal
               )}
+            </div>
+
+            <div className="total-panel-words">
+              {amountInIndianWords(grandTotal)}
             </div>
 
             <div className="total-panel-row">
@@ -4224,7 +4204,7 @@ function Invoice() {
               <span>Received</span>
               <strong>
                 {currency(
-                  received
+                  totalReceived
                 )}
               </strong>
             </div>
@@ -4263,6 +4243,11 @@ function Invoice() {
           </aside>
         </div>
       </section>
+
+        </div>
+
+
+      </div>
 
       {/* ===================================================
           BOTTOM ACTIONS
@@ -4555,28 +4540,29 @@ function Invoice() {
                           </td>
 
                           <td>
-                            {currency(
-                              invoice.received
+                            {currency(getInvoiceFinance(invoice, payments).received)}
+                            {getInvoiceFinance(invoice, payments).allocatedReceived > 0 && (
+                              <small className="history-allocation-note">
+                                {currency(getInvoiceFinance(invoice, payments).allocatedReceived)} allocated
+                              </small>
                             )}
                           </td>
 
                           <td>
-                            {currency(
-                              invoice.due
-                            )}
+                            {currency(getInvoiceFinance(invoice, payments).due)}
                           </td>
 
                           <td>
                             <span
                               className={`history-status history-status-${normalizeText(
-                                invoice.status
+                                getInvoiceFinance(invoice, payments).status
                               ).replace(
                                 /\s+/g,
                                 "-"
                               )}`}
                             >
                               {
-                                invoice.status
+                                getInvoiceFinance(invoice, payments).status
                               }
                             </span>
                           </td>
@@ -4785,17 +4771,13 @@ function Invoice() {
                         </p>
                       )}
 
-                      <p>
-                        {currentPreviewInvoice
-                          .business
-                          ?.mobile &&
-                          `Mob: ${currentPreviewInvoice.business.mobile}`}
-
-                        {currentPreviewInvoice
-                          .business
-                          ?.alternateMobile &&
-                          ` | ${currentPreviewInvoice.business.alternateMobile}`}
-                      </p>
+                      {(currentPreviewInvoice.business?.mobile || currentPreviewInvoice.business?.alternateMobile) && (
+                        <p>
+                          {currentPreviewInvoice.business?.mobile && `Mob: ${currentPreviewInvoice.business.mobile}`}
+                          {currentPreviewInvoice.business?.mobile && currentPreviewInvoice.business?.alternateMobile && " | "}
+                          {currentPreviewInvoice.business?.alternateMobile && `Alt: ${currentPreviewInvoice.business.alternateMobile}`}
+                        </p>
+                      )}
 
                       {currentPreviewInvoice
                         .business
@@ -4845,16 +4827,17 @@ function Invoice() {
 
                     <em
                       className={`history-status history-status-${normalizeText(
-                        currentPreviewInvoice.status
+                        currentPreviewFinance.status
                       ).replace(
                         /\s+/g,
                         "-"
                       )}`}
                     >
                       {
-                        currentPreviewInvoice.status
+                        currentPreviewFinance.status
                       }
                     </em>
+
                   </div>
                 </div>
 
@@ -5040,7 +5023,7 @@ function Invoice() {
 
                 <div className="print-bottom-grid">
 
-                  <div>
+                  <div className="print-payment-column">
 
                     {/* NOTES */}
 
@@ -5066,72 +5049,33 @@ function Invoice() {
                         PAYMENT DETAILS
                       </span>
 
-                      {currentPreviewInvoice
-                        .business
-                        ?.upiId && (
-                        <p>
-                          UPI:{" "}
-                          {
-                            currentPreviewInvoice
-                              .business
-                              .upiId
-                          }
-                        </p>
-                      )}
-
-                      {currentPreviewInvoice
-                        .business
-                        ?.bankName && (
-                        <p>
-                          Bank:{" "}
-                          {
-                            currentPreviewInvoice
-                              .business
-                              .bankName
-                          }
-                        </p>
-                      )}
-
-                      {currentPreviewInvoice
-                        .business
-                        ?.accountNumber && (
-                        <p>
-                          A/C:{" "}
-                          {
-                            currentPreviewInvoice
-                              .business
-                              .accountNumber
-                          }
-                        </p>
-                      )}
-
-                      {currentPreviewInvoice
-                        .business
-                        ?.ifsc && (
-                        <p>
-                          IFSC:{" "}
-                          {
-                            currentPreviewInvoice
-                              .business
-                              .ifsc
-                          }
-                        </p>
-                      )}
-
-                      {currentPreviewInvoice
-                        .business
-                        ?.qrCode && (
-                        <img
-                          src={
-                            currentPreviewInvoice
-                              .business
-                              .qrCode
-                          }
-                          alt="Payment QR"
-                          className="print-qr"
-                        />
-                      )}
+                      <div className="print-payment-content">
+                        <div className="print-payment-qr-column">
+                          {previewQrUrl ? (
+                            <>
+                              <img
+                                src={previewQrUrl}
+                                alt={`UPI QR for ${currency(previewPayableAmount)} payable to ${SAO_UPI_PAYEE}`}
+                                className="print-qr"
+                                loading="eager"
+                                referrerPolicy="no-referrer"
+                              />
+                              <strong>Scan to pay {currency(previewPayableAmount)}</strong>
+                            </>
+                          ) : (
+                            <p className="print-payment-settled">No balance due.</p>
+                          )}
+                        </div>
+                        <div className="print-payment-info">
+                          <p>UPI ID <strong>{SAO_UPI_VPA}</strong></p>
+                          <p>Payee <strong>{SAO_UPI_PAYEE}</strong></p>
+                          {currentPreviewInvoice.business?.bankName && <p>Bank <strong>{currentPreviewInvoice.business.bankName}</strong></p>}
+                          {currentPreviewInvoice.business?.accountNumber && <p>A/C <strong>{currentPreviewInvoice.business.accountNumber}</strong></p>}
+                          {currentPreviewInvoice.business?.ifsc && <p>IFSC <strong>{currentPreviewInvoice.business.ifsc}</strong></p>}
+                        </div>
+                      </div>
                     </div>
+
                   </div>
 
                   {/* TOTALS */}
@@ -5207,39 +5151,57 @@ function Invoice() {
                       </strong>
                     </div>
 
+                    <div className="print-amount-words">
+                      <span>Amount in words</span>
+                      <strong>{amountInIndianWords(currentPreviewInvoice.grandTotal)}</strong>
+                    </div>
+
+                    {currentPreviewFinance.legacyReceived > 0 && (
+                      <div>
+                        <span>Invoice-recorded receipts</span>
+                        <strong>{currency(currentPreviewFinance.legacyReceived)}</strong>
+                      </div>
+                    )}
+
+                    {currentPreviewFinance.allocatedReceived > 0 && (
+                      <div>
+                        <span>Allocated receipts</span>
+                        <strong>{currency(currentPreviewFinance.allocatedReceived)}</strong>
+                      </div>
+                    )}
+
                     <div>
-                      <span>
-                        Received
-                      </span>
+                      <span>Received Total</span>
 
                       <strong>
-                        {currency(
-                          currentPreviewInvoice.received
-                        )}
+                        {currency(currentPreviewFinance.received)}
                       </strong>
                     </div>
 
-                    {currentPreviewInvoice.advance > 0 ? (
-                      <div className="print-due">
+                    {currentPreviewFinance.advance > 0 ? (
+                      <div className={`print-due${currentPreviewInvoice.showPaidStamp && currentPreviewFinance.grandTotal > 0 && currentPreviewFinance.due <= 0.005 ? " print-due-paid" : ""}`}>
                         <span>
                           Advance
                         </span>
 
                         <strong>
                           {currency(
-                            currentPreviewInvoice.advance
+                            currentPreviewFinance.advance
                           )}
                         </strong>
                       </div>
                     ) : (
                       <div className="print-due">
-                        <span>
+                        <span className="print-due-label">
                           Balance Due
+                          {currentPreviewInvoice.showPaidStamp && currentPreviewFinance.grandTotal > 0 && currentPreviewFinance.due <= 0.005 && (
+                            <em className="print-paid-inline" aria-label="Paid in full">PAID</em>
+                          )}
                         </span>
 
                         <strong>
                           {currency(
-                            currentPreviewInvoice.due
+                            currentPreviewFinance.due
                           )}
                         </strong>
                       </div>
@@ -5287,8 +5249,11 @@ function Invoice() {
                 {/* FOOTER */}
 
                 <footer>
-                  This is a computer-generated invoice.
-                  Thank you for your business.
+                  <p>Thank you for your business.</p>
+                  <p>
+                    If you have any questions or notice an error on this invoice, please contact {currentPreviewInvoice.business?.ownerName || currentPreviewInvoice.business?.businessName || "SAO AUTO TRACTOR"}
+                    {(currentPreviewInvoice.business?.mobile || currentPreviewInvoice.business?.alternateMobile) && ` at ${[currentPreviewInvoice.business.mobile, currentPreviewInvoice.business.alternateMobile].filter(Boolean).join(" / ")}`}.
+                  </p>
                 </footer>
 
               </div>

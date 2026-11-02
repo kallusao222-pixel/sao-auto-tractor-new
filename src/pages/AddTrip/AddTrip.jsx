@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -35,12 +35,31 @@ import { formatCurrency } from "../../utils/currency";
 
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 
 import { emitDataChange } from "../../data/dataEvents";
 
 import "./AddTrip.css";
 
 const DEFAULT_UNIT = "Trip";
+const RETAIN_FIELDS_KEY = "saoAutoTractorTripEntryPreferences";
+const PREFERRED_TRACTOR_KEY = "saoAutoTractorPreferredTripTractor";
+const DEFAULT_RETAIN_FIELDS = {
+  tractor: true,
+  party: false,
+  material: false,
+  tripType: false,
+  site: false,
+  unit: false,
+};
+const RETAIN_FIELD_OPTIONS = [
+  { key: "tractor", label: "Tractor" },
+  { key: "party", label: "Party" },
+  { key: "material", label: "Material" },
+  { key: "tripType", label: "Trip type" },
+  { key: "site", label: "Site" },
+  { key: "unit", label: "Unit" },
+];
 
 const TRIP_TYPES = [
   {
@@ -132,11 +151,45 @@ function isActive(item) {
   return true;
 }
 
+function loadRetainFields() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(RETAIN_FIELDS_KEY) || "{}",
+    );
+
+    return Object.fromEntries(
+      Object.keys(DEFAULT_RETAIN_FIELDS).map((key) => [
+        key,
+        typeof saved?.[key] === "boolean"
+          ? saved[key]
+          : DEFAULT_RETAIN_FIELDS[key],
+      ]),
+    );
+  } catch {
+    return { ...DEFAULT_RETAIN_FIELDS };
+  }
+}
+
+function readPreferredTractorId() {
+  try {
+    const stored = localStorage.getItem(PREFERRED_TRACTOR_KEY);
+    if (!stored) return "";
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return stored;
+    }
+  } catch {
+    return "";
+  }
+}
+
 /* =========================================================
    SEARCH BOX
 ========================================================= */
 
 function SearchBox({
+  inputId,
   icon: Icon,
   placeholder,
   value,
@@ -171,6 +224,7 @@ function SearchBox({
         />
 
         <input
+          id={inputId}
           value={value}
           placeholder={placeholder}
           autoComplete="off"
@@ -572,7 +626,7 @@ function TripPreview({
    ADD TRIP
 ========================================================= */
 
-export default function AddTrip() {
+export default function AddTrip({ initialTractor = null, initialMaterial = null }) {
   const {
     tractors = [],
     parties = [],
@@ -602,6 +656,12 @@ export default function AddTrip() {
   const [saving, setSaving] =
     useState(false);
 
+  const [retainFields, setRetainFields] =
+    useState(loadRetainFields);
+
+  const [duplicateTrip, setDuplicateTrip] =
+    useState(null);
+
   const [message, setMessage] =
     useState("");
 
@@ -610,6 +670,12 @@ export default function AddTrip() {
 
   const [previewTitle, setPreviewTitle] =
     useState("Trip Preview");
+
+  const [tractorPickerOpen, setTractorPickerOpen] =
+    useState(false);
+
+  const appliedInitialTractorRef = useRef("");
+  const appliedInitialMaterialRef = useRef("");
 
   const [templates, setTemplates] =
     useState(() => {
@@ -750,6 +816,65 @@ export default function AddTrip() {
       top: 0,
       behavior: "smooth",
     });
+  };
+
+  const applyRecentTrip = (trip) => {
+    const savedVehicle =
+      trip?.vehicleNumber ||
+      trip?.vehicleNo ||
+      trip?.tractorNumber ||
+      "";
+    const savedPartyName =
+      trip?.partyName || trip?.party || "";
+    const savedMaterialName =
+      trip?.materialName || trip?.material || "";
+    const savedQuantity = trip?.quantity ?? trip?.qty ?? "";
+    const savedRate = trip?.rate ?? trip?.price ?? "";
+
+    const tractor = activeTractors.find(
+      (item) =>
+        (trip?.tractorId && getId(item) === trip.tractorId) ||
+        normalize(getVehicle(item)) === normalize(savedVehicle),
+    );
+    const party = activeParties.find(
+      (item) =>
+        (trip?.partyId && getId(item) === trip.partyId) ||
+        normalize(getPartyName(item)) === normalize(savedPartyName),
+    );
+    const material = activeMaterials.find(
+      (item) =>
+        (trip?.materialId && getId(item) === trip.materialId) ||
+        normalize(getMaterialName(item)) === normalize(savedMaterialName),
+    );
+
+    setForm((previous) => ({
+      ...previous,
+      date: getTodayISO(),
+      tractorId: tractor ? getId(tractor) : "",
+      vehicleNumber: tractor ? getVehicle(tractor) : "",
+      tractorName:
+        tractor?.tractorName || tractor?.name || "",
+      driverName: tractor?.driverName || "",
+      driverMobile: tractor?.driverMobile || "",
+      partyId: party ? getId(party) : "",
+      partyName: party ? getPartyName(party) : savedPartyName,
+      materialId: material ? getId(material) : "",
+      materialName: material ? getMaterialName(material) : savedMaterialName,
+      tripType: trip?.tripType || previous.tripType,
+      site: trip?.site || trip?.location || "",
+      quantity: String(savedQuantity),
+      unit: trip?.unit || previous.unit,
+      rate: String(savedRate),
+      notes: trip?.notes || "",
+    }));
+
+    setEditingId("");
+    setErrors({});
+    setMessage(
+      `Trip copied. Date is set to today; review quantity ${savedQuantity || "—"} and rate ${savedRate !== "" ? formatCurrency(savedRate) : "not recorded"} before saving${!tractor && savedVehicle ? ". The old tractor is unavailable; choose an active tractor" : ""}.`,
+    );
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const deleteTemplate = (
@@ -929,6 +1054,7 @@ export default function AddTrip() {
       });
 
       setErrors({});
+      setTractorPickerOpen(false);
       setMessage(
         "Trip loaded for editing."
       );
@@ -978,9 +1104,35 @@ export default function AddTrip() {
     setMessage("");
   };
 
+  const updateRetainField = (field, checked) => {
+    const next = {
+      ...retainFields,
+      [field]: checked,
+    };
+
+    setRetainFields(next);
+
+    try {
+      localStorage.setItem(
+        RETAIN_FIELDS_KEY,
+        JSON.stringify(next),
+      );
+      setMessage("");
+    } catch {
+      setMessage("This preference could not be saved in this browser.");
+    }
+  };
+
+  const initialTractorId = getId(initialTractor);
+  const initialMaterialId = getId(initialMaterial);
+
   const selectTractor = (
     tractor
   ) => {
+    try {
+      localStorage.setItem(PREFERRED_TRACTOR_KEY, JSON.stringify(getId(tractor)));
+    } catch {}
+
     setForm((previous) => ({
       ...previous,
 
@@ -1017,7 +1169,105 @@ export default function AddTrip() {
     });
 
     setMessage("");
+    setTractorPickerOpen(false);
   };
+
+  useEffect(() => {
+    if (
+      !activeTractors.length ||
+      initialTractorId ||
+      form.tractorId ||
+      editingId
+    ) {
+      return;
+    }
+
+    const preferredId = readPreferredTractorId();
+
+    if (!preferredId) {
+      setTractorPickerOpen(true);
+      return;
+    }
+
+    const preferredTractor = activeTractors.find(
+      (tractor) => getId(tractor) === preferredId,
+    );
+    if (!preferredTractor) {
+      try { localStorage.removeItem(PREFERRED_TRACTOR_KEY); } catch {}
+      setTractorPickerOpen(true);
+      setMessage("Your previously selected tractor is no longer active. Choose a tractor to continue.");
+      return;
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      tractorId: getId(preferredTractor),
+      vehicleNumber: getVehicle(preferredTractor),
+      tractorName: preferredTractor?.tractorName || preferredTractor?.name || "",
+      driverName: preferredTractor?.driverName || "",
+      driverMobile: preferredTractor?.driverMobile || "",
+    }));
+    setTractorPickerOpen(false);
+  }, [activeTractors, editingId, form.tractorId, initialTractorId]);
+
+  const changeTractor = () => {
+    const hasUnsavedTripDetails = Boolean(
+      form.partyName.trim() || form.materialName.trim() || form.site.trim() ||
+      form.quantity !== "" || form.rate !== "" || form.notes.trim() ||
+      form.date !== getTodayISO()
+    );
+    if (hasUnsavedTripDetails && !window.confirm("Change tractor for this trip? Your other entered trip details will stay in the form.")) {
+      return;
+    }
+    try {
+      localStorage.removeItem(PREFERRED_TRACTOR_KEY);
+    } catch {
+      // The selection can still be changed for the current form.
+    }
+    setForm((previous) => ({
+      ...previous,
+      tractorId: "",
+      vehicleNumber: "",
+      tractorName: "",
+      driverName: "",
+      driverMobile: "",
+    }));
+    setTractorPickerOpen(true);
+    setMessage("Choose the tractor for this and your next trips.");
+  };
+
+  useEffect(() => {
+    if (
+      !initialTractorId ||
+      appliedInitialTractorRef.current === initialTractorId
+    ) {
+      return;
+    }
+
+    appliedInitialTractorRef.current = initialTractorId;
+
+    const availableTractor = activeTractors.find(
+      (tractor) => getId(tractor) === initialTractorId,
+    );
+
+    if (!availableTractor) {
+      setMessage("That tractor is no longer active. Choose an active tractor.");
+      return;
+    }
+
+    setForm((previous) => ({
+      ...previous,
+      tractorId: getId(availableTractor),
+      vehicleNumber: getVehicle(availableTractor),
+      tractorName: availableTractor?.tractorName || availableTractor?.name || "",
+      driverName: availableTractor?.driverName || "",
+      driverMobile: availableTractor?.driverMobile || "",
+    }));
+    try {
+      localStorage.setItem(PREFERRED_TRACTOR_KEY, JSON.stringify(getId(availableTractor)));
+    } catch {}
+    setTractorPickerOpen(false);
+  }, [initialTractorId, activeTractors]);
 
   const selectParty = (
     party
@@ -1049,6 +1299,8 @@ export default function AddTrip() {
   const selectMaterial = (
     material
   ) => {
+    const defaultRate = material?.defaultRate ?? material?.rate;
+
     setForm((previous) => ({
       ...previous,
 
@@ -1063,12 +1315,8 @@ export default function AddTrip() {
         previous.unit,
 
       rate:
-        material?.rate !==
-          undefined &&
-        material?.rate !== null
-          ? String(
-              material.rate
-            )
+        defaultRate !== undefined && defaultRate !== null
+          ? String(defaultRate)
           : previous.rate,
     }));
 
@@ -1086,6 +1334,24 @@ export default function AddTrip() {
 
     setMessage("");
   };
+
+  useEffect(() => {
+    if (!initialMaterialId || editingId || appliedInitialMaterialRef.current === initialMaterialId) {
+      return;
+    }
+
+    appliedInitialMaterialRef.current = initialMaterialId;
+    const availableMaterial = activeMaterials.find(
+      (material) => getId(material) === initialMaterialId,
+    );
+
+    if (availableMaterial) {
+      selectMaterial(availableMaterial);
+      return;
+    }
+
+    setMessage("That material is no longer active. Choose an active material to continue.");
+  }, [activeMaterials, editingId, initialMaterialId]);
 
   const validate = () => {
     const nextErrors = {};
@@ -1118,7 +1384,7 @@ export default function AddTrip() {
       quantity <= 0
     ) {
       nextErrors.quantity =
-        "Quantity is required.";
+        "Quantity must be greater than 0.";
     }
 
     const rate =
@@ -1130,7 +1396,7 @@ export default function AddTrip() {
       rate < 0
     ) {
       nextErrors.rate =
-        "Rate is required.";
+        form.rate === "" ? "Rate is required." : "Rate cannot be negative.";
     }
 
     setErrors(nextErrors);
@@ -1142,10 +1408,21 @@ export default function AddTrip() {
   };
 
   const resetForm = () => {
+    const preferredId = readPreferredTractorId();
+    const preferredTractor = activeTractors.find(
+      (tractor) => getId(tractor) === preferredId,
+    ) || activeTractors.find(
+      (tractor) => getId(tractor) === form.tractorId,
+    ) || null;
     setForm({
       ...EMPTY_FORM,
 
       date: getTodayISO(),
+      tractorId: preferredTractor ? getId(preferredTractor) : "",
+      vehicleNumber: preferredTractor ? getVehicle(preferredTractor) : "",
+      tractorName: preferredTractor?.tractorName || preferredTractor?.name || "",
+      driverName: preferredTractor?.driverName || "",
+      driverMobile: preferredTractor?.driverMobile || "",
 
       unit:
         settings?.defaultUnit ||
@@ -1157,6 +1434,7 @@ export default function AddTrip() {
     });
 
     setEditingId("");
+    setTractorPickerOpen(!preferredTractor);
     setErrors({});
     setMessage("");
   };
@@ -1261,9 +1539,10 @@ export default function AddTrip() {
   ======================================================= */
 
   const saveTrip = async (
-    event
+    event,
+    forceSave = false,
   ) => {
-    event.preventDefault();
+    event?.preventDefault?.();
 
     if (saving) return;
 
@@ -1273,6 +1552,48 @@ export default function AddTrip() {
       );
 
       return;
+    }
+
+    if (
+      !forceSave &&
+      !editingId &&
+      settings?.duplicateWarning !== false
+    ) {
+      const storedTrips = readStorage(
+        STORAGE_KEYS.trips,
+        [],
+      );
+      const duplicate = Array.isArray(storedTrips)
+        ? storedTrips.find((existing) => {
+            const existingDate = existing?.date || "";
+            const existingVehicle =
+              existing?.vehicleNumber ||
+              existing?.vehicleNo ||
+              existing?.tractorNumber ||
+              "";
+            const existingParty =
+              existing?.partyName || existing?.party || "";
+            const existingMaterial =
+              existing?.materialName || existing?.material || "";
+            const existingRate = existing?.rate ?? existing?.price;
+
+            return (
+              normalize(existingDate) === normalize(form.date) &&
+              normalize(existingVehicle) === normalize(form.vehicleNumber) &&
+              normalize(existingParty) === normalize(form.partyName) &&
+              normalize(existingMaterial) === normalize(form.materialName) &&
+              normalize(existing?.tripType || existing?.type) === normalize(form.tripType) &&
+              Number(existing?.quantity ?? existing?.qty) === Number(form.quantity) &&
+              existingRate != null &&
+              Number(existingRate) === Number(form.rate)
+            );
+          })
+        : null;
+
+      if (duplicate) {
+        setDuplicateTrip(duplicate);
+        return;
+      }
     }
 
     setSaving(true);
@@ -1497,10 +1818,44 @@ export default function AddTrip() {
       const wasEditing =
         Boolean(editingId);
 
+      const selectedTractor = activeTractors.find(
+        (tractor) => getId(tractor) === form.tractorId,
+      ) || null;
+      let tractorForNextTrip = selectedTractor;
+      if (wasEditing) {
+        const preferredId = readPreferredTractorId();
+        tractorForNextTrip = activeTractors.find(
+          (tractor) => getId(tractor) === preferredId,
+        ) || selectedTractor;
+      }
+      if (tractorForNextTrip && !readPreferredTractorId()) {
+        try {
+          localStorage.setItem(PREFERRED_TRACTOR_KEY, JSON.stringify(getId(tractorForNextTrip)));
+        } catch {}
+      }
+
+      const selectedParty =
+        retainFields.party
+          ? activeParties.find(
+              (party) =>
+                getId(party) === form.partyId,
+            )
+          : null;
+
+      const selectedMaterial =
+        retainFields.material
+          ? activeMaterials.find(
+              (material) =>
+                getId(material) === form.materialId,
+            )
+          : null;
+
       setMessage(
-        wasEditing
-          ? "Trip updated successfully."
-          : "Trip saved successfully."
+        (selectedTractor || !form.tractorId || !retainFields.tractor)
+          ? wasEditing
+            ? "Trip updated successfully."
+            : `Trip saved. Ready for another trip${selectedTractor ? ` with ${getVehicle(selectedTractor)}` : ""}.`
+          : "Trip saved, but the selected tractor is no longer active. Choose another tractor."
       );
 
       setForm({
@@ -1508,15 +1863,54 @@ export default function AddTrip() {
 
         date: form.date,
 
-        unit:
-          settings?.defaultUnit ||
-          form.unit ||
-          DEFAULT_UNIT,
+        tractorId: tractorForNextTrip ? getId(tractorForNextTrip) : "",
+
+        vehicleNumber: tractorForNextTrip ? getVehicle(tractorForNextTrip) : "",
+
+        tractorName:
+          tractorForNextTrip?.tractorName ||
+          tractorForNextTrip?.name ||
+          "",
+
+        driverName:
+          tractorForNextTrip?.driverName ||
+          "",
+
+        driverMobile:
+          tractorForNextTrip?.driverMobile ||
+          "",
+
+        partyId: selectedParty ? getId(selectedParty) : "",
+
+        partyName:
+          selectedParty?.partyName ||
+          selectedParty?.name ||
+          (retainFields.party && !form.partyId ? form.partyName : ""),
+
+        materialId:
+          selectedMaterial ? getId(selectedMaterial) : "",
+
+        materialName:
+          selectedMaterial?.materialName ||
+          selectedMaterial?.name ||
+          (retainFields.material && !form.materialId
+            ? form.materialName
+            : ""),
 
         tripType:
-          settings?.defaultTripType ||
-          "Loading",
+          retainFields.tripType
+            ? form.tripType
+            : settings?.defaultTripType || "Loading",
+
+        site: retainFields.site ? form.site : "",
+
+        unit:
+          retainFields.unit
+            ? form.unit
+            : settings?.defaultUnit || form.unit || DEFAULT_UNIT,
       });
+
+      setTractorPickerOpen(!tractorForNextTrip);
 
       setEditingId("");
       setErrors({});
@@ -2367,11 +2761,57 @@ export default function AddTrip() {
           </div>
         </header>
 
+        <section className="trip-tractor-first" aria-label="Choose tractor first">
+          <div className="trip-tractor-first__intro">
+            <span className="trip-tractor-first__step">STEP 01 · TRACTOR</span>
+            <h2>{form.tractorId && !tractorPickerOpen ? "Tractor selected" : "Choose a tractor to start"}</h2>
+            <p>
+              {form.tractorId && !tractorPickerOpen
+                ? "This tractor will stay selected for every new trip until you change it."
+                : `Select one of your ${activeTractors.length} active tractors before entering trip details.`}
+            </p>
+          </div>
+          <div className="trip-tractor-first__picker">
+            {form.tractorId && !tractorPickerOpen ? (
+              <div className="selected-tractor-control">
+                <div className="selected-tractor-copy">
+                  <Tractor size={18} aria-hidden="true" />
+                  <span>
+                    <strong>{form.vehicleNumber}</strong>
+                    <small>{form.driverName || "No driver assigned"}</small>
+                  </span>
+                </div>
+                <button type="button" className="change-tractor-button" onClick={changeTractor}>
+                  Change tractor
+                </button>
+              </div>
+            ) : (
+              <div className="field tractor-picker-field">
+                <label htmlFor="first-tractor-picker">Active tractor <b>*</b></label>
+                <SearchBox
+                  inputId="first-tractor-picker"
+                  icon={Tractor}
+                  placeholder="Tap to choose a tractor..."
+                  value={form.vehicleNumber}
+                  onChange={(value) => update("vehicleNumber", value)}
+                  items={activeTractors}
+                  getLabel={getVehicle}
+                  onSelect={selectTractor}
+                  emptyText="No active tractor found. Add or activate one in Tractor Management."
+                />
+                {errors.vehicleNumber && <small className="field-error">{errors.vehicleNumber}</small>}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div className="trip-entry-workspace" hidden={!form.tractorId && !editingId}>
+
         {/* =================================================
             TRIP TEMPLATES
         ================================================= */}
 
-        <section className="trip-templates-section">
+        <section className="trip-templates-section" hidden={!templates.length && !recentTrips.length}>
           <div className="trip-templates-header">
             <div className="trip-templates-title">
               <FileText
@@ -2379,13 +2819,9 @@ export default function AddTrip() {
                 aria-hidden="true"
               />
 
-              <span>
-                Trip Templates
-              </span>
+              <span>Quick Start</span>
 
-              <small>
-                Quick apply saved trips
-              </small>
+              <small>Templates and recent trips</small>
             </div>
 
             <button
@@ -2480,7 +2916,64 @@ export default function AddTrip() {
               </span>
             </div>
           )}
+
+          {recentTrips.length > 0 && (
+            <div className="trip-quick-recent">
+              <div className="trip-quick-recent__heading">
+                <strong>Copy a recent trip</strong>
+                <span>New copy uses today’s date. Review quantity and rate.</span>
+              </div>
+              <div className="trip-quick-recent__list">
+                {recentTrips.slice(0, 3).map((trip, index) => (
+                  <article
+                    className="trip-quick-recent__item"
+                    key={getId(trip) || `${trip?.date}-${index}`}
+                  >
+                    <div className="trip-quick-recent__top">
+                      <strong>{trip?.vehicleNumber || trip?.tractorNumber || "No tractor"}</strong>
+                      <span>{trip?.partyName || trip?.party || "No party"}</span>
+                    </div>
+                    <small>
+                      {trip?.date || trip?.createdAt?.slice(0, 10) || "Date unavailable"}
+                      {trip?.tripType ? ` · ${trip.tripType}` : ""}
+                    </small>
+                    <div className="trip-quick-recent__figures">
+                      <span>Qty <b>{trip?.quantity ?? trip?.qty ?? "—"} {trip?.unit || ""}</b></span>
+                      <span>Rate <b>{trip?.rate != null || trip?.price != null ? formatCurrency(trip?.rate ?? trip?.price) : "Not recorded"}</b></span>
+                    </div>
+                    <button
+                      type="button"
+                      className="trip-quick-recent__use"
+                      onClick={() => applyRecentTrip(trip)}
+                    >
+                      Use trip details
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
+
+      <fieldset className="trip-retain-fields">
+          <legend>Keep for next trip</legend>
+        <p>Tractor stays selected until you change it. Choose which other details carry forward after saving.</p>
+          <div className="trip-retain-fields__options">
+            {RETAIN_FIELD_OPTIONS.map(({ key, label }) => (
+            key === "tractor" ? null :
+              <label className="trip-retain-fields__option" key={key}>
+                <input
+                  type="checkbox"
+                  checked={retainFields[key]}
+                  onChange={(event) =>
+                    updateRetainField(key, event.target.checked)
+                  }
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         {/* =================================================
             SUMMARY
@@ -2596,7 +3089,7 @@ export default function AddTrip() {
               01 DATE & TRIP TYPE
           ================================================= */}
 
-          <Card className="add-trip-card">
+          <Card className="add-trip-card add-trip-card--date">
             <div className="add-trip-card-header">
               <div>
                 <span className="section-number">
@@ -2708,7 +3201,7 @@ export default function AddTrip() {
               02 TRANSPORT & DRIVER
           ================================================= */}
 
-          <Card className="add-trip-card">
+          <Card className="add-trip-card add-trip-card--transport">
             <div className="add-trip-card-header">
               <div>
                 <span className="section-number">
@@ -2727,44 +3220,6 @@ export default function AddTrip() {
             </div>
 
             <div className="add-trip-grid two">
-              <div className="field">
-                <label>
-                  Tractor <b>*</b>
-                </label>
-
-                <SearchBox
-                  icon={Tractor}
-                  placeholder="Search vehicle number..."
-                  value={
-                    form.vehicleNumber
-                  }
-                  onChange={(value) =>
-                    update(
-                      "vehicleNumber",
-                      value
-                    )
-                  }
-                  items={
-                    activeTractors
-                  }
-                  getLabel={
-                    getVehicle
-                  }
-                  onSelect={
-                    selectTractor
-                  }
-                  emptyText="No tractor found."
-                />
-
-                {errors.vehicleNumber && (
-                  <small className="field-error">
-                    {
-                      errors.vehicleNumber
-                    }
-                  </small>
-                )}
-              </div>
-
               <div className="field">
                 <label htmlFor="tractor-name">
                   Tractor Name
@@ -2840,7 +3295,7 @@ export default function AddTrip() {
               03 PARTY & MATERIAL
           ================================================= */}
 
-          <Card className="add-trip-card">
+          <Card className="add-trip-card add-trip-card--party">
             <div className="add-trip-card-header">
               <div>
                 <span className="section-number">
@@ -2858,10 +3313,10 @@ export default function AddTrip() {
               </div>
             </div>
 
-            <div className="add-trip-grid two">
+            <div className="add-trip-grid three">
               <div className="field">
                 <label>
-                  Party / Customer
+                  Party / Customer (optional)
                 </label>
 
                 <SearchBox
@@ -2891,7 +3346,7 @@ export default function AddTrip() {
 
               <div className="field">
                 <label>
-                  Material
+                  Material (optional)
                 </label>
 
                 <SearchBox
@@ -2917,6 +3372,28 @@ export default function AddTrip() {
                   }
                   emptyText="No material found."
                 />
+              </div>
+
+              <div className="field trip-site-field">
+                <label htmlFor="trip-site">
+                  Site / Location
+                </label>
+
+                <div className="input-icon">
+                  <MapPin
+                    size={17}
+                    aria-hidden="true"
+                  />
+
+                  <input
+                    id="trip-site"
+                    value={form.site}
+                    onChange={(event) =>
+                      update("site", event.target.value)
+                    }
+                    placeholder="Enter site or destination"
+                  />
+                </div>
               </div>
             </div>
 
@@ -2954,62 +3431,14 @@ export default function AddTrip() {
           </Card>
 
           {/* =================================================
-              04 SITE / LOCATION
+              04 QUANTITY & BILLING
           ================================================= */}
 
-          <Card className="add-trip-card">
+          <Card className="add-trip-card add-trip-card--billing">
             <div className="add-trip-card-header">
               <div>
                 <span className="section-number">
                   04
-                </span>
-
-                <h2>
-                  Site / Location
-                </h2>
-
-                <p>
-                  Enter where the transport
-                  work was performed.
-                </p>
-              </div>
-            </div>
-
-            <div className="field">
-              <label htmlFor="trip-site">
-                Site / Location
-              </label>
-
-              <div className="input-icon">
-                <MapPin
-                  size={17}
-                  aria-hidden="true"
-                />
-
-                <input
-                  id="trip-site"
-                  value={form.site}
-                  onChange={(event) =>
-                    update(
-                      "site",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Enter site or destination"
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* =================================================
-              05 QUANTITY & BILLING
-          ================================================= */}
-
-          <Card className="add-trip-card">
-            <div className="add-trip-card-header">
-              <div>
-                <span className="section-number">
-                  05
                 </span>
 
                 <h2>
@@ -3121,14 +3550,14 @@ export default function AddTrip() {
           </Card>
 
           {/* =================================================
-              06 NOTES
+              05 NOTES
           ================================================= */}
 
-          <Card className="add-trip-card">
+          <Card className="add-trip-card add-trip-card--notes">
             <div className="add-trip-card-header">
               <div>
                 <span className="section-number">
-                  06
+                  05
                 </span>
 
                 <h2>
@@ -3243,13 +3672,30 @@ export default function AddTrip() {
 
                     {editingId
                       ? "Update Trip"
-                      : "Save Trip"}
+                      : "Save & Add Another"}
                   </>
                 )}
               </Button>
             </div>
           </div>
         </form>
+        </div>
+
+        <ConfirmDialog
+          open={Boolean(duplicateTrip)}
+          title="Possible duplicate trip"
+          message={duplicateTrip
+            ? `A matching trip is already saved: ${formatDate(duplicateTrip.date)} · ${duplicateTrip.vehicleNumber || duplicateTrip.vehicleNo || duplicateTrip.tractorNumber || "No tractor"} · ${duplicateTrip.partyName || duplicateTrip.party || "No party"} · ${duplicateTrip.materialName || duplicateTrip.material || "No material"} · ${duplicateTrip.tripType || duplicateTrip.type || "Trip"} · Qty ${duplicateTrip.quantity ?? duplicateTrip.qty ?? "—"} · ${formatCurrency(duplicateTrip.rate ?? duplicateTrip.price ?? 0)} per unit. Save anyway only if this is a separate trip.`
+            : "A matching trip already exists. Save anyway only if this is a separate trip."}
+          confirmLabel="Save anyway"
+          cancelLabel="Review trip"
+          variant="primary"
+          onConfirm={() => {
+            setDuplicateTrip(null);
+            void saveTrip(null, true);
+          }}
+          onCancel={() => setDuplicateTrip(null)}
+        />
 
         {/* =================================================
             RECENT TRIPS

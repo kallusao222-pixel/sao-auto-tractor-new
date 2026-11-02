@@ -24,6 +24,33 @@ export function isValidDate(value) {
   );
 }
 
+function readDatePreferences() {
+  try {
+    const preferences = JSON.parse(
+      localStorage.getItem("saoAutoTractorSettings") || "{}",
+    );
+    return preferences && typeof preferences === "object"
+      ? preferences
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function parseLocalDate(value) {
+  if (typeof value === "string") {
+    const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnly) {
+      return new Date(
+        Number(dateOnly[1]),
+        Number(dateOnly[2]) - 1,
+        Number(dateOnly[3]),
+      );
+    }
+  }
+  return new Date(value);
+}
+
 export function formatDate(
   value,
   options = {},
@@ -32,7 +59,7 @@ export function formatDate(
     return "—";
   }
 
-  const date = new Date(value);
+  const date = parseLocalDate(value);
 
   if (
     Number.isNaN(
@@ -42,11 +69,28 @@ export function formatDate(
     return "—";
   }
 
+  const preferences = readDatePreferences();
+  const dateFormat = preferences.dateFormat || "DD-MM-YYYY";
   const {
     day = "2-digit",
     month = "2-digit",
     year = "numeric",
   } = options;
+
+  if (day === "2-digit" && month === "2-digit" && year === "numeric") {
+    const parts = {
+      day: String(date.getDate()).padStart(2, "0"),
+      month: String(date.getMonth() + 1).padStart(2, "0"),
+      year: String(date.getFullYear()),
+    };
+    const formats = {
+      "DD-MM-YYYY": `${parts.day}-${parts.month}-${parts.year}`,
+      "DD/MM/YYYY": `${parts.day}/${parts.month}/${parts.year}`,
+      "YYYY-MM-DD": `${parts.year}-${parts.month}-${parts.day}`,
+      "MM-DD-YYYY": `${parts.month}-${parts.day}-${parts.year}`,
+    };
+    return formats[dateFormat] || formats["DD-MM-YYYY"];
+  }
 
   return new Intl.DateTimeFormat(
     "en-IN",
@@ -65,7 +109,7 @@ export function formatDateTime(
     return "—";
   }
 
-  const date = new Date(value);
+  const date = parseLocalDate(value);
 
   if (
     Number.isNaN(
@@ -75,11 +119,16 @@ export function formatDateTime(
     return "—";
   }
 
+  const timeFormat = readDatePreferences().timeFormat || "12 Hour";
   return new Intl.DateTimeFormat(
     "en-IN",
     {
-      dateStyle: "medium",
-      timeStyle: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: timeFormat !== "24 Hour",
     },
   ).format(date);
 }

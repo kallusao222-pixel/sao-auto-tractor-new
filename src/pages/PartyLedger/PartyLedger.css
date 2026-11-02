@@ -1078,6 +1078,11 @@
   );
 }
 
+.ledger-history-icon.reversal {
+  color: var(--color-danger, #a14c46);
+  background: color-mix(in srgb, var(--color-danger, #a14c46) 9%, var(--color-surface));
+}
+
 .ledger-history-main {
   min-width: 0;
 }
@@ -1116,6 +1121,10 @@
 
 .ledger-history-amount.payment {
   color: var(--color-primary);
+}
+
+.ledger-history-amount.reversal {
+  color: var(--color-danger, #a14c46);
 }
 
 /* =========================================================

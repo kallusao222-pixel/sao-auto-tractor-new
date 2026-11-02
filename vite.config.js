@@ -4,6 +4,10 @@ import fs from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // Keep Vite's optimizer cache out of the OneDrive-synced node_modules tree.
+  // OneDrive reparse points can make Vite's startup cache cleanup fail on Windows.
+  cacheDir: `${process.env.TEMP || process.env.TMP || "."}/sao-auto-tractor-vite-cache`,
+
   plugins: [
     react(),
 

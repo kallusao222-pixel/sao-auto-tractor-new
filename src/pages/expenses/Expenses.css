@@ -2339,3 +2339,24 @@
     font-size: 9px;
   }
 }
+.expense-receipt-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary, #526070);
+  font-size: 12px;
+}
+
+.expense-receipt-selected button,
+.expense-receipt-link {
+  color: var(--primary, #1b4b73);
+  font-weight: 700;
+}
+
+.expense-receipt-link {
+  display: inline-flex;
+  margin: 12px 0;
+  font-size: 12px;
+  text-decoration: underline;
+}

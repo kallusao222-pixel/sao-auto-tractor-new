@@ -19,6 +19,7 @@ import {
   Eye,
   Printer,
   Trash2,
+  RotateCcw,
   ArrowLeft,
   Filter,
   Plus,
@@ -36,6 +37,8 @@ import { useAppData } from "../../context/AppDataContext";
 import { calculateTripAmount } from "../../utils/calculations";
 import { toNumber } from "../../utils/currency";
 import { getTodayISO } from "../../utils/date";
+import { getActivePaymentAmount, hasDuplicatePaymentReference, isPaymentReversed } from "../../utils/paymentRecords";
+import { buildCsv } from "../../utils/csv";
 import "./PartyLedger.css";
 
 /* =========================================================
@@ -272,9 +275,7 @@ function PartyLedger() {
 
       if (!account) return;
 
-      const amount = toNumber(
-        payment?.amount,
-      );
+      const amount = getActivePaymentAmount(payment);
 
       account.payments.push({
         ...payment,
@@ -694,14 +695,14 @@ function PartyLedger() {
       account.payments.map(
         (payment) => ({
           id: `payment-${payment._ledgerId}`,
-          type: "payment",
+          type: isPaymentReversed(payment) ? "reversal" : "payment",
           date:
             getPaymentDate(payment),
-          amount: toNumber(
-            payment._amount,
-          ),
+          amount: isPaymentReversed(payment)
+            ? toNumber(payment?.amount ?? payment?.paymentAmount ?? payment?.receivedAmount ?? payment?.paidAmount)
+            : toNumber(payment._amount),
           description:
-            payment?.note ||
+            (isPaymentReversed(payment) ? `Receipt reversed · ${payment?.reversalReason || "Reason not recorded"}` : payment?.note) ||
             payment?.remarks ||
             payment?.paymentMode ||
             "Payment Received",
@@ -767,8 +768,9 @@ function PartyLedger() {
     if (ledgerType !== "all") {
       records = records.filter(
         (record) =>
-          record.type ===
-          ledgerType,
+          ledgerType === "payment"
+            ? record.type !== "bill"
+            : record.type === ledgerType,
       );
     }
 
@@ -957,8 +959,14 @@ function PartyLedger() {
     };
 
     const updatedParties = [newParty, ...currentParties];
-    localStorage.setItem("saoAutoTractorParties", JSON.stringify(updatedParties));
-    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    try {
+      localStorage.setItem("saoAutoTractorParties", JSON.stringify(updatedParties));
+      window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    } catch (error) {
+      console.error("Party clone save error:", error);
+      window.alert("Party could not be cloned because browser storage is unavailable. No change was made.");
+      return;
+    }
 
     setToast({
       message: `Party "${newName}" cloned successfully!`,
@@ -1026,6 +1034,19 @@ function PartyLedger() {
       return;
     }
 
+    let existingPayments;
+    try {
+      const parsedPayments = JSON.parse(localStorage.getItem("saoAutoTractorPayments") || "[]");
+      existingPayments = Array.isArray(parsedPayments) ? parsedPayments : [];
+    } catch {
+      setPaymentFormError("Payment history could not be read. Refresh or restore the saved data before recording a receipt.");
+      return;
+    }
+    if (hasDuplicatePaymentReference(existingPayments, paymentModal.partyName, paymentForm.reference)) {
+      setPaymentFormError("This receipt reference is already recorded for this party.");
+      return;
+    }
+
     const newPayment = {
       id: Date.now(),
       date: paymentForm.date,
@@ -1038,10 +1059,7 @@ function PartyLedger() {
     };
 
     try {
-      const existing = JSON.parse(
-        localStorage.getItem("saoAutoTractorPayments") || "[]"
-      );
-      const updated = [...existing, newPayment];
+      const updated = [...existingPayments, newPayment];
       localStorage.setItem(
         "saoAutoTractorPayments",
         JSON.stringify(updated)
@@ -1101,12 +1119,7 @@ function PartyLedger() {
       t.amount,
     ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
-
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([buildCsv([headers, ...rows])], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1146,12 +1159,7 @@ function PartyLedger() {
       a.isDue ? "Due" : a.hasAdvance ? "Advance" : a.hasEntries ? "Clear" : "No Entry",
     ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
-
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([buildCsv([headers, ...rows])], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -1189,12 +1197,45 @@ function PartyLedger() {
       record.reference?.id ||
       record.reference?._id ||
       record.reference?.tripId ||
-      record.reference?.paymentId;
+      record.reference?.paymentId ||
+      record.reference?._ledgerId;
 
     if (!recordId) {
       window.alert(
         "Is record ka permanent ID nahi mila, isliye delete nahi kiya gaya.",
       );
+      return;
+    }
+
+    if (record.type !== "bill" && isPaymentReversed(record.reference)) {
+      window.alert("This receipt has already been reversed.");
+      return;
+    }
+
+    if (record.type !== "bill") {
+      const reason = window.prompt("Reason for reversing this receipt:")?.trim() || "";
+      if (reason.length < 3) {
+        window.alert("Enter a short reason (at least 3 characters). The receipt will remain in history as reversed.");
+        return;
+      }
+
+      try {
+        const payments = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        const reversedAt = new Date().toISOString();
+        const updated = (Array.isArray(payments) ? payments : []).map((item, index) =>
+          getRecordId(item, `payment-${index}`) === String(recordId)
+            ? { ...item, status: "Reversed", reversedAt, reversalReason: reason, updatedAt: reversedAt }
+            : item,
+        );
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+        window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new CustomEvent("saoAutoTractorDataChanged"));
+        setPreviewRecord(null);
+        setToast({ message: "Receipt reversed and retained in the ledger history.", type: "success" });
+      } catch (error) {
+        console.error("Party Ledger reversal error:", error);
+        window.alert("Receipt could not be reversed. Please check saved data and try again.");
+      }
       return;
     }
 
@@ -1285,7 +1326,7 @@ function PartyLedger() {
 
     const title = isBill
       ? "Billing Record"
-      : "Payment Receipt";
+      : record.type === "reversal" ? "Receipt Reversal" : "Payment Receipt";
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -1362,7 +1403,7 @@ function PartyLedger() {
 
         <div class="row">
           <strong>Type</strong>
-          <span>${isBill ? "Billing" : "Payment Received"}</span>
+          <span>${isBill ? "Billing" : record.type === "reversal" ? "Receipt Reversal" : "Payment Received"}</span>
         </div>
 
         ${
@@ -1390,7 +1431,7 @@ function PartyLedger() {
         <div class="row">
           <strong>Amount</strong>
           <span class="amount">
-            ${formatMoney(
+            ${record.type === "bill" || record.type === "reversal" ? "+" : "−"}${formatMoney(
               record.amount,
             )}
           </span>
@@ -1450,12 +1491,10 @@ function PartyLedger() {
               <td>${formatDate(
                 record.date,
               )}</td>
-              <td>${record.type === "bill" ? "Billing" : "Payment"}</td>
+              <td>${record.type === "bill" ? "Billing" : record.type === "reversal" ? "Receipt Reversal" : "Payment"}</td>
               <td>${record.description || "—"}</td>
               <td style="text-align:right">
-                ${formatMoney(
-                  record.amount,
-                )}
+                ${record.type === "bill" || record.type === "reversal" ? "+" : "−"}${formatMoney(record.amount)}
               </td>
             </tr>
           `,
@@ -2600,11 +2639,10 @@ function PartyLedger() {
                               record.type ===
                               "bill"
                                 ? "bill"
-                                : "payment"
+                              : record.type === "reversal" ? "reversal" : "payment"
                             }`}
                           >
-                            {record.type ===
-                            "bill" ? (
+                          {record.type === "bill" || record.type === "reversal" ? (
                               <ArrowUpRight
                                 size={16}
                               />
@@ -2642,9 +2680,7 @@ function PartyLedger() {
                               record.type
                             }`}
                           >
-                            {formatMoney(
-                              record.amount,
-                            )}
+                            {record.type === "reversal" ? "+" : "−"}{formatMoney(record.amount)}
                           </strong>
 
                           <div className="ledger-row-actions">
@@ -2679,16 +2715,15 @@ function PartyLedger() {
 
                             <button
                               type="button"
-                              title="Delete"
+                              disabled={record.type !== "bill" && isPaymentReversed(record.reference)}
+                              title={record.type === "bill" ? "Delete bill" : isPaymentReversed(record.reference) ? "Already reversed" : "Reverse receipt"}
                               onClick={() =>
                                 handleDeleteRecord(
                                   record,
                                 )
                               }
                             >
-                              <Trash2
-                                size={15}
-                              />
+                              {record.type === "bill" ? <Trash2 size={15} /> : <RotateCcw size={15} />}
                             </button>
 
                           </div>
@@ -3126,11 +3161,10 @@ function PartyLedger() {
                             record.type ===
                             "bill"
                               ? "bill"
-                              : "payment"
+                              : record.type === "reversal" ? "reversal" : "payment"
                           }`}
                         >
-                          {record.type ===
-                          "bill" ? (
+                          {record.type === "bill" || record.type === "reversal" ? (
                             <ArrowUpRight
                               size={16}
                             />
@@ -3149,10 +3183,7 @@ function PartyLedger() {
                           </strong>
 
                           <span>
-                            {record.type ===
-                            "bill"
-                              ? "Billing"
-                              : "Payment"}
+                            {record.type === "bill" ? "Billing" : record.type === "reversal" ? "Reversal" : "Payment"}
                           </span>
                         </div>
 
@@ -3185,10 +3216,7 @@ function PartyLedger() {
                             record.type
                           }`}
                         >
-                          {record.type ===
-                          "bill"
-                            ? "+"
-                            : "−"}
+                          {record.type === "bill" || record.type === "reversal" ? "+" : "−"}
 
                           {formatMoney(
                             record.amount,
@@ -3227,16 +3255,15 @@ function PartyLedger() {
 
                           <button
                             type="button"
-                            title="Delete"
+                            disabled={record.type !== "bill" && isPaymentReversed(record.reference)}
+                            title={record.type === "bill" ? "Delete bill" : isPaymentReversed(record.reference) ? "Already reversed" : "Reverse receipt"}
                             onClick={() =>
                               handleDeleteRecord(
                                 record,
                               )
                             }
                           >
-                            <Trash2
-                              size={15}
-                            />
+                            {record.type === "bill" ? <Trash2 size={15} /> : <RotateCcw size={15} />}
                           </button>
 
                         </div>
@@ -3394,10 +3421,11 @@ function PartyLedger() {
               <div>
                 <span>Type</span>
                 <strong>
-                  {previewRecord.type ===
-                  "bill"
+                  {previewRecord.type === "bill"
                     ? "Billing"
-                    : "Payment Received"}
+                    : previewRecord.type === "reversal"
+                      ? "Receipt Reversal"
+                      : "Payment Received"}
                 </strong>
               </div>
 
@@ -3475,16 +3503,15 @@ function PartyLedger() {
               <button
                 type="button"
                 className="danger"
+                disabled={previewRecord.type !== "bill" && isPaymentReversed(previewRecord.reference)}
                 onClick={() =>
                   handleDeleteRecord(
                     previewRecord,
                   )
                 }
               >
-                <Trash2
-                  size={16}
-                />
-                Delete
+                {previewRecord.type === "bill" ? <Trash2 size={16} /> : <RotateCcw size={16} />}
+                {previewRecord.type === "bill" ? "Delete bill" : isPaymentReversed(previewRecord.reference) ? "Already reversed" : "Reverse receipt"}
               </button>
 
             </div>

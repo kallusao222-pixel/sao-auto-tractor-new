@@ -29,9 +29,12 @@ import {
   FileBarChart,
   ArrowUpRight,
   ArrowDownRight,
+  X,
+  Percent,
+  UserCheck,
 } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppData } from "../../context/AppDataContext";
 
@@ -46,6 +49,7 @@ import {
 import { formatCurrency } from "../../utils/currency";
 import { formatDate, getTodayISO } from "../../utils/date";
 import { getTripType } from "../../utils/trip";
+import { getActivePaymentAmount, isPaymentReversed } from "../../utils/paymentRecords";
 
 import StatCard from "../../components/ui/StatCard";
 import Card from "../../components/ui/Card";
@@ -53,6 +57,32 @@ import Button from "../../components/ui/Button";
 import StatusBadge from "../../components/ui/StatusBadge";
 
 import "./Dashboard.css";
+
+/* =========================================================
+   CONSTANTS
+   ========================================================= */
+
+const DISMISSED_REMINDERS_KEY = "saoAutoTractorDismissedReminders";
+const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; /* 24 hours */
+const DEFAULT_DASHBOARD_PREFERENCES = {
+  showTodayTrips: true,
+  showBilling: true,
+  showReceived: true,
+  showDue: true,
+  showTractors: true,
+  showRecentRecords: true,
+};
+
+function readDashboardPreferences() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem("saoAutoTractorSettings") || "{}",
+    );
+    return { ...DEFAULT_DASHBOARD_PREFERENCES, ...saved };
+  } catch {
+    return DEFAULT_DASHBOARD_PREFERENCES;
+  }
+}
 
 /* =========================================================
    HELPERS (unchanged — same business logic)
@@ -115,10 +145,17 @@ function formatTime(value) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+  let hour12 = true;
+  try {
+    const settings = JSON.parse(localStorage.getItem("saoAutoTractorSettings") || "{}");
+    hour12 = settings.timeFormat !== "24 Hour";
+  } catch {
+    // Keep the default 12-hour clock if preferences cannot be read.
+  }
   return date.toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12,
   });
 }
 
@@ -129,6 +166,54 @@ function getTimeGreeting(hour) {
   if (hour >= 17 && hour < 19) return { text: "Good Evening", icon: Sunset };
   if (hour >= 19 && hour < 22) return { text: "Good Evening", icon: Moon };
   return { text: "Good Night", icon: Sparkles };
+}
+
+/* ---- Get yesterday's ISO date ---- */
+function getYesterdayISO() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/* ---- Delta percent calculation ---- */
+function calculateDelta(current, previous) {
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return { direction: "up", percent: 100 };
+  const diff = current - previous;
+  if (diff === 0) return { direction: "flat", percent: 0 };
+  const percent = Math.abs((diff / previous) * 100);
+  return {
+    direction: diff > 0 ? "up" : "down",
+    percent: Math.min(percent, 999),
+  };
+}
+
+/* ---- Dismissed reminders storage ---- */
+function loadDismissedReminders() {
+  try {
+    const raw = localStorage.getItem(DISMISSED_REMINDERS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const now = Date.now();
+    const cleaned = {};
+    for (const [id, ts] of Object.entries(parsed)) {
+      if (typeof ts === "number" && now - ts < DISMISS_TTL_MS) {
+        cleaned[id] = ts;
+      }
+    }
+    return cleaned;
+  } catch {
+    return {};
+  }
+}
+
+function saveDismissedReminders(map) {
+  try {
+    localStorage.setItem(DISMISSED_REMINDERS_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
 }
 
 /* =========================================================
@@ -179,6 +264,60 @@ function EmptyState({ icon, title, text, buttonText, onAction }) {
   );
 }
 
+/* ---- Delta Badge (Today vs Yesterday) ---- */
+function DeltaBadge({ delta, label }) {
+  if (!delta) return null;
+  if (delta.direction === "flat") {
+    return (
+      <span
+        className="dash-delta dash-delta--flat"
+        aria-label={`No change ${label ? `in ${label}` : ""} compared to yesterday`}
+      >
+        —
+      </span>
+    );
+  }
+  const Icon = delta.direction === "up" ? ArrowUpRight : ArrowDownRight;
+  return (
+    <span
+      className={`dash-delta dash-delta--${delta.direction}`}
+      aria-label={`${delta.direction === "up" ? "Increased" : "Decreased"} by ${delta.percent.toFixed(0)} percent ${label ? `in ${label}` : ""} compared to yesterday`}
+    >
+      <Icon size={12} strokeWidth={2.4} aria-hidden="true" />
+      <span>{delta.percent.toFixed(0)}%</span>
+    </span>
+  );
+}
+
+/* ---- Live clock — isolated so 1s ticks don't rerender whole Dashboard ---- */
+function LiveClock({ onTimeChange }) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    onTimeChange?.(now);
+  }, [now, onTimeChange]);
+
+  const formattedTime = now.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+
+  return (
+    <span className="dash-hero__chip" role="timer" aria-label="Current time">
+      <Activity size={14} strokeWidth={1.9} aria-hidden="true" />
+      {formattedTime}
+    </span>
+  );
+}
+
+/* ---- Trend Chart (focusable bars) ---- */
 function TrendChart({ days, mode, max, onFormatValue }) {
   const modeLabel = mode === "trips" ? "trip count" : "billing amount";
   const todayIndex = days.length - 1;
@@ -194,6 +333,7 @@ function TrendChart({ days, mode, max, onFormatValue }) {
         const height = value > 0 ? Math.max((value / max) * 100, 6) : 3;
         const display = mode === "billing" ? onFormatValue(value) : value;
         const isToday = i === todayIndex;
+        const unit = mode === "trips" ? (value === 1 ? "trip" : "trips") : "";
 
         return (
           <div
@@ -204,14 +344,20 @@ function TrendChart({ days, mode, max, onFormatValue }) {
               {display}
             </div>
 
-            <div className="dash-trend__bar-wrap">
+            <button
+              type="button"
+              className="dash-trend__bar-wrap"
+              tabIndex={0}
+              title={`${day.label} ${day.shortDate}: ${value} ${unit}`}
+              aria-label={`${day.label} ${day.shortDate}: ${value} ${unit}`}
+            >
               <div
                 className="dash-trend__bar"
                 style={{ height: `${height}%` }}
               >
                 <span className="dash-trend__bar-glow" />
               </div>
-            </div>
+            </button>
 
             <span className="dash-trend__day" aria-hidden="true">
               {day.label}
@@ -251,23 +397,47 @@ function Dashboard({ onNavigate }) {
   const safeAttendance = Array.isArray(staffAttendance) ? staffAttendance : [];
   const safeSalaryPayments = Array.isArray(staffSalaryPayments) ? staffSalaryPayments : [];
 
-  /* ---- Live header ---- */
-  const [currentTime, setCurrentTime] = useState(new Date());
+  /* ---- Live header (clock isolated in LiveClock) ---- */
+  const [nowHeader, setNowHeader] = useState(() => new Date());
   const [location, setLocation] = useState({
     city: "Ranchi",
     state: "Jharkhand",
     country: "India",
     loading: false,
+    denied: false,
   });
   const [trendMode, setTrendMode] = useState("trips");
+  const [overviewRange, setOverviewRange] = useState("today");
+  const [dismissedReminders, setDismissedReminders] = useState(() =>
+    loadDismissedReminders(),
+  );
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
+  const [dashboardPreferences, setDashboardPreferences] = useState(
+    readDashboardPreferences,
+  );
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const refreshPreferences = () =>
+      setDashboardPreferences(readDashboardPreferences());
+    window.addEventListener("saoAutoTractorDataChanged", refreshPreferences);
+    window.addEventListener("storage", refreshPreferences);
+    return () => {
+      window.removeEventListener("saoAutoTractorDataChanged", refreshPreferences);
+      window.removeEventListener("storage", refreshPreferences);
+    };
   }, []);
 
+  const handleClockTick = useRef(null);
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    handleClockTick.current = (newTime) => setNowHeader(newTime);
+  }, []);
+
+  /* ---- Geolocation (unchanged logic, added denied flag) ---- */
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocation((p) => ({ ...p, denied: true }));
+      return;
+    }
 
     setLocation((p) => ({ ...p, loading: true }));
 
@@ -292,6 +462,7 @@ function Dashboard({ onNavigate }) {
             state: address?.state || "Jharkhand",
             country: address?.country || "India",
             loading: false,
+            denied: false,
           });
         } catch {
           setLocation({
@@ -299,6 +470,7 @@ function Dashboard({ onNavigate }) {
             state: "Jharkhand",
             country: "India",
             loading: false,
+            denied: false,
           });
         }
       },
@@ -308,38 +480,43 @@ function Dashboard({ onNavigate }) {
           state: "Jharkhand",
           country: "India",
           loading: false,
+          denied: true,
         });
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
     );
   }, []);
 
-  const currentHour = currentTime.getHours();
+  /* ---- Update lastUpdated whenever data changes ---- */
+  useEffect(() => {
+    setLastUpdated(new Date());
+  }, [safeTrips, safePayments, safeParties, safeTractors]);
+
+  const currentHour = nowHeader.getHours();
   const timeGreeting = getTimeGreeting(currentHour);
   const greeting = timeGreeting.text;
   const GreetingIcon = timeGreeting.icon;
 
-  const formattedTime = currentTime.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  const formattedHeaderDate = currentTime.toLocaleDateString("en-IN", {
+  const formattedHeaderDate = `${nowHeader.toLocaleDateString("en-IN", {
     weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  })} · ${formatDate(nowHeader)}`;
 
   const locationText = location.loading
     ? "Detecting location…"
     : `${location.city}, ${location.state}`;
 
   const today = getTodayISO();
+  const overviewStartDate = useMemo(() => {
+    const now = new Date();
+    if (overviewRange === "month") return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const daysBack = overviewRange === "7days" ? 6 : overviewRange === "30days" ? 29 : 0;
+    now.setDate(now.getDate() - daysBack);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, [overviewRange, nowHeader]);
+  const overviewRangeLabel = overviewRange === "today" ? "Today" : overviewRange === "7days" ? "Last 7 days" : overviewRange === "30days" ? "Last 30 days" : "This month";
+  const yesterday = useMemo(() => getYesterdayISO(), []);
 
-  /* ---- Business calculations ---- */
+  /* ---- Base data partitions ---- */
   const activeTractors = useMemo(() => safeTractors.filter(isActive), [safeTractors]);
   const activeParties = useMemo(() => safeParties.filter(isActive), [safeParties]);
   const activeStaff = useMemo(() => safeStaff.filter(isActive), [safeStaff]);
@@ -352,19 +529,56 @@ function Dashboard({ onNavigate }) {
     () => safePayments.filter((payment) => payment?.date === today),
     [safePayments, today],
   );
+  const overviewTrips = useMemo(() => safeTrips.filter((trip) => {
+    const date = String(trip?.date || "").slice(0, 10);
+    return date >= overviewStartDate && date <= today;
+  }), [safeTrips, overviewStartDate, today]);
+  const overviewPayments = useMemo(() => safePayments.filter((payment) => {
+    const date = String(payment?.date || "").slice(0, 10);
+    return date >= overviewStartDate && date <= today;
+  }), [safePayments, overviewStartDate, today]);
+  const overviewBilling = calculateTotalBilling(overviewTrips);
+  const overviewReceived = calculateTotalReceived(overviewPayments);
+  const yesterdayTrips = useMemo(
+    () => safeTrips.filter((trip) => trip?.date === yesterday),
+    [safeTrips, yesterday],
+  );
+  const yesterdayPayments = useMemo(
+    () => safePayments.filter((payment) => payment?.date === yesterday),
+    [safePayments, yesterday],
+  );
 
+  /* ---- Financials ---- */
   const totalBilling = calculateTotalBilling(safeTrips);
   const totalReceived = calculateTotalReceived(safePayments);
   const outstanding = calculateOutstanding(totalBilling, totalReceived);
   const todayBilling = calculateTotalBilling(todayTrips);
   const todayReceived = calculateTotalReceived(todayPayments);
+  const yesterdayBilling = calculateTotalBilling(yesterdayTrips);
+  const yesterdayReceived = calculateTotalReceived(yesterdayPayments);
 
+  /* ---- Deltas (Today vs Yesterday) ---- */
+  const tripsDelta = useMemo(
+    () => calculateDelta(todayTrips.length, yesterdayTrips.length),
+    [todayTrips.length, yesterdayTrips.length],
+  );
+  const billingDelta = useMemo(
+    () => calculateDelta(todayBilling, yesterdayBilling),
+    [todayBilling, yesterdayBilling],
+  );
+  const receivedDelta = useMemo(
+    () => calculateDelta(todayReceived, yesterdayReceived),
+    [todayReceived, yesterdayReceived],
+  );
+
+  /* ---- Trip summary ---- */
   const todayTripSummary = calculateTripSummary(todayTrips);
   const todayLoading = todayTripSummary?.loading ?? 0;
   const todayUnloading = todayTripSummary?.unloading ?? 0;
   const todaySiteToSite =
     todayTripSummary?.siteToSite ?? todayTripSummary?.site_to_site ?? 0;
 
+  /* ---- Unique counts ---- */
   const todayUniqueVehicles = useMemo(() => {
     const s = new Set(
       todayTrips.map(getTripVehicleNumber).map(normalizeName).filter(Boolean),
@@ -386,6 +600,7 @@ function Dashboard({ onNavigate }) {
     return s.size;
   }, [todayTrips]);
 
+  /* ---- Party / Tractor summaries ---- */
   const todayPartySummary = useMemo(() => {
     const grouped = new Map();
     todayTrips.forEach((trip) => {
@@ -421,6 +636,7 @@ function Dashboard({ onNavigate }) {
     });
   }, [todayTrips]);
 
+  /* ---- Outstanding parties ---- */
   const outstandingParties = useMemo(() => {
     return safeParties
       .map((party) =>
@@ -430,6 +646,7 @@ function Dashboard({ onNavigate }) {
       .sort((a, b) => Number(b?.outstanding || 0) - Number(a?.outstanding || 0));
   }, [safeParties, safeTrips, safePayments]);
 
+  /* ---- Idle tractors ---- */
   const idleTractors = useMemo(() => {
     const todayVehicleNames = new Set(
       todayTrips.map(getTripVehicleNumber).map(normalizeName).filter(Boolean),
@@ -440,7 +657,37 @@ function Dashboard({ onNavigate }) {
     });
   }, [activeTractors, todayTrips]);
 
-  const smartReminders = useMemo(() => {
+  /* ---- Fleet utilization ---- */
+  const fleetUtilization = useMemo(() => {
+    const total = activeTractors.length;
+    if (total === 0) return { active: 0, total: 0, percent: 0 };
+    const active = todayUniqueVehicles;
+    return {
+      active,
+      total,
+      percent: Math.round((active / total) * 100),
+    };
+  }, [activeTractors.length, todayUniqueVehicles]);
+
+  /* ---- Attendance today ---- */
+  const attendanceToday = useMemo(() => {
+    const records = safeAttendance.filter((a) => {
+      const d = (a?.date || "").slice(0, 10);
+      return d === today;
+    });
+    const present = records.filter((r) => {
+      const status = String(r?.status || "").toLowerCase();
+      return status === "present" || status === "p" || status === "full";
+    }).length;
+    const absent = records.filter((r) => {
+      const status = String(r?.status || "").toLowerCase();
+      return status === "absent" || status === "a";
+    }).length;
+    return { present, absent, total: records.length };
+  }, [safeAttendance, today]);
+
+  /* ---- Smart reminders (with dismissal) ---- */
+  const smartRemindersAll = useMemo(() => {
     const reminders = [];
     outstandingParties
       .filter((p) => p.outstanding > 50000)
@@ -466,9 +713,44 @@ function Dashboard({ onNavigate }) {
       });
     });
 
-    return reminders;
-  }, [outstandingParties, idleTractors]);
+    const dueSoon = (dateValue) => {
+      if (!dateValue) return null;
+      const due = new Date(`${dateValue}T00:00:00`);
+      if (Number.isNaN(due.getTime())) return null;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const days = Math.ceil((due - today) / 86400000);
+      return days <= 30 ? days : null;
+    };
+    safeTractors.forEach((tractor) => {
+      const vehicle = getVehicleNumber(tractor);
+      [["insuranceExpiryDate", "Insurance"], ["registrationExpiryDate", "Registration"], ["fitnessExpiryDate", "Fitness"], ["pucExpiryDate", "PUC"], ["nextServiceDate", "Service"]].forEach(([field, label]) => {
+        const days = dueSoon(tractor?.[field]);
+        if (days === null) return;
+        reminders.push({ id: `fleet-date-${vehicle}-${field}`, message: `${vehicle}: ${label} ${days < 0 ? `overdue by ${Math.abs(days)} days` : days === 0 ? "due today" : `due in ${days} days`}`, severity: days <= 7 ? "high" : "medium", action: "tractors", label: `${label} reminder` });
+      });
+    });
+    safeStaff.forEach((member) => {
+      const days = dueSoon(member?.licenseExpiryDate);
+      if (days === null || !member?.driverLicenseNumber) return;
+      reminders.push({ id: `license-${member.id}`, message: `${member.name}: driving licence ${days < 0 ? `expired ${Math.abs(days)} days ago` : days === 0 ? "expires today" : `expires in ${days} days`}`, severity: days <= 7 ? "high" : "medium", action: "staff", label: "Driver licence" });
+    });
 
+    return reminders;
+  }, [outstandingParties, idleTractors, safeTractors, safeStaff]);
+
+  const smartReminders = useMemo(
+    () => smartRemindersAll.filter((r) => !dismissedReminders[r.id]),
+    [smartRemindersAll, dismissedReminders],
+  );
+
+  const handleDismissReminder = (id, event) => {
+    event?.stopPropagation?.();
+    const next = { ...dismissedReminders, [id]: Date.now() };
+    setDismissedReminders(next);
+    saveDismissedReminders(next);
+  };
+
+  /* ---- Recent trips & payments ---- */
   const recentTrips = useMemo(
     () =>
       [...safeTrips]
@@ -492,6 +774,7 @@ function Dashboard({ onNavigate }) {
     [safePayments],
   );
 
+  /* ---- Tractor performance ---- */
   const tractorSummary = useMemo(() => {
     return activeTractors
       .map((tractor) => {
@@ -532,6 +815,7 @@ function Dashboard({ onNavigate }) {
       .slice(0, 5);
   }, [activeTractors, safeTrips]);
 
+  /* ---- Staff salary ---- */
   const staffSalarySummary = useMemo(() => {
     if (!safeStaff.length) return { gross: 0, advance: 0, paid: 0, balance: 0 };
 
@@ -570,6 +854,7 @@ function Dashboard({ onNavigate }) {
       ? Math.min(Math.max((totalReceived / totalBilling) * 100, 0), 100)
       : 0;
 
+  /* ---- Last 7 days ---- */
   const lastSevenDays = useMemo(() => {
     const days = [];
     for (let index = 6; index >= 0; index -= 1) {
@@ -596,7 +881,10 @@ function Dashboard({ onNavigate }) {
     return Math.max(...values, 1);
   }, [lastSevenDays, trendMode]);
 
-  /* ---- Handlers (unchanged) ---- */
+  /* =========================================================
+     HANDLERS
+     ========================================================= */
+
   const handleExportReport = () => {
     const headers = ["Date", "Trips", "Billing (INR)"];
     const rows = lastSevenDays.map((day) => [
@@ -625,9 +913,32 @@ function Dashboard({ onNavigate }) {
       `---%0A` +
       `SAO AUTO TRACTOR`;
 
-    window.open(`https://wa.me/?text=${message}`, "_blank");
+    const win = window.open(`https://wa.me/?text=${message}`, "_blank");
+    if (!win) {
+      // eslint-disable-next-line no-alert
+      alert("Please allow popups to share on WhatsApp.");
+    }
   };
 
+  const handleWhatsAppReminder = (party) => {
+    const message =
+      `Dear ${party.partyName},%0A%0A` +
+      `This is a gentle reminder from SAO AUTO TRACTOR.%0A` +
+      `Your outstanding balance is ${formatCurrency(party.outstanding, "INR", 0)}.%0A%0A` +
+      `Kindly arrange the payment at your earliest.%0A%0A` +
+      `Thank you,%0A` +
+      `SAO AUTO TRACTOR`;
+
+    const win = window.open(`https://wa.me/?text=${message}`, "_blank");
+    if (!win) {
+      // eslint-disable-next-line no-alert
+      alert("Please allow popups to send WhatsApp messages.");
+    }
+  };
+
+  const handleNavigate = (page) => onNavigate?.(page);
+
+  /* ---- Recent activity (merged timeline) ---- */
   const recentActivity = useMemo(() => {
     const tripActivities = safeTrips.map((trip) => ({
       id: `trip-${trip?.id || getTripDateValue(trip)}`,
@@ -641,11 +952,11 @@ function Dashboard({ onNavigate }) {
 
     const paymentActivities = safePayments.map((payment) => ({
       id: `payment-${payment?.id || payment?.createdAt || payment?.date}`,
-      type: "payment",
+      type: isPaymentReversed(payment) ? "reversal" : "payment",
       date: payment?.createdAt || payment?.date,
-      title: "Payment received",
+      title: isPaymentReversed(payment) ? "Receipt reversed" : "Payment received",
       name: payment?.partyName || "Unknown Party",
-      detail: payment?.paymentMode || "Payment",
+      detail: isPaymentReversed(payment) ? payment?.reversalReason || "Reversed" : payment?.paymentMode || "Payment",
       amount: Number(payment?.amount || 0),
     }));
 
@@ -654,7 +965,15 @@ function Dashboard({ onNavigate }) {
       .slice(0, 6);
   }, [safeTrips, safePayments]);
 
-  const handleNavigate = (page) => onNavigate?.(page);
+  /* ---- Last updated label ---- */
+  const lastUpdatedLabel = useMemo(() => {
+    const diff = Date.now() - lastUpdated.getTime();
+    if (diff < 60_000) return "Just now";
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}h ago`;
+  }, [lastUpdated, nowHeader]);
 
   /* =========================================================
      RENDER
@@ -662,9 +981,6 @@ function Dashboard({ onNavigate }) {
 
   return (
     <div className="dash">
-      {/* ============ SKIP for a11y ============ */}
-      {/* Already handled globally in App.jsx */}
-
       {/* =============================================
           HERO — Executive command center
           ============================================= */}
@@ -708,13 +1024,18 @@ function Dashboard({ onNavigate }) {
                 <CalendarDays size={14} strokeWidth={1.9} aria-hidden="true" />
                 {formattedHeaderDate}
               </span>
-              <span className="dash-hero__chip" aria-live="polite">
-                <Activity size={14} strokeWidth={1.9} aria-hidden="true" />
-                {formattedTime}
-              </span>
+
+              {/* Isolated live clock — prevents whole-Dashboard rerender */}
+              <LiveClock onTimeChange={handleClockTick.current} />
+
               <span className="dash-hero__chip">
                 <MapPin size={14} strokeWidth={1.9} aria-hidden="true" />
                 {locationText}
+              </span>
+
+              <span className="dash-hero__chip dash-hero__chip--updated">
+                <Clock3 size={13} strokeWidth={1.9} aria-hidden="true" />
+                Updated {lastUpdatedLabel}
               </span>
             </div>
           </div>
@@ -737,37 +1058,109 @@ function Dashboard({ onNavigate }) {
           ============================================= */}
       <section
         className="dash-kpis"
-        aria-label="Today's primary business metrics"
-        aria-live="polite"
+        aria-label={`${overviewRangeLabel} primary business metrics`}
       >
-        <StatCard
-          label="Today's Trips"
-          value={todayTrips.length}
-          icon={<Activity size={18} strokeWidth={1.9} aria-hidden="true" />}
-          accent="primary"
-        />
-        <StatCard
-          label="Today's Billing"
-          value={todayBilling}
-          icon={<IndianRupee size={18} strokeWidth={1.9} aria-hidden="true" />}
-          format="currency"
-          accent="brass"
-        />
-        <StatCard
-          label="Received Today"
-          value={todayReceived}
-          icon={<ArrowDownToLine size={18} strokeWidth={1.9} aria-hidden="true" />}
-          format="currency"
-          accent="success"
-        />
-        <StatCard
-          label="Outstanding"
-          value={outstanding}
-          icon={<ArrowUpFromLine size={18} strokeWidth={1.9} aria-hidden="true" />}
-          format="currency"
-          accent="danger"
-        />
+        <div className="dash-range-control">
+          <label htmlFor="dashboard-overview-range">Summary period</label>
+          <select id="dashboard-overview-range" value={overviewRange} onChange={(event) => setOverviewRange(event.target.value)}>
+            <option value="today">Today</option>
+            <option value="7days">Last 7 days</option>
+            <option value="30days">Last 30 days</option>
+            <option value="month">This month</option>
+          </select>
+        </div>
+        {dashboardPreferences.showTodayTrips && <button
+          type="button"
+          className="dash-kpi-btn"
+          onClick={() => handleNavigate("records")}
+          aria-label={`View ${overviewRangeLabel.toLowerCase()} trips`}
+        >
+          <StatCard
+            label={overviewRange === "today" ? "Today's Trips" : `${overviewRangeLabel} Trips`}
+            value={overviewTrips.length}
+            description={overviewTrips.length ? `Trips in ${overviewRangeLabel.toLowerCase()}` : safeTrips.length ? `No trips in ${overviewRangeLabel.toLowerCase()}` : "No trip records yet"}
+            icon={<Activity size={18} strokeWidth={1.9} aria-hidden="true" />}
+            accent="primary"
+          />
+          {overviewRange === "today" && <div className="dash-kpi-btn__delta">
+            <DeltaBadge delta={tripsDelta} label="trips" />
+          </div>}
+        </button>}
+
+        {dashboardPreferences.showBilling && <button
+          type="button"
+          className="dash-kpi-btn"
+          onClick={() => handleNavigate("billing")}
+          aria-label={`View ${overviewRangeLabel.toLowerCase()} billing`}
+        >
+          <StatCard
+            label={overviewRange === "today" ? "Today's Billing" : `${overviewRangeLabel} Billing`}
+            value={overviewBilling}
+            description={overviewTrips.length ? `From trips in ${overviewRangeLabel.toLowerCase()}` : `No billing in ${overviewRangeLabel.toLowerCase()}`}
+            icon={<IndianRupee size={18} strokeWidth={1.9} aria-hidden="true" />}
+            format="currency"
+            accent="brass"
+          />
+          {overviewRange === "today" && <div className="dash-kpi-btn__delta">
+            <DeltaBadge delta={billingDelta} label="billing" />
+          </div>}
+        </button>}
+
+        {dashboardPreferences.showReceived && <button
+          type="button"
+          className="dash-kpi-btn"
+          onClick={() => handleNavigate("payments")}
+          aria-label={`View ${overviewRangeLabel.toLowerCase()} received payments`}
+        >
+          <StatCard
+            label={`Received · ${overviewRangeLabel}`}
+            value={overviewReceived}
+            description={overviewPayments.length ? `Payments in ${overviewRangeLabel.toLowerCase()}` : `No payments in ${overviewRangeLabel.toLowerCase()}`}
+            icon={<ArrowDownToLine size={18} strokeWidth={1.9} aria-hidden="true" />}
+            format="currency"
+            accent="success"
+          />
+          {overviewRange === "today" && <div className="dash-kpi-btn__delta">
+            <DeltaBadge delta={receivedDelta} label="received" />
+          </div>}
+        </button>}
+
+        {dashboardPreferences.showDue && <button
+          type="button"
+          className="dash-kpi-btn"
+          onClick={() => handleNavigate("outstanding")}
+          aria-label="View outstanding dues"
+        >
+          <StatCard
+            label="Outstanding"
+            value={outstanding}
+            description={safeTrips.length ? "Across all trip records" : "Record trips to calculate dues"}
+            icon={<ArrowUpFromLine size={18} strokeWidth={1.9} aria-hidden="true" />}
+            format="currency"
+            accent="danger"
+          />
+        </button>}
       </section>
+
+      {todayTrips.length === 0 && (
+        <div className="dash-first-trip" role="status">
+          <div className="dash-first-trip__copy">
+            <strong>{safeTrips.length === 0 ? "No trips recorded yet" : "No trips recorded today"}</strong>
+            <span>
+              {safeTrips.length === 0
+                ? "Add your first trip to start seeing daily activity and billing here."
+                : `${safeTrips.length} trip${safeTrips.length === 1 ? "" : "s"} in your records. Add today's work when ready.`}
+            </span>
+          </div>
+          <Button
+            variant="secondary"
+            icon={<Plus size={15} strokeWidth={2.2} aria-hidden="true" />}
+            onClick={() => handleNavigate("add-trip")}
+          >
+            {safeTrips.length === 0 ? "Record first trip" : "Add today's trip"}
+          </Button>
+        </div>
+      )}
 
       {/* =============================================
           TODAY SNAPSHOT
@@ -777,16 +1170,16 @@ function Dashboard({ onNavigate }) {
           id="today-overview-title"
           eyebrow="TODAY'S OVERVIEW"
           title="Today's Business"
-          description="A complete snapshot of today's transport activity."
+          description="Fleet, parties and materials active today."
+          actionText="Open work report"
+          onAction={() => handleNavigate("date-wise")}
         />
 
         <Card className="dash-today">
           <div className="dash-today__grid">
             {[
-              { icon: <Activity size={16} strokeWidth={2} aria-hidden="true" />, label: "Trips", value: todayTrips.length, primary: true },
-              { icon: <Tractor size={16} strokeWidth={2} aria-hidden="true" />, label: "Tractors", value: todayUniqueVehicles },
-              { icon: <Users size={16} strokeWidth={2} aria-hidden="true" />, label: "Parties", value: todayUniqueParties },
-              { icon: <Package size={16} strokeWidth={2} aria-hidden="true" />, label: "Materials", value: todayUniqueMaterials },
+              { icon: <Users size={16} strokeWidth={2} aria-hidden="true" />, label: "Parties Served", value: todayUniqueParties, detail: "customers today" },
+              { icon: <Package size={16} strokeWidth={2} aria-hidden="true" />, label: "Materials Moved", value: todayUniqueMaterials, detail: "material types" },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -798,50 +1191,32 @@ function Dashboard({ onNavigate }) {
                 <div className="dash-today__body">
                   <span>{stat.label}</span>
                   <strong>{stat.value}</strong>
+                  <small>{stat.detail}</small>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="dash-today__financial">
-            <div className="dash-today__fin-item">
-              <span className="dash-today__fin-label">Billing</span>
-              <strong className="dash-today__fin-value">
-                {formatCurrency(todayBilling, "INR", 0)}
-              </strong>
+          {dashboardPreferences.showTractors && <div className="dash-today__util">
+            <div className="dash-today__util-icon" aria-hidden="true">
+              <Percent size={14} strokeWidth={2} />
             </div>
-            <div className="dash-today__fin-divider" aria-hidden="true" />
-            <div className="dash-today__fin-item">
-              <span className="dash-today__fin-label">Received</span>
-              <strong className="dash-today__fin-value dash-today__fin-value--ok">
-                {formatCurrency(todayReceived, "INR", 0)}
-              </strong>
+            <div className="dash-today__util-text">
+              <span>Fleet utilization</span>
+              <strong>{fleetUtilization.active} of {fleetUtilization.total} active tractors used today</strong>
             </div>
-          </div>
-
-          <div className="dash-today__breakdown">
-            {[
-              { label: "Loading", value: todayLoading, tone: "loading" },
-              { label: "Unloading", value: todayUnloading, tone: "unloading" },
-              { label: "Site to Site", value: todaySiteToSite, tone: "site" },
-            ].map((b) => (
-              <div key={b.label} className="dash-today__chip">
-                <span className="dash-today__chip-label">{b.label}</span>
-                <strong className="dash-today__chip-value">{b.value}</strong>
-              </div>
-            ))}
-          </div>
-
-          <footer className="dash-today__footer">
-            <button
-              type="button"
-              className="dash-today__cta"
-              onClick={() => handleNavigate("datewise")}
+            <div
+              className="dash-today__util-bar"
+              role="progressbar"
+              aria-valuenow={fleetUtilization.percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Fleet utilization: ${fleetUtilization.percent}%`}
             >
-              <span>Open today's work report</span>
-              <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-          </footer>
+              <div className="dash-today__util-fill" style={{ width: `${fleetUtilization.percent}%` }} />
+            </div>
+            <strong className="dash-today__util-pct">{fleetUtilization.percent}%</strong>
+          </div>}
         </Card>
       </section>
 
@@ -855,7 +1230,7 @@ function Dashboard({ onNavigate }) {
           title="What Happened Today"
           description="Today's work by trip type, party and tractor."
           actionText="View report"
-          onAction={() => handleNavigate("datewise")}
+          onAction={() => handleNavigate("date-wise")}
         />
 
         <Card className="dash-ops">
@@ -921,7 +1296,7 @@ function Dashboard({ onNavigate }) {
                 moreLabel: "tractors",
                 total: todayTractorSummary.length,
               },
-            ].map((col) => (
+            ].filter((col) => dashboardPreferences.showTractors || col.key !== "vehicle").map((col) => (
               <div key={col.title} className="dash-ops__col">
                 <div className="dash-ops__col-head">
                   <div>
@@ -965,7 +1340,7 @@ function Dashboard({ onNavigate }) {
                   <button
                     type="button"
                     className="dash-ops__more"
-                    onClick={() => handleNavigate("datewise")}
+                    onClick={() => handleNavigate("date-wise")}
                   >
                     <span>View all {col.total} {col.moreLabel}</span>
                     <ArrowRight size={13} strokeWidth={2.2} aria-hidden="true" />
@@ -979,7 +1354,7 @@ function Dashboard({ onNavigate }) {
             <button
               type="button"
               className="dash-ops__footer-btn"
-              onClick={() => handleNavigate("datewise")}
+              onClick={() => handleNavigate("date-wise")}
             >
               <span>Open complete today's work report</span>
               <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -1132,24 +1507,35 @@ function Dashboard({ onNavigate }) {
               <ul className="dash-rem__list" role="list">
                 {smartReminders.map((reminder) => (
                   <li key={reminder.id}>
-                    <button
-                      type="button"
-                      className="dash-rem__item"
-                      onClick={() => handleNavigate(reminder.action)}
-                    >
-                      <span
-                        className={`dash-rem__dot is-${reminder.severity}`}
-                        aria-hidden="true"
-                      />
-                      <span className="sr-only">{reminder.label}: </span>
-                      <span className="dash-rem__msg">{reminder.message}</span>
-                      <ArrowRight
-                        size={12}
-                        strokeWidth={2.2}
-                        className="dash-rem__arrow"
-                        aria-hidden="true"
-                      />
-                    </button>
+                    <div className="dash-rem__row">
+                      <button
+                        type="button"
+                        className="dash-rem__item"
+                        onClick={() => handleNavigate(reminder.action)}
+                      >
+                        <span
+                          className={`dash-rem__dot is-${reminder.severity}`}
+                          aria-hidden="true"
+                        />
+                        <span className="sr-only">{reminder.label}: </span>
+                        <span className="dash-rem__msg">{reminder.message}</span>
+                        <ArrowRight
+                          size={12}
+                          strokeWidth={2.2}
+                          className="dash-rem__arrow"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="dash-rem__dismiss"
+                        onClick={(e) => handleDismissReminder(reminder.id, e)}
+                        aria-label={`Dismiss reminder: ${reminder.message}`}
+                        title="Dismiss for 24 hours"
+                      >
+                        <X size={12} strokeWidth={2.4} aria-hidden="true" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1223,7 +1609,7 @@ function Dashboard({ onNavigate }) {
       {/* =============================================
           ACTIVITY
           ============================================= */}
-      <section aria-labelledby="activity-title">
+      {dashboardPreferences.showRecentRecords && <section aria-labelledby="activity-title">
         <Card className="dash-activity">
           <header className="dash-card-head">
             <div>
@@ -1249,11 +1635,11 @@ function Dashboard({ onNavigate }) {
                 <li key={item.id} className="dash-activity__item">
                   <span
                     className={`dash-activity__icon ${
-                      item.type === "payment" ? "is-payment" : "is-trip"
+                      item.type !== "trip" ? "is-payment" : "is-trip"
                     }`}
                     aria-hidden="true"
                   >
-                    {item.type === "payment" ? (
+                    {item.type !== "trip" ? (
                       <IndianRupee size={15} strokeWidth={2} />
                     ) : (
                       <Truck size={15} strokeWidth={2} />
@@ -1281,12 +1667,12 @@ function Dashboard({ onNavigate }) {
             </ul>
           )}
         </Card>
-      </section>
+      </section>}
 
       {/* =============================================
           RECENT TRIPS + PAYMENTS
           ============================================= */}
-      <section className="dash-main">
+      {dashboardPreferences.showRecentRecords && <section className="dash-main">
         <Card className="dash-panel">
           <header className="dash-card-head">
             <div>
@@ -1403,14 +1789,14 @@ function Dashboard({ onNavigate }) {
                       {payment?.partyName || "Unknown Party"}
                     </strong>
                     <span>
-                      {payment?.paymentMode || "Payment"}
+                      {isPaymentReversed(payment) ? `Reversed · ${payment?.reversalReason || "Reason not recorded"}` : payment?.paymentMode || "Payment"}
                       {payment?.referenceNo ? ` • ${payment.referenceNo}` : ""}
                     </span>
                   </div>
 
                   <div className="dash-list__meta">
                     <strong className="dash-list__amount">
-                      {formatCurrency(payment?.amount, "INR", 0)}
+                      {formatCurrency(getActivePaymentAmount(payment), "INR", 0)}
                     </strong>
                     <span>{formatDate(payment?.date)}</span>
                   </div>
@@ -1419,13 +1805,13 @@ function Dashboard({ onNavigate }) {
             </ul>
           )}
         </Card>
-      </section>
+      </section>}
 
       {/* =============================================
           FLEET + FINANCIAL
           ============================================= */}
-      <section className="dash-split dash-split--fleet">
-        <Card className="dash-fleet">
+      <section className={`dash-split dash-split--fleet${dashboardPreferences.showTractors ? "" : " dash-split--finance-only"}`}>
+        {dashboardPreferences.showTractors && <Card className="dash-fleet">
           <header className="dash-card-head">
             <div>
               <span className="dash-eyebrow">FLEET PERFORMANCE</span>
@@ -1480,7 +1866,7 @@ function Dashboard({ onNavigate }) {
               ))}
             </ul>
           )}
-        </Card>
+        </Card>}
 
         <Card className="dash-fin">
           <header className="dash-card-head">
@@ -1494,18 +1880,18 @@ function Dashboard({ onNavigate }) {
           </header>
 
           <div className="dash-fin__list">
-            <div className="dash-fin__row">
+            {dashboardPreferences.showBilling && <div className="dash-fin__row">
               <span>Total Billing</span>
               <strong>{formatCurrency(totalBilling, "INR", 0)}</strong>
-            </div>
-            <div className="dash-fin__row">
+            </div>}
+            {dashboardPreferences.showReceived && <div className="dash-fin__row">
               <span>Total Received</span>
               <strong className="is-ok">{formatCurrency(totalReceived, "INR", 0)}</strong>
-            </div>
-            <div className="dash-fin__row">
+            </div>}
+            {dashboardPreferences.showDue && <div className="dash-fin__row">
               <span>Outstanding</span>
               <strong className="is-due">{formatCurrency(outstanding, "INR", 0)}</strong>
-            </div>
+            </div>}
           </div>
 
           <div className="dash-fin__progress">
@@ -1556,25 +1942,42 @@ function Dashboard({ onNavigate }) {
           {outstandingParties.length === 0 ? (
             <EmptyState
               icon={<WalletCards size={20} strokeWidth={1.9} aria-hidden="true" />}
-              title="No outstanding dues"
-              text="All party balances are currently clear."
+              title={safeTrips.length ? "No outstanding dues" : "No balances to show"}
+              text={safeTrips.length
+                ? "All party balances are currently clear."
+                : "Record a trip first; party balances will appear here once billing exists."}
             />
           ) : (
             <ul className="dash-out__list" role="list">
               {outstandingParties.slice(0, 5).map((party) => (
                 <li key={party.partyName} className="dash-out__item">
-                  <div className="dash-out__left">
+                  <button
+                    type="button"
+                    className="dash-out__left dash-out__left--btn"
+                    onClick={() => handleNavigate("party-ledger")}
+                    aria-label={`Open ledger for ${party.partyName}`}
+                    title="Open party ledger"
+                  >
                     <strong title={party.partyName}>{party.partyName}</strong>
                     <span>
                       {party.tripCount} {party.tripCount === 1 ? "trip" : "trips"}
                     </span>
-                  </div>
+                  </button>
                   <div className="dash-out__right">
                     <strong className="dash-out__amount">
                       {formatCurrency(party.outstanding, "INR", 0)}
                     </strong>
                     <span>Due</span>
                   </div>
+                  <button
+                    type="button"
+                    className="dash-out__wa"
+                    onClick={() => handleWhatsAppReminder(party)}
+                    aria-label={`Send WhatsApp reminder to ${party.partyName}`}
+                    title="Send WhatsApp reminder"
+                  >
+                    <MessageCircle size={14} strokeWidth={2} aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -1613,21 +2016,40 @@ function Dashboard({ onNavigate }) {
               onAction={() => handleNavigate("staff")}
             />
           ) : (
-            <div className="dash-staff__grid">
-              {[
-                { label: "Total Staff", value: safeStaff.length },
-                { label: "Active Staff", value: activeStaff.length },
-                { label: "Attendance Records", value: safeAttendance.length },
-                { label: "Salary Paid", value: formatCurrency(staffSalarySummary.paid, "INR", 0) },
-                { label: "Advance", value: formatCurrency(staffSalarySummary.advance, "INR", 0) },
-                { label: "Salary Balance", value: formatCurrency(staffSalarySummary.balance, "INR", 0) },
-              ].map((stat) => (
-                <div key={stat.label} className="dash-staff__cell">
-                  <span>{stat.label}</span>
-                  <strong>{stat.value}</strong>
+            <>
+              {/* Attendance today strip */}
+              <div className="dash-staff__attn">
+                <div className="dash-staff__attn-icon" aria-hidden="true">
+                  <UserCheck size={14} strokeWidth={2} />
                 </div>
-              ))}
-            </div>
+                <div className="dash-staff__attn-text">
+                  <span>Today's Attendance</span>
+                  <strong>
+                    {attendanceToday.present} present
+                    {attendanceToday.absent > 0 && ` • ${attendanceToday.absent} absent`}
+                  </strong>
+                </div>
+                <span className="dash-staff__attn-total">
+                  {attendanceToday.total} record{attendanceToday.total === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <div className="dash-staff__grid">
+                {[
+                  { label: "Total Staff", value: safeStaff.length },
+                  { label: "Active Staff", value: activeStaff.length },
+                  { label: "Attendance Records", value: safeAttendance.length },
+                  { label: "Salary Paid", value: formatCurrency(staffSalarySummary.paid, "INR", 0) },
+                  { label: "Advance", value: formatCurrency(staffSalarySummary.advance, "INR", 0) },
+                  { label: "Salary Balance", value: formatCurrency(staffSalarySummary.balance, "INR", 0) },
+                ].map((stat) => (
+                  <div key={stat.label} className="dash-staff__cell">
+                    <span>{stat.label}</span>
+                    <strong>{stat.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </Card>
       </section>

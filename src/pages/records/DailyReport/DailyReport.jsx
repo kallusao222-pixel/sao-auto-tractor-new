@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import "./DailyReport.css";
+import { getLocalDateKey, getReportTripDate, normalizeReportDate } from "../../../utils/reporting";
 
 const TRIPS_KEY = "saoAutoTractorTrips";
 
@@ -47,30 +48,14 @@ function readStorage(key) {
    ============================================================ */
 
 function formatDate(dateStr) {
-  if (!dateStr) return "-";
+  const normalized = normalizeReportDate(dateStr);
+  if (!normalized) return "-";
+  const [year, month, day] = normalized.split("-");
 
-  const date = new Date(dateStr);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return `${day}/${month}/${year}`;
 }
 
-function todayISO() {
-  const date = new Date();
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
+const todayISO = getLocalDateKey;
 
 function shiftDate(dateString, days) {
   const date = new Date(`${dateString}T00:00:00`);
@@ -221,7 +206,7 @@ function getDisplaySite(trip) {
 
 function getTripCount(trip) {
   const rawQuantity =
-    trip?.quantity ??
+    trip?.tripCount ??
     trip?.trips ??
     1;
 
@@ -263,7 +248,8 @@ function getCountedTripQuantity(trip) {
    ============================================================ */
 
 function escapeCsvValue(value) {
-  const text = String(value ?? "");
+  let text = String(value ?? "");
+  if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
 
   if (
     text.includes(",") ||
@@ -301,13 +287,12 @@ export default function DailyReport() {
 
   useEffect(() => {
     loadTrips();
-
-    const interval = window.setInterval(() => {
-      loadTrips();
-    }, 2000);
+    window.addEventListener("storage", loadTrips);
+    window.addEventListener("saoAutoTractorDataChanged", loadTrips);
 
     return () => {
-      window.clearInterval(interval);
+      window.removeEventListener("storage", loadTrips);
+      window.removeEventListener("saoAutoTractorDataChanged", loadTrips);
     };
   }, []);
 
@@ -369,14 +354,7 @@ export default function DailyReport() {
 
   const dayTrips = useMemo(() => {
     return trips.filter((trip) => {
-      const tripDate =
-        trip?.date ??
-        trip?.createdAt ??
-        "";
-
-      const normalizedDate = String(tripDate).split("T")[0];
-
-      return normalizedDate === selectedDate;
+      return getReportTripDate(trip) === selectedDate;
     });
   }, [trips, selectedDate]);
 
@@ -565,10 +543,7 @@ export default function DailyReport() {
     ];
 
     const rows = filteredTrips.map((trip) => {
-      const tripDate =
-        trip?.date ??
-        trip?.createdAt ??
-        selectedDate;
+      const tripDate = getReportTripDate(trip) || selectedDate;
 
       return [
         formatDate(tripDate),
@@ -680,10 +655,7 @@ export default function DailyReport() {
 
                   <tbody>
                     {filteredTrips.map((trip, index) => {
-                      const tripDate =
-                        trip?.date ??
-                        trip?.createdAt ??
-                        selectedDate;
+                      const tripDate = getReportTripDate(trip) || selectedDate;
 
                       return (
                         <tr
@@ -1196,10 +1168,7 @@ export default function DailyReport() {
 
                 <tbody>
                   {filteredTrips.map((trip, index) => {
-                    const tripDate =
-                      trip?.date ??
-                      trip?.createdAt ??
-                      selectedDate;
+                    const tripDate = getReportTripDate(trip) || selectedDate;
 
                     return (
                       <tr

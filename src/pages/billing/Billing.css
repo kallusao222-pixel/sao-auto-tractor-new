@@ -154,6 +154,17 @@
   white-space: nowrap;
 }
 
+.payment-reversed-label,
+.payment-correction-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.payment-reversed-label { color: var(--color-danger, #a14c46); }
+.payment-correction-label { color: var(--color-text-muted, #6d675e); }
+
 .billing-btn:hover {
   transform: translateY(-1px);
 }

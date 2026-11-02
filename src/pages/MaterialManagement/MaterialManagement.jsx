@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Activity,
+  Archive,
   CheckCircle2,
   Edit3,
   Eye,
@@ -9,7 +10,6 @@ import {
   Plus,
   Printer,
   Search,
-  Trash2,
   X,
   CalendarDays,
   FileBarChart,
@@ -31,6 +31,7 @@ import "./MaterialManagement.css";
 
 const EMPTY_FORM = {
   materialName: "",
+  category: "",
   unit: "Trip",
   defaultRate: "",
   status: "active",
@@ -246,6 +247,8 @@ function MaterialForm({
   initialValue,
   onCancel,
   onSave,
+  externalError = "",
+  onFieldChange,
 }) {
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
@@ -270,6 +273,7 @@ function MaterialForm({
     }));
 
     if (error) setError("");
+    onFieldChange?.();
   };
 
   const handleSubmit = (event) => {
@@ -302,6 +306,7 @@ function MaterialForm({
     onSave({
       ...form,
       materialName,
+      category: form.category.trim(),
       unit:
         form.unit || "Trip",
       defaultRate:
@@ -352,12 +357,12 @@ function MaterialForm({
         className="material-form"
         onSubmit={handleSubmit}
       >
-        {error && (
+        {(error || externalError) && (
           <div
             className="material-form-error"
             role="alert"
           >
-            {error}
+            {error || externalError}
           </div>
         )}
 
@@ -372,6 +377,17 @@ function MaterialForm({
               value={form.materialName}
               onChange={handleChange}
               placeholder="e.g. Sand, Stone, Soil"
+              autoComplete="off"
+            />
+          </label>
+
+          <label className="material-field">
+            <span>Category <small>(optional)</small></span>
+            <input
+              name="category"
+              value={form.category || ""}
+              onChange={handleChange}
+              placeholder="e.g. Aggregate, Soil"
               autoComplete="off"
             />
           </label>
@@ -413,6 +429,9 @@ function MaterialForm({
                 inputMode="decimal"
               />
             </div>
+            <small className="material-field-hint">
+              Used to prefill new trips. Existing trip rates stay unchanged.
+            </small>
           </label>
 
           <label className="material-field">
@@ -459,6 +478,7 @@ function MaterialDetails({
   trips,
   onClose,
   onEdit,
+  onAddTrip,
 }) {
   const today = getTodayISO();
 
@@ -981,6 +1001,16 @@ const handleConfirmPrint = () => {
 
           <Button
             type="button"
+            disabled={normalize(material?.status) === "inactive"}
+            title={normalize(material?.status) === "inactive" ? "Activate this material before adding a trip" : "Start a trip using this material and its default rate"}
+            onClick={() => onAddTrip?.(material)}
+          >
+            <Plus size={16} strokeWidth={1.9} />
+            Add Trip with Material
+          </Button>
+
+          <Button
+            type="button"
             onClick={() =>
               onEdit(material)
             }
@@ -1312,7 +1342,7 @@ const handleConfirmPrint = () => {
   );
 }
 
-function MaterialManagement() {
+function MaterialManagement({ onAddTrip }) {
   const {
     materials = [],
     trips = [],
@@ -1349,6 +1379,9 @@ function MaterialManagement() {
 
   const [deleteTarget, setDeleteTarget] =
     useState(null);
+
+  const [formError, setFormError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const summary = useMemo(() => {
     const active =
@@ -1419,7 +1452,8 @@ function MaterialManagement() {
               ).includes(query) ||
               normalize(
                 material?.unit,
-              ).includes(query);
+              ).includes(query) ||
+              normalize(material?.category).includes(query);
 
             const materialStatus =
               normalize(
@@ -1511,6 +1545,7 @@ function MaterialManagement() {
 
     const headers = [
       "Material Name",
+      "Category",
       "Unit",
       "Default Rate",
       "Total Trips",
@@ -1531,6 +1566,7 @@ function MaterialManagement() {
           return [
             material?.materialName ||
               "",
+            material?.category || "",
             material?.unit ||
               "Trip",
             material?.defaultRate ||
@@ -1547,11 +1583,18 @@ function MaterialManagement() {
         },
       );
 
+    const escapeCell = (value) => {
+      let cell = String(value ?? "");
+      if (/^[\t\r ]*[=+\-@]/.test(cell)) cell = `'${cell}`;
+      return /[",\n\r]/.test(cell)
+        ? `"${cell.replace(/"/g, '""')}"`
+        : cell;
+    };
     const csvContent = [
-      headers.join(","),
+      headers.map(escapeCell).join(","),
       ...rows.map(
         (row) =>
-          row.join(","),
+          row.map(escapeCell).join(","),
       ),
     ].join("\n");
 
@@ -1583,6 +1626,7 @@ function MaterialManagement() {
   const saveMaterial = (
     formData,
   ) => {
+    setFormError("");
     const existingMaterials =
       readStorage(
         STORAGE_KEYS.materials,
@@ -1612,9 +1656,7 @@ function MaterialManagement() {
       );
 
     if (duplicate) {
-      window.alert(
-        "This material is already registered.",
-      );
+      setFormError("This material is already registered.");
       return;
     }
 
@@ -1636,10 +1678,13 @@ function MaterialManagement() {
               : material,
         );
 
-      writeStorage(
+      if (!writeStorage(
         STORAGE_KEYS.materials,
         updatedList,
-      );
+      )) {
+        setFormError("Material could not be saved in this browser. Check available storage and try again; your form is still open.");
+        return;
+      }
     } else {
       const newMaterial = {
         ...formData,
@@ -1648,13 +1693,16 @@ function MaterialManagement() {
         updatedAt: now,
       };
 
-      writeStorage(
+      if (!writeStorage(
         STORAGE_KEYS.materials,
         [
           ...list,
           newMaterial,
         ],
-      );
+      )) {
+        setFormError("Material could not be saved in this browser. Check available storage and try again; your form is still open.");
+        return;
+      }
     }
 
     refreshData?.();
@@ -1668,6 +1716,7 @@ function MaterialManagement() {
   ) => {
     setSelectedMaterial(null);
     setEditingMaterial(material);
+    setFormError("");
     setShowForm(true);
   };
 
@@ -1689,17 +1738,19 @@ function MaterialManagement() {
         ? existingMaterials
         : [];
 
-    const updatedList =
-      list.filter(
-        (material) =>
-          material?.id !==
-          deleteTarget?.id,
-      );
+    const updatedList = list.map((material) =>
+      material?.id === deleteTarget?.id
+        ? { ...material, status: "inactive", updatedAt: new Date().toISOString() }
+        : material,
+    );
 
-    writeStorage(
+    if (!writeStorage(
       STORAGE_KEYS.materials,
       updatedList,
-    );
+    )) {
+      setDeleteError("Could not archive material because browser storage is unavailable. No change was saved.");
+      return;
+    }
 
     refreshData?.();
 
@@ -1715,12 +1766,14 @@ function MaterialManagement() {
 
   const openAddForm = () => {
     setEditingMaterial(null);
+    setFormError("");
     setShowForm(true);
   };
 
   const closeForm = () => {
     setShowForm(false);
     setEditingMaterial(null);
+    setFormError("");
   };
 
   const openDetails = (
@@ -1916,6 +1969,8 @@ function MaterialManagement() {
             onSave={
               saveMaterial
             }
+            externalError={formError}
+            onFieldChange={() => setFormError("")}
           />
         </Card>
       )}
@@ -2092,7 +2147,8 @@ function MaterialManagement() {
                     MATERIAL
                   </th>
 
-                  <th>UNIT</th>
+              <th>CATEGORY</th>
+              <th>UNIT</th>
 
                   <th>
                     DEFAULT RATE
@@ -2129,7 +2185,7 @@ function MaterialManagement() {
                           material?.id
                         }
                       >
-                        <td>
+                        <td data-label="Material">
                           <button
                             type="button"
                             className="material-identity"
@@ -2155,18 +2211,23 @@ function MaterialManagement() {
                                 {material?.id ||
                                   "No material ID"}
                               </small>
+                              {material?.category && <small>{material.category}</small>}
                             </span>
                           </button>
                         </td>
 
-                        <td>
+                        <td data-label="Category">
+                          {material?.category || "—"}
+                        </td>
+
+                        <td data-label="Unit">
                           <span className="material-unit">
                             {material?.unit ||
                               "Trip"}
                           </span>
                         </td>
 
-                        <td>
+                        <td data-label="Default rate">
                           <strong className="material-money">
                             {formatCurrency(
                               Number(
@@ -2178,19 +2239,19 @@ function MaterialManagement() {
                           </strong>
                         </td>
 
-                        <td>
+                        <td data-label="Trips">
                           <strong className="material-number">
                             {stats.trips}
                           </strong>
                         </td>
 
-                        <td>
+                        <td data-label="Quantity">
                           <strong className="material-number">
                             {stats.quantity}
                           </strong>
                         </td>
 
-                        <td>
+                        <td data-label="Billing">
                           <strong className="material-money">
                             {formatCurrency(
                               stats.billing,
@@ -2198,7 +2259,7 @@ function MaterialManagement() {
                           </strong>
                         </td>
 
-                        <td>
+                        <td data-label="Activity">
                           <div className="material-activity">
                             <span title="Loading">
                               L{" "}
@@ -2223,7 +2284,7 @@ function MaterialManagement() {
                           </div>
                         </td>
 
-                        <td>
+                        <td data-label="Status">
                           <StatusBadge
                             status={
                               material?.status ||
@@ -2240,7 +2301,7 @@ function MaterialManagement() {
                           />
                         </td>
 
-                        <td>
+                        <td data-label="Actions">
                           <div className="material-row-actions">
                             <button
                               type="button"
@@ -2284,26 +2345,25 @@ function MaterialManagement() {
                               />
                             </button>
 
-                            <button
+                            {normalize(material?.status) !== "inactive" && <button
                               type="button"
-                              title="Delete material"
-                              aria-label={`Delete ${
+                              title="Archive material"
+                              aria-label={`Archive ${
                                 material?.materialName ||
                                 "material"
                               }`}
-                              onClick={() =>
-                                setDeleteTarget(
-                                  material,
-                                )
-                              }
+                              onClick={() => {
+                                setDeleteError("");
+                                setDeleteTarget(material);
+                              }}
                             >
-                              <Trash2
+                              <Archive
                                 size={16}
                                 strokeWidth={
                                   1.8
                                 }
                               />
-                            </button>
+                            </button>}
                           </div>
                         </td>
                       </tr>
@@ -2322,6 +2382,7 @@ function MaterialManagement() {
             selectedMaterial
           }
           trips={safeTrips}
+          onAddTrip={onAddTrip}
           onClose={() =>
             setSelectedMaterial(
               null,
@@ -2337,24 +2398,25 @@ function MaterialManagement() {
         open={Boolean(
           deleteTarget,
         )}
-        title="Delete material?"
+        title="Archive material?"
         message={
           deleteTarget
             ? `Are you sure you want to delete ${
                 deleteTarget.materialName ||
                 "this material"
-              }? Existing trip records will not be deleted.`
+              } will be moved to Inactive materials. Existing trip records and their saved rates will be kept.${deleteError ? ` ${deleteError}` : ""}`
             : ""
         }
-        confirmLabel="Delete Material"
+        confirmLabel="Archive Material"
         cancelLabel="Cancel"
         danger
         onConfirm={
           handleDelete
         }
-        onCancel={() =>
-          setDeleteTarget(null)
-        }
+        onCancel={() => {
+          setDeleteError("");
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

@@ -29,6 +29,16 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import SavedReportPresets from "../../components/ui/SavedReportPresets";
+import {
+  getLocalDateKey,
+  getReportAmount,
+  getReportQuantity,
+  getReportRate,
+  getReportTripDate,
+  isReportDateInRange,
+  normalizeReportDate,
+} from "../../utils/reporting";
 
 import "./Reports.css";
 
@@ -65,16 +75,14 @@ const readStorage = (key) => {
 };
 
 const writeTrips = (trips) => {
-  localStorage.setItem(
-    TRIPS_KEY,
-    JSON.stringify(trips)
-  );
-
-  window.dispatchEvent(
-    new Event(
-      "saoAutoTractorDataChanged"
-    )
-  );
+  try {
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    return true;
+  } catch (error) {
+    console.error("Unable to save trip records:", error);
+    return false;
+  }
 };
 
 /* =======================================================
@@ -190,46 +198,7 @@ const createTripId = () => {
    DATE HELPERS
 ======================================================= */
 
-const normalizeDate = (
-  value
-) => {
-  if (!value) {
-    return "";
-  }
-
-  if (
-    typeof value === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(
-      value
-    )
-  ) {
-    return value;
-  }
-
-  const date =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return "";
-  }
-
-  const year =
-    date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+const normalizeDate = normalizeReportDate;
 
 const dateKey = (value) => {
   return normalizeDate(value);
@@ -278,23 +247,7 @@ const formatLongDate = (
   );
 };
 
-const getToday = () => {
-  const date =
-    new Date();
-
-  const year =
-    date.getFullYear();
-
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+const getToday = getLocalDateKey;
 
 const getStartOfWeek = () => {
   const today =
@@ -383,13 +336,7 @@ const escapeHTML = (
 const getTripDate = (
   trip
 ) => {
-  return (
-    trip?.date ??
-    trip?.tripDate ??
-    trip?.createdAt ??
-    trip?.createdDate ??
-    ""
-  );
+  return getReportTripDate(trip);
 };
 
 const getTripType = (
@@ -491,69 +438,9 @@ const getSite = (
   ).trim();
 };
 
-const getQuantity = (
-  trip
-) => {
-  const value =
-    trip?.quantity ??
-    trip?.qty ??
-    trip?.loadQuantity ??
-    trip?.tripQuantity;
-
-  const number =
-    Number(value);
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : 0;
-};
-
-const getRate = (
-  trip
-) => {
-  const value =
-    trip?.rate ??
-    trip?.price ??
-    trip?.tripRate ??
-    trip?.amountPerTrip;
-
-  const number =
-    Number(value);
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : 0;
-};
-
-const getAmount = (
-  trip
-) => {
-  const direct =
-    trip?.amount ??
-    trip?.totalAmount ??
-    trip?.billingAmount ??
-    trip?.total;
-
-  if (
-    direct !== undefined &&
-    direct !== null &&
-    direct !== "" &&
-    Number.isFinite(
-      Number(direct)
-    )
-  ) {
-    return Number(direct);
-  }
-
-  return (
-    getQuantity(trip) *
-    getRate(trip)
-  );
-};
+const getQuantity = getReportQuantity;
+const getRate = getReportRate;
+const getAmount = getReportAmount;
 
 const getUnit = (
   trip
@@ -1503,12 +1390,6 @@ const Reports = () => {
       handleStorage
     );
 
-    const interval =
-      window.setInterval(
-        loadData,
-        1500
-      );
-
     return () => {
       window.removeEventListener(
         "storage",
@@ -1520,9 +1401,6 @@ const Reports = () => {
         handleStorage
       );
 
-      window.clearInterval(
-        interval
-      );
     };
   }, []);
 
@@ -1704,21 +1582,7 @@ const Reports = () => {
                 getTripDate(trip)
               );
 
-            if (
-              fromDate &&
-              tripDate &&
-              tripDate <
-                fromDate
-            ) {
-              return false;
-            }
-
-            if (
-              toDate &&
-              tripDate &&
-              tripDate >
-                toDate
-            ) {
+            if (!isReportDateInRange(tripDate, fromDate, toDate)) {
               return false;
             }
 
@@ -2771,13 +2635,11 @@ const Reports = () => {
     const escapeCSV = (
       value
     ) => {
-      const text =
-        String(
-          value ?? ""
-        );
+      let text = String(value ?? "");
+      if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
 
       if (
-        /[",\n]/.test(
+        /[",\n\r]/.test(
           text
         )
       ) {
@@ -3364,9 +3226,10 @@ const Reports = () => {
       ...currentTrips,
     ];
 
-    writeTrips(
-      updatedTrips
-    );
+    if (!writeTrips(updatedTrips)) {
+      alert("Trip could not be saved. Browser storage is unavailable; no change was made.");
+      return;
+    }
 
     loadData();
 
@@ -3544,9 +3407,10 @@ const Reports = () => {
     newTrips[index] =
       newTrip;
 
-    writeTrips(
-      newTrips
-    );
+    if (!writeTrips(newTrips)) {
+      alert("Trip could not be saved. Your edit is still open.");
+      return;
+    }
 
     loadData();
 
@@ -3628,9 +3492,10 @@ const Reports = () => {
         return;
       }
 
-      writeTrips(
-        updatedTrips
-      );
+      if (!writeTrips(updatedTrips)) {
+        alert("Trip could not be deleted because browser storage is unavailable. No change was made.");
+        return;
+      }
 
       loadData();
 
@@ -4240,6 +4105,22 @@ const Reports = () => {
 
           </div>
         </div>
+
+        <SavedReportPresets
+          scope="reports"
+          filters={{ fromDate, toDate, search, partyFilter, tractorFilter, materialFilter, tripTypeFilter }}
+          onApply={(saved) => {
+            setFromDate(saved.fromDate || "");
+            setToDate(saved.toDate || "");
+            setSearch(saved.search || "");
+            setPartyFilter(saved.partyFilter || "");
+            setTractorFilter(saved.tractorFilter || "");
+            setMaterialFilter(saved.materialFilter || "");
+            setTripTypeFilter(saved.tripTypeFilter || "");
+            setActivePreset("");
+            setPage(1);
+          }}
+        />
 
         <div className="report-filter-bottom">
 

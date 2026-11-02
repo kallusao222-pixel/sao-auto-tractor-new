@@ -17,10 +17,10 @@ import "./Login.css";
 /* =========================================================
    Config
    ========================================================= */
-const LOGIN_KEY = "saoAutoTractorLoggedIn";
-const TEMP_PASSWORD = "1234"; // TODO: real auth
-
 const cx = (...classes) => classes.filter(Boolean).join(" ");
+const LOGIN_KEY = "saoAutoTractorLoggedIn";
+const PASSWORD_KEY = "saoAutoTractorLoginPassword";
+const DEFAULT_PASSWORD = "1234";
 
 /* HD Tractor Image (Unsplash, free commercial license) */
 const TRACTOR_IMAGE =
@@ -141,11 +141,11 @@ function ShowcasePanel() {
         </div>
 
         <footer className="showcase__stats">
-          <LiveStat value="24/7" label="Availability" />
+          <LiveStat value="24/7" label="Workspace access" />
           <div className="showcase__divider" />
-          <LiveStat value="100%" label="Local control" />
+          <LiveStat value="Owner" label="Verified account" />
           <div className="showcase__divider" />
-          <LiveStat value="0 ms" label="Cloud lag" />
+          <LiveStat value="RLS" label="Protected backup" />
         </footer>
       </div>
     </aside>
@@ -174,7 +174,7 @@ function PasswordField({
         </label>
         <span className="field__hint">
           <ShieldCheck size={12} strokeWidth={2} aria-hidden="true" />
-          Encrypted
+          This device
         </span>
       </div>
 
@@ -190,9 +190,9 @@ function PasswordField({
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={onChange}
-          placeholder="Enter your password"
+          placeholder="Enter your 4-digit passcode"
           autoComplete="current-password"
-          autoFocus
+          inputMode="numeric"
           disabled={disabled}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
@@ -203,7 +203,6 @@ function PasswordField({
           onClick={onToggleShow}
           aria-label={showPassword ? "Hide password" : "Show password"}
           aria-pressed={showPassword}
-          tabIndex={-1}
         >
           {showPassword ? (
             <EyeOff size={17} strokeWidth={1.9} />
@@ -233,35 +232,32 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = useCallback((e) => {
+  const handlePasswordChange = useCallback((e) => {
     setPassword(e.target.value);
-    setError((prev) => (prev ? "" : prev));
+    setError("");
   }, []);
 
   const handleToggleShow = useCallback(() => {
     setShowPassword((s) => !s);
   }, []);
 
-  const handleSubmit = useCallback(
-    (e) => {
-      e.preventDefault();
-      if (isSubmitting) return;
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setError("");
+    setIsSubmitting(true);
 
-      setError("");
-      setIsSubmitting(true);
-
-      window.setTimeout(() => {
-        if (password === TEMP_PASSWORD) {
-          localStorage.setItem(LOGIN_KEY, "true");
-          onLogin?.();
-          return;
-        }
-        setError("That password doesn't match. Please try again.");
-        setIsSubmitting(false);
-      }, 420);
-    },
-    [password, isSubmitting, onLogin],
-  );
+    window.setTimeout(() => {
+      const savedPassword = localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
+      if (password === savedPassword) {
+        localStorage.setItem(LOGIN_KEY, "true");
+        onLogin?.();
+        return;
+      }
+      setError("That 4-digit passcode doesn't match. Please try again.");
+      setIsSubmitting(false);
+    }, 250);
+  }, [isSubmitting, onLogin, password]);
 
   const submitDisabled = useMemo(
     () => !password || isSubmitting,
@@ -288,14 +284,14 @@ export default function Login({ onLogin }) {
                 Welcome <em>back</em>
               </h2>
               <p className="panel__lede">
-                Enter your password to continue to your workspace.
+                Enter your 4-digit passcode to continue to your workspace.
               </p>
             </header>
 
             <form className="form" onSubmit={handleSubmit} noValidate>
               <PasswordField
                 value={password}
-                onChange={handleChange}
+                onChange={handlePasswordChange}
                 showPassword={showPassword}
                 onToggleShow={handleToggleShow}
                 error={error}

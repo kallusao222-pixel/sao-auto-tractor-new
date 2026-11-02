@@ -7,12 +7,21 @@ import {
   Tractor as TractorIcon,
   Truck,
   Command as CommandIcon,
+  Plus,
+  CreditCard,
 } from "lucide-react";
 
 import { useAppData } from "../../context/AppDataContext";
 import { searchEverything } from "../../utils/globalSearch";
 
 import "./CommandPalette.css";
+
+const QUICK_ACTIONS = [
+  { id: "quick-add-trip", page: "add-trip", label: "Add Trip", hint: "Start a transport entry", icon: Truck },
+  { id: "quick-add-payment", page: "payments", action: "add-payment", label: "Add Payment", hint: "Record a collection", icon: CreditCard },
+  { id: "quick-add-party", page: "parties", action: "add-party", label: "Add Party", hint: "Create a customer account", icon: Users },
+  { id: "quick-add-tractor", page: "tractors", action: "add-tractor", label: "Add Tractor", hint: "Add a fleet vehicle", icon: TractorIcon },
+];
 
 /* =========================================================
    COMMAND PALETTE
@@ -75,15 +84,25 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
     [query, parties, tractors, trips]
   );
 
+  const quickActions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return QUICK_ACTIONS.filter((item) =>
+      !normalizedQuery ||
+      item.label.toLowerCase().includes(normalizedQuery) ||
+      item.hint.toLowerCase().includes(normalizedQuery),
+    );
+  }, [query]);
+
   /* ----- Flat list for keyboard nav ----- */
   const flatItems = useMemo(() => {
     return [
+      ...quickActions,
       ...results.navigation,
       ...results.parties,
       ...results.tractors,
       ...results.trips,
     ];
-  }, [results]);
+  }, [quickActions, results]);
 
   /* ----- Reset highlight when results change ----- */
   useEffect(() => {
@@ -133,14 +152,14 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
   const handleSelect = (item) => {
     if (!item) return;
     if (typeof onNavigate === "function") {
-      onNavigate(item.page);
+      onNavigate(item.page, item.action ? { action: item.action } : undefined);
     }
     onClose();
   };
 
   if (!open) return null;
 
-  const hasResults = results.total > 0;
+  const hasResults = flatItems.length > 0;
 
   return (
     <div
@@ -203,6 +222,30 @@ export default function CommandPalette({ open, onClose, onNavigate }) {
                   : "Type to search..."}
               </span>
             </div>
+          )}
+
+          {quickActions.length > 0 && (
+            <Group
+              title="Quick Actions"
+              icon={<Plus size={13} strokeWidth={2} />}
+            >
+              {quickActions.map((item) => {
+                const flatIndex = flatItems.indexOf(item);
+                const Icon = item.icon;
+                return (
+                  <ResultItem
+                    key={item.id}
+                    index={flatIndex}
+                    highlighted={flatIndex === highlightedIndex}
+                    icon={<Icon size={15} strokeWidth={2} />}
+                    label={item.label}
+                    hint={item.hint}
+                    onSelect={() => handleSelect(item)}
+                    onHover={() => setHighlightedIndex(flatIndex)}
+                  />
+                );
+              })}
+            </Group>
           )}
 
           {results.navigation.length > 0 && (

@@ -1052,7 +1052,7 @@
   align-items: center;
   gap: 5px;
 
-  min-height: 29px;
+  min-height: 40px;
   padding: 0 9px;
 
   border: 1px solid rgba(170, 67, 67, 0.23);
@@ -1069,6 +1069,88 @@
 
 .all-records-bulk-delete-btn:hover {
   background: rgba(170, 67, 67, 0.1);
+}
+
+.all-records-saved-views {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.all-records-saved-views select {
+  min-height: 40px;
+  max-width: 210px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border, #d7d0c4);
+  border-radius: 8px;
+  background: var(--color-surface, #fffdf9);
+  color: var(--color-text, #202820);
+  font: inherit;
+}
+
+.all-records-saved-views select:focus-visible,
+.all-records-saved-view-delete:focus-visible,
+.all-records-undo-toast button:focus-visible {
+  outline: 3px solid var(--color-focus, #2471a3);
+  outline-offset: 2px;
+}
+
+.all-records-saved-view-delete {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(170, 67, 67, 0.23);
+  border-radius: 8px;
+  background: rgba(170, 67, 67, 0.055);
+  color: #a13e3e;
+  cursor: pointer;
+}
+
+.all-records-undo-toast {
+  position: fixed;
+  z-index: 1200;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 56px;
+  padding: 8px 12px 8px 16px;
+  border: 1px solid var(--color-border-strong, #b6ad9f);
+  border-radius: 12px;
+  background: var(--color-surface, #fffdf9);
+  color: var(--color-text, #202820);
+  box-shadow: var(--shadow-lg, 0 12px 30px rgba(0, 0, 0, 0.18));
+}
+
+.all-records-undo-toast button {
+  min-width: 64px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-primary, #1d5a82);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .all-records-saved-views,
+  .all-records-saved-views select,
+  .all-records-saved-views > button:not(.all-records-saved-view-delete) {
+    width: 100%;
+    max-width: none;
+  }
+
+  .all-records-undo-toast {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
 }
 
 /* =========================================================
@@ -3539,4 +3621,10 @@
   position: relative;
   z-index: 3;
   cursor: pointer;
+}
+.all-records-date-range-error {
+  margin: 10px 0 0;
+  color: var(--ar-danger, #b42318);
+  font-size: 12px;
+  font-weight: 600;
 }

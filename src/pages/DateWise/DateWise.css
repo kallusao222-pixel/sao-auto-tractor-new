@@ -5158,3 +5158,9 @@ body.dark .date-wise-page {
     scroll-behavior: auto !important;
   }
 }
+.dw-date-range-error {
+  margin: 10px 0 0;
+  color: var(--color-danger, #b42318);
+  font-size: 12px;
+  font-weight: 600;
+}

@@ -20,7 +20,6 @@ import {
   Download,
   Printer,
   WalletCards,
-  CircleDollarSign,
   UserCheck,
   UserX,
   X,
@@ -116,6 +115,8 @@ function StaffManagement() {
     name: "",
     mobile: "",
     role: "",
+    driverLicenseNumber: "",
+    licenseExpiryDate: "",
     fullDayRate: "",
     halfDayRate: "",
     joiningDate: getToday(),
@@ -296,6 +297,8 @@ function StaffManagement() {
               name,
               mobile: staffForm.mobile.trim(),
               role: staffForm.role.trim(),
+              driverLicenseNumber: staffForm.driverLicenseNumber.trim(),
+              licenseExpiryDate: staffForm.licenseExpiryDate,
               fullDayRate: Number(staffForm.fullDayRate),
               halfDayRate: Number(staffForm.halfDayRate),
               joiningDate: staffForm.joiningDate,
@@ -328,6 +331,8 @@ function StaffManagement() {
       name,
       mobile: staffForm.mobile.trim(),
       role: staffForm.role.trim(),
+      driverLicenseNumber: staffForm.driverLicenseNumber.trim(),
+      licenseExpiryDate: staffForm.licenseExpiryDate,
       fullDayRate: Number(staffForm.fullDayRate),
       halfDayRate: Number(staffForm.halfDayRate),
       joiningDate: staffForm.joiningDate,
@@ -349,6 +354,8 @@ function StaffManagement() {
       name: staff.name || "",
       mobile: staff.mobile || "",
       role: staff.role || "",
+      driverLicenseNumber: staff.driverLicenseNumber || "",
+      licenseExpiryDate: staff.licenseExpiryDate || "",
       fullDayRate: staff.fullDayRate ?? "",
       halfDayRate: staff.halfDayRate ?? "",
       joiningDate: staff.joiningDate || getToday(),
@@ -570,7 +577,41 @@ function StaffManagement() {
     saveAttendance(updated);
   };
 
-  /* NEW: Bulk mark all present for the whole week */
+  const markTodayPresent = () => {
+    if (!activeStaff.length) {
+      showToast("No active staff to mark.");
+      return;
+    }
+
+    const todayKey = getToday();
+    const todayWeekStart = formatDateInput(
+      getMonday(new Date(`${todayKey}T00:00:00`))
+    );
+    const week = { ...(attendance[todayWeekStart] || {}) };
+    let markedCount = 0;
+
+    activeStaff.forEach((staff) => {
+      const staffWeek = { ...(week[staff.id] || {}) };
+      if (staffWeek[todayKey]) return;
+      staffWeek[todayKey] = "P";
+      week[staff.id] = staffWeek;
+      markedCount += 1;
+    });
+
+    setWeekStart(todayWeekStart);
+    if (!markedCount) {
+      showToast("Today's attendance is already marked for all active staff.");
+      return;
+    }
+
+    saveAttendance({
+      ...attendance,
+      [todayWeekStart]: week,
+    });
+    showToast(`Today marked Present for ${markedCount} staff; existing marks kept.`);
+  };
+
+  /* Fill only missing statuses across the selected week. */
   const markAllPresent = () => {
     if (!activeStaff.length) {
       showToast("No active staff to mark.");
@@ -578,7 +619,7 @@ function StaffManagement() {
     }
 
     const confirmed = window.confirm(
-      "Mark all active staff as Present (P) for the entire week?"
+      "Fill unmarked days through today as Present for all active staff in this week? Existing P, HD, and Absent marks will stay unchanged; future days remain unmarked."
     );
 
     if (!confirmed) return;
@@ -591,22 +632,35 @@ function StaffManagement() {
     };
 
     const week = { ...(updated[weekStart] || {}) };
+    let markedCount = 0;
+    const todayKey = getToday();
 
     activeStaff.forEach((staff) => {
       const staffWeek = { ...(week[staff.id] || {}) };
+      let staffMarked = false;
 
       weekDates.forEach((date) => {
-        staffWeek[getDateKey(date)] = "P";
+        const dateKey = getDateKey(date);
+        if (dateKey > todayKey) return;
+        if (staffWeek[dateKey]) return;
+        staffWeek[dateKey] = "P";
+        staffMarked = true;
+        markedCount += 1;
       });
 
-      week[staff.id] = staffWeek;
+      if (staffMarked) week[staff.id] = staffWeek;
     });
+
+    if (!markedCount) {
+      showToast("No unmarked attendance remains for this week.");
+      return;
+    }
 
     updated[weekStart] = week;
 
     saveAttendance(updated);
 
-    showToast("All active staff marked Present.");
+    showToast(`${markedCount} unmarked day${markedCount === 1 ? "" : "s"} filled as Present; existing marks kept.`);
   };
 
   const getAttendanceSummary = (staffId) => {
@@ -1426,7 +1480,7 @@ function StaffManagement() {
             setActiveTab("salary")
           }
         >
-          <CircleDollarSign size={16} />
+          <IndianRupee size={16} />
           Salary
         </button>
 
@@ -1509,6 +1563,27 @@ function StaffManagement() {
                     name="role"
                     placeholder="Example: Helper"
                     value={staffForm.role}
+                    onChange={handleStaffChange}
+                  />
+                </div>
+
+                <div className="staff-field">
+                  <label>Driver License Number</label>
+                  <input
+                    type="text"
+                    name="driverLicenseNumber"
+                    placeholder="Optional — for drivers"
+                    value={staffForm.driverLicenseNumber || ""}
+                    onChange={handleStaffChange}
+                  />
+                </div>
+
+                <div className="staff-field">
+                  <label>License Expiry</label>
+                  <input
+                    type="date"
+                    name="licenseExpiryDate"
+                    value={staffForm.licenseExpiryDate || ""}
                     onChange={handleStaffChange}
                   />
                 </div>
@@ -1808,16 +1883,12 @@ function StaffManagement() {
 
                             <td>
                               {staff.mobile ? (
-                                <span className="contact-value">
-                                  <Phone
-                                    size={13}
-                                  />
-                                  {
-                                    staff.mobile
-                                  }
-                                </span>
+                                <div>
+                                  <span className="contact-value"><Phone size={13} />{staff.mobile}</span>
+                                  {staff.driverLicenseNumber && <small className="staff-license-note">DL {staff.driverLicenseNumber}{staff.licenseExpiryDate ? ` · expires ${formatDisplayDate(staff.licenseExpiryDate)}` : ""}</small>}
+                                </div>
                               ) : (
-                                "—"
+                                <div>—{staff.driverLicenseNumber && <small className="staff-license-note">DL {staff.driverLicenseNumber}{staff.licenseExpiryDate ? ` · expires ${formatDisplayDate(staff.licenseExpiryDate)}` : ""}</small>}</div>
                               )}
                             </td>
 
@@ -2017,12 +2088,22 @@ function StaffManagement() {
 
               <button
                 type="button"
+                className="staff-primary-btn staff-fast-attendance"
+                onClick={markTodayPresent}
+                title="Mark only unmarked attendance as Present for today"
+              >
+                <UserCheck size={15} />
+                Today: Present
+              </button>
+
+              <button
+                type="button"
                 className="staff-mark-all-btn"
                 onClick={markAllPresent}
-                title="Mark all active staff Present for the week"
+                title="Fill unmarked days through today as Present in this week; preserve existing marks"
               >
                 <Zap size={15} />
-                Mark All P
+                Fill Week Blanks
               </button>
 
               <button
@@ -2745,6 +2826,7 @@ function StaffManagement() {
               {" = "}
               Gross Salary
             </strong>
+            <small>Absent and Not Marked currently add ₹0. Mark attendance before using this weekly total for payroll.</small>
           </div>
 
         </section>

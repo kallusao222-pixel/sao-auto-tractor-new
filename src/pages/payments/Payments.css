@@ -1634,6 +1634,73 @@
   word-break: break-word;
 }
 
+.payment-detail-grid small {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-text-muted, #6d675e);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.payment-allocation-form {
+  display: grid;
+  gap: 14px;
+}
+
+.payment-allocation-form > label {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text, #152033);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.payment-allocation-form select,
+.payment-allocation-form input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--pay-border);
+  border-radius: 8px;
+  background: var(--pay-surface);
+  color: var(--color-text, #152033);
+  font: inherit;
+}
+
+.payment-allocation-form select:focus-visible,
+.payment-allocation-form input:focus-visible {
+  outline: 2px solid rgba(27, 75, 115, 0.35);
+  outline-offset: 2px;
+}
+
+.payment-allocation-form .payments-input-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding-left: 12px;
+  border: 1px solid var(--pay-border);
+  border-radius: 8px;
+  background: var(--pay-surface);
+  color: var(--color-text-muted, #6d675e);
+}
+
+.payment-allocation-form .payments-input-wrap input {
+  border: 0;
+  background: transparent;
+  outline: 0;
+}
+
+.payment-allocation-error,
+.payment-allocation-empty {
+  margin: 0;
+  color: var(--color-danger, #a14c46);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.payment-allocation-empty { color: var(--color-text-muted, #6d675e); }
+
 /* ============================================================
    STATEMENT
    ============================================================ */
@@ -1671,6 +1738,30 @@
   font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.payment-reversed-label,
+.payment-correction-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.payment-reversed-label,
+.payment-reversed-cell small {
+  color: var(--color-danger, #a14c46);
+}
+
+.payment-correction-label {
+  color: var(--color-text-muted, #6d675e);
+}
+
+.payment-reversed-cell small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  white-space: normal;
 }
 
 .statement-table-wrapper {
@@ -2294,7 +2385,7 @@
 
   .print-statement-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
     margin-top: 10px;
   }

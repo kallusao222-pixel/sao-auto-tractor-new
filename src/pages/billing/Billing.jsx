@@ -5,7 +5,6 @@ import {
   Banknote,
   CheckCircle2,
   ChevronRight,
-  CircleDollarSign,
   CreditCard,
   Eye,
   FileDown,
@@ -28,9 +27,13 @@ import {
   Pencil,
   Save,
   CalendarDays,
+  RotateCcw,
 } from "lucide-react";
 
 import "./Billing.css";
+import { getTodayISO } from "../../utils/date";
+import { getActivePaymentAmount, hasDuplicatePaymentReference, isPaymentReversed } from "../../utils/paymentRecords";
+import { buildCsv } from "../../utils/csv";
 
 const TRIPS_KEY = "saoAutoTractorTrips";
 const PARTIES_KEY = "saoAutoTractorParties";
@@ -46,7 +49,7 @@ const TRIP_TYPES = [
    MAIN COMPONENT
 ============================================================ */
 
-function Billing() {
+function Billing({ onNavigate = () => {} }) {
   const [trips, setTrips] = useState([]);
   const [partiesData, setPartiesData] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -65,7 +68,7 @@ function Billing() {
   const [dateTo, setDateTo] = useState("");
 
   const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().split("T")[0]
+    getTodayISO()
   );
   const [paymentParty, setPaymentParty] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -130,12 +133,9 @@ function Billing() {
     window.addEventListener("storage", handleStorage);
     window.addEventListener("saoAutoTractorDataChanged", handleAppDataChange);
 
-    const interval = setInterval(loadData, 1500);
-
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("saoAutoTractorDataChanged", handleAppDataChange);
-      clearInterval(interval);
     };
   }, []);
 
@@ -310,7 +310,10 @@ function Billing() {
       date: new Date().toISOString().split("T")[0],
     };
     const updatedTrips = [newTrip, ...currentTrips];
-    writeTripData(updatedTrips);
+    if (!writeTripData(updatedTrips)) {
+      window.alert("Trip could not be saved. Browser storage is unavailable; no change was made.");
+      return;
+    }
     loadData();
     if (detailModal) setDetailModal(null);
   };
@@ -328,8 +331,9 @@ function Billing() {
     try {
       localStorage.setItem(TRIPS_KEY, JSON.stringify(data));
       window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+      return true;
     } catch {
-      // ignore
+      return false;
     }
   };
 
@@ -338,15 +342,28 @@ function Billing() {
   // =========================================================
 
   const clonePayment = (payment) => {
+    if (isPaymentReversed(payment)) {
+      alert("A reversed receipt cannot be cloned as a new payment.");
+      return;
+    }
     const currentPayments = readPaymentData();
     const newPayment = {
       ...payment,
       id: Date.now(),
       createdAt: new Date().toISOString(),
-      date: new Date().toISOString().split("T")[0],
+      date: getTodayISO(),
+      paymentDate: getTodayISO(),
+      reference: "",
+      status: "Recorded",
+      reversedAt: null,
+      reversalReason: "",
+      corrections: [],
     };
     const updatedPayments = [newPayment, ...currentPayments];
-    writePaymentData(updatedPayments);
+    if (!writePaymentData(updatedPayments)) {
+      window.alert("Payment could not be saved. Browser storage is unavailable; no change was made.");
+      return;
+    }
     loadData();
     if (detailModal) setDetailModal(null);
   };
@@ -364,8 +381,9 @@ function Billing() {
     try {
       localStorage.setItem(PAYMENTS_KEY, JSON.stringify(data));
       window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+      return true;
     } catch {
-      // ignore
+      return false;
     }
   };
 
@@ -395,7 +413,10 @@ function Billing() {
       ...editedTrip,
       updatedAt: new Date().toISOString(),
     };
-    writeTripData(updatedTrips);
+    if (!writeTripData(updatedTrips)) {
+      window.alert("Trip could not be saved. Your edit is still open.");
+      return;
+    }
     loadData();
     setEditModal(null);
   };
@@ -405,6 +426,10 @@ function Billing() {
   // =========================================================
 
   const openEditPayment = (payment) => {
+    if (isPaymentReversed(payment)) {
+      alert("Reversed receipts are kept in history and cannot be edited.");
+      return;
+    }
     setEditPaymentModal({
       payment: payment,
     });
@@ -419,13 +444,49 @@ function Billing() {
       setEditPaymentModal(null);
       return;
     }
+    const current = currentPayments[index];
+    const allocatedAmount = (Array.isArray(current?.allocations) ? current.allocations : []).reduce(
+      (sum, allocation) => sum + Math.max(0, Number(allocation?.amount) || 0),
+      0,
+    );
+    if (allocatedAmount > 0 && normalizeName(current?.partyName) !== normalizeName(editedPayment.partyName)) {
+      alert("This receipt is allocated to invoices. Keep its party unchanged, or reverse it and record a new receipt.");
+      return;
+    }
+    if (Number(editedPayment.amount) + 0.005 < allocatedAmount) {
+      alert(`This receipt already has ₹${formatMoney(allocatedAmount)} allocated. Its amount cannot be reduced below that value.`);
+      return;
+    }
+    if (hasDuplicatePaymentReference(currentPayments, editedPayment.partyName, editedPayment.reference, editedPayment.id)) {
+      alert("This receipt reference is already recorded for the selected party.");
+      return;
+    }
+    const changed = ["partyName", "amount", "date", "paymentMode", "reference", "notes"]
+      .some((key) => String(current?.[key] ?? "") !== String(editedPayment?.[key] ?? ""));
+    let correctionHistory = Array.isArray(current?.corrections) ? current.corrections : [];
+    if (changed) {
+      const reason = window.prompt("Reason for correcting this receipt:")?.trim() || "";
+      if (reason.length < 3) {
+        alert("Enter a short reason (at least 3 characters) to keep a correction history.");
+        return;
+      }
+      correctionHistory = [...correctionHistory, {
+        correctedAt: new Date().toISOString(),
+        reason,
+        previous: Object.fromEntries(["partyName", "amount", "date", "paymentMode", "reference", "notes"].map((key) => [key, current?.[key] ?? ""])),
+      }];
+    }
     const updatedPayments = [...currentPayments];
     updatedPayments[index] = {
       ...updatedPayments[index],
       ...editedPayment,
       updatedAt: new Date().toISOString(),
+      corrections: correctionHistory,
     };
-    writePaymentData(updatedPayments);
+    if (!writePaymentData(updatedPayments)) {
+      window.alert("Payment could not be saved. Your edit is still open.");
+      return;
+    }
     loadData();
     setEditPaymentModal(null);
   };
@@ -592,7 +653,7 @@ function Billing() {
   const paymentSummary = useMemo(() => {
     const summary = { total: 0, cash: 0, upi: 0, bank: 0, other: 0 };
     payments.forEach((payment) => {
-      const amount = Number(payment?.amount) || 0;
+      const amount = getActivePaymentAmount(payment);
       summary.total += amount;
       const mode = String(payment?.paymentMode || "").trim().toLowerCase();
       if (mode === "cash") summary.cash += amount;
@@ -652,8 +713,8 @@ function Billing() {
       if (!partyName) return;
       const key = normalizeName(partyName);
       if (!map[key]) map[key] = createAccount(partyName);
-      map[key].received += Number(payment?.amount) || 0;
-      map[key].payments += 1;
+      map[key].received += getActivePaymentAmount(payment);
+      if (getActivePaymentAmount(payment) > 0) map[key].payments += 1;
     });
 
     Object.values(map).forEach((account) => {
@@ -848,6 +909,7 @@ function Billing() {
       window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
     } catch (error) {
       console.error("Error deleting billing records:", error);
+      window.alert("Billing records could not be deleted because browser storage is unavailable. No change was made.");
     }
   };
 
@@ -939,6 +1001,10 @@ function Billing() {
   };
 
   const openPaymentPreview = (payment) => {
+    if (isPaymentReversed(payment)) {
+      alert("This receipt has been reversed and cannot be printed as valid proof of payment.");
+      return;
+    }
     const account = allPartyAccounts[normalizeName(payment?.partyName)];
     setPreviewModal({
       type: "payment",
@@ -980,6 +1046,10 @@ function Billing() {
   };
 
   const printPayment = (payment) => {
+    if (isPaymentReversed(payment)) {
+      alert("This receipt has been reversed and cannot be printed as valid proof of payment.");
+      return;
+    }
     openPaymentPreview(payment);
     setTimeout(() => window.print(), 350);
   };
@@ -1039,17 +1109,10 @@ function Billing() {
     if (!rows.length) return;
 
     const headers = Object.keys(rows[0]);
-    const csv = [
-      headers.join(","),
-      ...rows.map((row) =>
-        headers
-          .map((header) => {
-            const value = row[header] ?? "";
-            return `"${String(value).replace(/"/g, '""')}"`;
-          })
-          .join(",")
-      ),
-    ].join("\n");
+    const csv = buildCsv([
+      headers,
+      ...rows.map((row) => headers.map((header) => row[header] ?? "")),
+    ]);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1083,7 +1146,7 @@ function Billing() {
   ---------------------------------------------------------- */
 
   const resetPaymentForm = () => {
-    setPaymentDate(new Date().toISOString().split("T")[0]);
+    setPaymentDate(getTodayISO());
     setPaymentParty("");
     setPaymentAmount("");
     setPaymentMode("Cash");
@@ -1115,6 +1178,11 @@ function Billing() {
     }
     if (!paymentAmount || !Number.isFinite(amount) || amount <= 0) {
       setPaymentError("Please enter a valid payment amount.");
+      return;
+    }
+
+    if (hasDuplicatePaymentReference(payments, party, paymentReference)) {
+      setPaymentError("This receipt reference is already recorded for the selected party.");
       return;
     }
 
@@ -1169,19 +1237,26 @@ function Billing() {
   };
 
   const deletePayment = (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this payment?"
-    );
-    if (!confirmDelete) return;
+    const target = payments.find((payment) => payment.id === id);
+    if (!target || isPaymentReversed(target)) return;
+    const reason = window.prompt(`Reason for reversing ₹${formatMoney(target.amount)} from ${target.partyName || "this party"}:`)?.trim() || "";
+    if (reason.length < 3) {
+      alert("Enter a short reason (at least 3 characters). The receipt will remain in history as reversed.");
+      return;
+    }
 
-    const updatedPayments = payments.filter((payment) => payment.id !== id);
+    const reversedAt = new Date().toISOString();
+    const updatedPayments = payments.map((payment) => payment.id === id
+      ? { ...payment, status: "Reversed", reversedAt, reversalReason: reason, updatedAt: reversedAt }
+      : payment);
 
     try {
       localStorage.setItem(PAYMENTS_KEY, JSON.stringify(updatedPayments));
       setPayments(updatedPayments);
       window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
     } catch (error) {
-      console.error("Error deleting payment:", error);
+      console.error("Error reversing payment:", error);
+      window.alert("Receipt could not be reversed. No change was saved; try again.");
     }
   };
 
@@ -1204,6 +1279,15 @@ function Billing() {
           </div>
         </div>
         <div className="billing-header-actions">
+          <button type="button" className="billing-btn billing-btn-primary" onClick={() => onNavigate("add-trip")}>
+            <Truck size={15} /> Add Trip
+          </button>
+          <button type="button" className="billing-btn billing-btn-secondary" onClick={() => onNavigate("invoice")}>
+            <ReceiptText size={15} /> Create Invoice
+          </button>
+          <button type="button" className="billing-btn billing-btn-secondary" onClick={() => onNavigate("payments")}>
+            <CreditCard size={15} /> Payments & Receipts
+          </button>
           <button type="button" className="billing-btn billing-btn-secondary" onClick={loadData}>
             <RefreshCw size={15} /> Refresh
           </button>
@@ -1372,7 +1456,7 @@ function Billing() {
       <section className="billing-stat-grid">
         <BillingStat icon={<LayoutList size={18} />} label="Total Records" value={billingSummary.records} />
         <BillingStat icon={<Truck size={18} />} label="Total Trips" value={billingSummary.trips} />
-        <BillingStat icon={<CircleDollarSign size={18} />} label="Total Billing" value={`₹${formatMoney(totalBilling)}`} tone="primary" />
+        <BillingStat icon={<IndianRupee size={18} />} label="Total Billing" value={`₹${formatMoney(totalBilling)}`} tone="primary" />
         <BillingStat icon={<WalletCards size={18} />} label="Total Received" value={`₹${formatMoney(totalReceived)}`} tone="success" />
         <BillingStat icon={<AlertCircle size={18} />} label="Total Due" value={`₹${formatMoney(totalDue)}`} tone="danger" />
         <BillingStat icon={<ArrowUpRight size={18} />} label="Collection" value={`${collectionPercentage.toFixed(0)}%`} tone="accent" />
@@ -1449,8 +1533,9 @@ function Billing() {
               <option value="">All Trip Types</option>
               {TRIP_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
             </select>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From date" />
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To date" />
+            <input type="date" value={dateFrom} max={dateTo || undefined} onChange={(e) => setDateFrom(e.target.value)} aria-label="From date" />
+            <input type="date" value={dateTo} min={dateFrom || undefined} onChange={(e) => setDateTo(e.target.value)} aria-label="To date" />
+            {dateFrom && dateTo && dateFrom > dateTo && <p className="finance-range-error" role="alert">From date must be on or before the To date.</p>}
           </div>
         )}
       </section>
@@ -1523,7 +1608,7 @@ function Billing() {
             </div>
 
             {partySummary.length === 0 ? (
-              <BillingEmpty icon={<CircleDollarSign size={34} />} title="No Billing Data" text="No party billing records match the current filters." />
+              <BillingEmpty icon={<IndianRupee size={34} />} title="No Billing Data" text="No party billing records match the current filters." />
             ) : (
               <div className="billing-table-wrap">
                 <table className="billing-table party-table">
@@ -1721,8 +1806,8 @@ function Billing() {
                         <tr key={payment?.id || index}>
                           <td className="row-number">{index + 1}</td>
                           <td>{formatDate(getPaymentDate(payment))}</td>
-                          <td><strong>{payment?.partyName || "—"}</strong></td>
-                          <td className="money-cell success-text">₹{formatMoney(payment?.amount)}</td>
+                          <td><strong>{payment?.partyName || "—"}</strong>{isPaymentReversed(payment) && <small className="payment-reversed-label">Reversed · {payment.reversalReason || "Reason not recorded"}</small>}{payment.corrections?.length > 0 && <small className="payment-correction-label">{payment.corrections.length} correction{payment.corrections.length === 1 ? "" : "s"}</small>}</td>
+                          <td className={`money-cell ${isPaymentReversed(payment) ? "" : "success-text"}`}>₹{formatMoney(payment?.amount)}</td>
                           <td><PaymentModeBadge mode={mode} /></td>
                           <td>{payment?.reference || "—"}</td>
                           <td className="notes-cell">{payment?.notes || "—"}</td>
@@ -1733,8 +1818,8 @@ function Billing() {
                               <ActionButton icon={<Printer size={14} />} label="Print" title="Print receipt" onClick={() => printPayment(payment)} />
                               <ActionButton icon={<Copy size={14} />} label="Clone" title="Clone payment" onClick={() => clonePayment(payment)} color="#1A5F7A" />
                               <ActionButton icon={<MessageCircle size={14} />} label="WhatsApp" title="Share on WhatsApp" onClick={() => shareWhatsApp({ type: "payment", payment })} color="#25D366" />
-                              <ActionButton icon={<Pencil size={14} />} label="Edit" title="Edit payment" onClick={() => openEditPayment(payment)} color="#F39C12" />
-                              <ActionButton danger icon={<Trash2 size={14} />} label="Delete" title="Delete payment" onClick={() => deletePayment(payment.id)} />
+                              {!isPaymentReversed(payment) && <ActionButton icon={<Pencil size={14} />} label="Edit" title="Edit payment" onClick={() => openEditPayment(payment)} color="#F39C12" />}
+                              <ActionButton danger icon={<RotateCcw size={14} />} label={isPaymentReversed(payment) ? "Reversed" : "Reverse"} title="Reverse receipt" onClick={() => deletePayment(payment.id)} />
                             </ActionButtons>
                           </td>
                         </tr>
@@ -1772,7 +1857,7 @@ function Billing() {
       {/* RULES */}
       <section className="billing-card billing-rules">
         <div className="rules-header">
-          <div className="rules-icon"><CircleDollarSign size={17} /></div>
+          <div className="rules-icon"><IndianRupee size={17} /></div>
           <div>
             <h2>Billing & Account Rules</h2>
             <p>How figures shown on this page are calculated.</p>
@@ -1827,6 +1912,20 @@ function Billing() {
             if (data.type === "party") {
               openQuickPay(data.partyName);
             }
+          }}
+          onCreateInvoice={(partyName) => {
+            setDetailModal(null);
+            onNavigate("invoice", {
+              action: "prefill-invoice-party",
+              payload: { partyName },
+            });
+          }}
+          onAddReceipt={(partyName) => {
+            setDetailModal(null);
+            onNavigate("payments", {
+              action: "add-payment",
+              payload: { partyName },
+            });
           }}
         />
       )}
@@ -2019,6 +2118,8 @@ function DetailModal({
   onEdit,
   onDelete,
   onQuickPay,
+  onCreateInvoice,
+  onAddReceipt,
 }) {
   const title =
     data.type === "party"
@@ -2081,6 +2182,8 @@ function DetailModal({
                 {data.account?.due > 0 && (
                   <ActionButton icon={<Plus size={14} />} label="Quick Pay" title="Quick Pay" onClick={() => onQuickPay({ type: "party", partyName: data.partyName })} color="#1A5F7A" />
                 )}
+                <ActionButton icon={<FileText size={14} />} label="Invoice" title="Create invoice for this party" onClick={() => onCreateInvoice(data.partyName)} />
+                <ActionButton icon={<CreditCard size={14} />} label="Receipt" title="Record a receipt for this party" onClick={() => onAddReceipt(data.partyName)} />
               </>
             )}
             {data.type === "bill" && (
@@ -2096,7 +2199,7 @@ function DetailModal({
                 <ActionButton icon={<Copy size={14} />} label="Clone" title="Clone payment" onClick={() => onClone({ type: "payment", payment: data.payment })} color="#1A5F7A" />
                 <ActionButton icon={<MessageCircle size={14} />} label="WhatsApp" title="Share on WhatsApp" onClick={() => onWhatsApp({ type: "payment", payment: data.payment })} color="#25D366" />
                 <ActionButton icon={<Pencil size={14} />} label="Edit" title="Edit payment" onClick={() => onEdit({ type: "payment", payment: data.payment })} color="#F39C12" />
-                <ActionButton danger icon={<Trash2 size={14} />} label="Delete" title="Delete payment" onClick={() => onDelete({ type: "payment", payment: data.payment })} />
+                <ActionButton danger icon={<RotateCcw size={14} />} label="Reverse" title="Reverse this receipt" onClick={() => onDelete({ type: "payment", payment: data.payment })} />
               </>
             )}
           </div>
@@ -2604,6 +2707,8 @@ function PaymentDetail({ payment, account, formatMoney, formatDate }) {
         <DetailField label="Payment Date" value={formatDate(getPaymentDateLocal(payment))} />
         <DetailField label="Payment Mode" value={payment?.paymentMode || "—"} />
         <DetailField label="Reference" value={payment?.reference || "—"} />
+        <DetailField label="Status" value={isPaymentReversed(payment) ? `Reversed · ${payment?.reversalReason || "Reason not recorded"}` : "Recorded"} />
+        {payment?.corrections?.length > 0 && <DetailField label="Correction History" value={payment.corrections.map((item, index) => `${index + 1}. ${item.reason}`).join(" · ")} />}
         <DetailField label="Notes" value={payment?.notes || "—"} />
         <DetailField label="Current Party Due" value={`₹${formatMoney(account?.due)}`} highlight={account?.due > 0} />
       </div>

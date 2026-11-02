@@ -45,23 +45,42 @@ export function formatCurrency(
   decimalPlaces = 2,
 ) {
   const number = toNumber(value);
+  let configuredDecimals = decimalPlaces;
+  let currencyCode = currency === "₹" ? "INR" : currency;
+
+  try {
+    const settings = JSON.parse(
+      localStorage.getItem("saoAutoTractorSettings") || "{}",
+    );
+    if (
+      settings.decimalPlaces !== null &&
+      settings.decimalPlaces !== "" &&
+      [0, 1, 2].includes(Number(settings.decimalPlaces))
+    ) {
+      configuredDecimals = Number(settings.decimalPlaces);
+    }
+    // This workspace is configured for Indian Rupees throughout the app.
+    currencyCode = "INR";
+  } catch {
+    // Keep the formatter usable when browser storage is unavailable.
+  }
 
   try {
     return new Intl.NumberFormat(
       "en-IN",
       {
         style: "currency",
-        currency,
+        currency: currencyCode,
         minimumFractionDigits:
-          decimalPlaces,
+          configuredDecimals,
         maximumFractionDigits:
-          decimalPlaces,
+          configuredDecimals,
       },
     ).format(number);
   } catch (error) {
     return `₹${formatNumber(
       number,
-      decimalPlaces,
+      configuredDecimals,
     )}`;
   }
 }

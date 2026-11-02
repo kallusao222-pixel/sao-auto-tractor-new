@@ -37,6 +37,7 @@ import {
   Plus,
   ReceiptText,
   RefreshCw,
+  Search,
   Settings as SettingsIcon,
   Sun,
   Tractor,
@@ -50,10 +51,10 @@ import { useTheme } from "./theme";
 
 import CommandPalette from "./components/ui/CommandPalette";
 
-import LoadingState from "./components/ui/LoadingState";
 import AppDataProvider from "./context/AppDataContext";
 import { useAppData } from "./context/AppDataContext";
 import { buildAlerts } from "./utils/alerts";
+import { formatDate } from "./utils/date";
 
 import Dashboard from "./pages/dashboard/Dashboard";
 import TractorManagement from "./pages/TractorManagement/TractorManagement";
@@ -75,6 +76,7 @@ import DailyReport from "./pages/records/DailyReport/DailyReport";
 import Login from "./pages/Login/Login";
 
 import "./App.css";
+import "./styles/theme-overrides.css";
 
 /* =========================================================
    CONFIG
@@ -474,13 +476,40 @@ function PagePlaceholder({ page }) {
    PAGE LOADER
    ========================================================= */
 
-function PageLoader() {
+function PageLoader({
+  fullScreen = false,
+  title = "Getting your workspace ready",
+  message = "Loading your tools and today’s activity…",
+}) {
   return (
-    <div className="app-page-loader" role="status" aria-live="polite">
-      <LoadingState
-        title="Loading workspace"
-        message="Preparing this module..."
-      />
+    <div className={`app-page-loader${fullScreen ? " app-page-loader--startup" : ""}`} role="status" aria-live="polite" aria-busy="true">
+      <div className="app-loader-card">
+        <div className="app-loader-brand">
+          <span className="app-loader-mark" aria-hidden="true">
+            <Tractor size={27} strokeWidth={1.8} />
+            <i />
+          </span>
+          <span className="app-loader-brand-copy">
+            <strong>SAO AUTO TRACTOR</strong>
+            <small>TRANSPORT MANAGEMENT</small>
+          </span>
+        </div>
+
+        <div className="app-loader-route" aria-hidden="true">
+          <span className="app-loader-route-line" />
+          <span className="app-loader-vehicle">
+            <span className="app-loader-trailer">SAO</span>
+            <Tractor size={34} strokeWidth={1.8} />
+          </span>
+          <span className="app-loader-route-point app-loader-route-point-start" />
+          <span className="app-loader-route-point app-loader-route-point-end" />
+        </div>
+
+        <h2>{title}</h2>
+        <p>{message}</p>
+        <div className="app-loader-progress" aria-hidden="true"><span /></div>
+        <span className="app-loader-footnote">YOUR BUSINESS, READY TO MOVE</span>
+      </div>
     </div>
   );
 }
@@ -749,15 +778,25 @@ function AppLayout({ onLogout }) {
   );
   const [openMenu, setOpenMenu] = useState(null);
   const [editTripRecord, setEditTripRecord] = useState(null);
+  const [tripTractor, setTripTractor] = useState(null);
+  const [tripMaterial, setTripMaterial] = useState(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [showHotkeys, setShowHotkeys] = useState(false);
 
   /* Command Palette state */
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [pendingPageAction, setPendingPageAction] = useState(null);
 
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia(MOBILE_QUERY).matches;
+  });
+  const [compactTables, setCompactTables] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("saoAutoTractorSettings") || "{}").compactTables === true;
+    } catch {
+      return false;
+    }
   });
 
   const {
@@ -772,6 +811,24 @@ function AppLayout({ onLogout }) {
   const mainRef = useRef(null);
   const hamburgerRef = useRef(null);
   const notifBtnRef = useRef(null);
+
+  useEffect(() => {
+    const syncDensity = () => {
+      try {
+        setCompactTables(
+          JSON.parse(localStorage.getItem("saoAutoTractorSettings") || "{}").compactTables === true,
+        );
+      } catch {
+        setCompactTables(false);
+      }
+    };
+    window.addEventListener("saoAutoTractorDataChanged", syncDensity);
+    window.addEventListener("storage", syncDensity);
+    return () => {
+      window.removeEventListener("saoAutoTractorDataChanged", syncDensity);
+      window.removeEventListener("storage", syncDensity);
+    };
+  }, []);
 
   /* ---- Focus trap on mobile drawer ---- */
   useFocusTrap(sidebarRef, isMobile && sidebarOpen);
@@ -814,16 +871,9 @@ function AppLayout({ onLogout }) {
   }, [showHotkeys, notifOpen]);
 
   /* ---- Date ---- */
-  const todayLabel = useMemo(
-    () =>
-      new Date().toLocaleDateString("en-IN", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }),
-    [],
-  );
+  const todayLabel = `${new Date().toLocaleDateString("en-IN", {
+    weekday: "short",
+  })}, ${formatDate(new Date())}`;
 
   /* ---- Auto-open current group ---- */
   useEffect(() => {
@@ -892,14 +942,34 @@ function AppLayout({ onLogout }) {
 
   /* ---- Navigation ---- */
   const changePage = useCallback(
-    (page, { keepEditRecord = false } = {}) => {
+    (page, { keepEditRecord = false, action = null, payload = null } = {}) => {
       if (!keepEditRecord) setEditTripRecord(null);
+      if (page !== "add-trip") {
+        setTripTractor(null);
+        setTripMaterial(null);
+      }
+      setPendingPageAction(action ? { page, action, payload } : null);
       setCurrentPage(page);
       setSidebarOpen(false);
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     },
     [],
   );
+
+  useEffect(() => {
+    if (!pendingPageAction || pendingPageAction.page !== currentPage) return;
+
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("saoAutoTractorQuickAction", {
+          detail: { action: pendingPageAction.action, payload: pendingPageAction.payload },
+        }),
+      );
+      setPendingPageAction(null);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [pendingPageAction, currentPage]);
 
   const toggleMenu = useCallback((menuId) => {
     setOpenMenu((cur) => (cur === menuId ? null : menuId));
@@ -915,6 +985,22 @@ function AppLayout({ onLogout }) {
     (record) => {
       setEditTripRecord(record);
       changePage("add-trip", { keepEditRecord: true });
+    },
+    [changePage],
+  );
+
+  const handleAddTripForTractor = useCallback(
+    (tractor) => {
+      setTripTractor(tractor);
+      changePage("add-trip");
+    },
+    [changePage],
+  );
+
+  const handleAddTripForMaterial = useCallback(
+    (material) => {
+      setTripMaterial(material);
+      changePage("add-trip");
     },
     [changePage],
   );
@@ -937,12 +1023,14 @@ function AppLayout({ onLogout }) {
         parties: appData.parties,
         payments: appData.payments,
         tractors: appData.tractors,
+        staff: appData.staff,
       }),
     [
       appData.trips,
       appData.parties,
       appData.payments,
       appData.tractors,
+      appData.staff,
     ]
   );
 
@@ -950,13 +1038,15 @@ function AppLayout({ onLogout }) {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard": return <Dashboard onNavigate={changePage} />;
-      case "tractors": return <TractorManagement />;
+      case "tractors": return <TractorManagement onAddTrip={handleAddTripForTractor} />;
       case "parties": return <PartyManagement />;
-      case "materials": return <MaterialManagement />;
+      case "materials": return <MaterialManagement onAddTrip={handleAddTripForMaterial} />;
       case "add-trip":
         return (
           <AddTrip
             editRecord={editTripRecord}
+            initialTractor={tripTractor}
+            initialMaterial={tripMaterial}
             onEditComplete={handleEditComplete}
           />
         );
@@ -964,7 +1054,7 @@ function AppLayout({ onLogout }) {
       case "date-wise": return <DateWise />;
       case "reports": return <Reports />;
       case "daily-report": return <DailyReport />;
-      case "billing": return <Billing />;
+      case "billing": return <Billing onNavigate={changePage} />;
       case "party-ledger": return <PartyLedger />;
       case "invoice": return <Invoice />;
       case "payments": return <Payments />;
@@ -985,7 +1075,7 @@ function AppLayout({ onLogout }) {
      ========================================================= */
 
   return (
-    <div className={`app ${sidebarCollapsed ? "app--sidebar-collapsed" : ""}`}>
+    <div className={`app ${sidebarCollapsed ? "app--sidebar-collapsed" : ""}${compactTables ? " app--compact-tables" : ""}`}>
       {/* ---- Skip link ---- */}
       <a href="#main-content" className="skip-link">
         Skip to main content
@@ -1013,6 +1103,15 @@ function AppLayout({ onLogout }) {
         </div>
 
         <div className="mobile-header-actions">
+          <button
+            type="button"
+            className="mobile-icon-button mobile-search-button"
+            onClick={() => setCommandPaletteOpen(true)}
+            aria-label="Search or open a quick action"
+            title="Search or quick actions (Ctrl+K)"
+          >
+            <Search size={18} strokeWidth={1.9} aria-hidden="true" />
+          </button>
           <button
             type="button"
             className="mobile-icon-button"
@@ -1278,6 +1377,16 @@ function AppLayout({ onLogout }) {
           </div>
 
           <div className="desktop-header-actions">
+            <button
+              type="button"
+              className="header-icon-button header-search-button"
+              onClick={() => setCommandPaletteOpen(true)}
+              aria-label="Search or open a quick action"
+              title="Search or quick actions (Ctrl+K)"
+            >
+              <Search size={17} strokeWidth={1.9} aria-hidden="true" />
+            </button>
+
             {/* Date */}
             <div className="header-date-block">
               <CalendarDays size={15} strokeWidth={1.7} aria-hidden="true" />
@@ -1373,13 +1482,13 @@ function AppLayout({ onLogout }) {
               type="button"
               className="header-profile header-profile--button"
               onClick={() => onLogout?.()}
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label="Sign out of this device"
+              title="Sign out of this device"
             >
               <span className="profile-avatar" aria-hidden="true">SA</span>
               <div className="profile-copy">
-                <strong>Administrator</strong>
-                <span>Office Account</span>
+                <strong>Local Admin</strong>
+                <span>This device</span>
               </div>
             </button>
           </div>
@@ -1455,9 +1564,18 @@ function AppLayout({ onLogout }) {
    ========================================================= */
 
 function App() {
+  const [isStartupLoading, setIsStartupLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(
     () => localStorage.getItem(LOGIN_KEY) === "true",
   );
+
+  useEffect(() => {
+    const startupTimer = window.setTimeout(() => {
+      setIsStartupLoading(false);
+    }, 3500);
+
+    return () => window.clearTimeout(startupTimer);
+  }, []);
 
   const handleLogin = useCallback(() => setIsLoggedIn(true), []);
 
@@ -1470,7 +1588,13 @@ function App() {
     <ErrorBoundary>
       <AppDataProvider>
         <ToastProvider>
-          {isLoggedIn ? (
+          {isStartupLoading ? (
+            <PageLoader
+              fullScreen
+              title="Your transport workspace is getting ready"
+              message="Loading your fleet, trips, and accounts…"
+            />
+          ) : isLoggedIn ? (
             <AppLayout onLogout={handleLogout} />
           ) : (
             <Login onLogin={handleLogin} />

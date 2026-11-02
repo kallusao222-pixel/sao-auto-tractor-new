@@ -6,12 +6,11 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
-  CircleDollarSign,
+  IndianRupee,
   Download,
   FileText,
   Filter,
   History,
-  IndianRupee,
   MessageCircle,
   Printer,
   RefreshCw,
@@ -21,11 +20,24 @@ import {
   X,
 } from "lucide-react";
 import "./Outstanding.css";
+import { getActivePaymentAmount, hasDuplicatePaymentReference, isPaymentReversed } from "../../utils/paymentRecords";
+import { buildCsv } from "../../utils/csv";
 
 const TRIPS_KEY = "saoAutoTractorTrips";
 const PARTIES_KEY = "saoAutoTractorParties";
 const PAYMENTS_KEY = "saoAutoTractorPayments";
 const BUSINESS_KEY = "saoAutoTractorBusinessDetails";
+
+function writePayments(nextPayments) {
+  try {
+    localStorage.setItem(PAYMENTS_KEY, JSON.stringify(nextPayments));
+    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    return true;
+  } catch (error) {
+    console.error("Outstanding payment save error:", error);
+    return false;
+  }
+}
 
 const cleanText = (value) => String(value ?? "").trim();
 
@@ -82,21 +94,7 @@ const getPaymentDate = (payment) =>
       payment?.createdAt
   );
 
-const getPaymentAmount = (payment) => {
-  const candidates = [
-    payment?.amount,
-    payment?.receivedAmount,
-    payment?.paidAmount,
-    payment?.paymentAmount,
-  ];
-
-  for (const value of candidates) {
-    const number = Number(value);
-    if (Number.isFinite(number)) return number;
-  }
-
-  return 0;
-};
+const getPaymentAmount = getActivePaymentAmount;
 
 const getPaymentMode = (payment) =>
   cleanText(
@@ -492,15 +490,12 @@ export default function Outstanding() {
     window.addEventListener("storage", handleStorage);
     window.addEventListener("saoAutoTractorDataChanged", handleStorage);
 
-    const interval = setInterval(loadData, 1500);
-
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         handleStorage
       );
-      clearInterval(interval);
     };
   }, []);
 
@@ -575,8 +570,9 @@ export default function Outstanding() {
     payments.forEach((payment, index) => {
       const partyName = getPartyName(payment);
       const amount = getPaymentAmount(payment);
+      const reversed = isPaymentReversed(payment);
 
-      if (!partyName || amount <= 0) return;
+      if (!partyName || (amount <= 0 && !reversed)) return;
 
       const account = ensureParty(partyName);
 
@@ -584,10 +580,10 @@ export default function Outstanding() {
 
       account.transactions.push({
         id: `payment-${index}-${partyName}-${getPaymentDate(payment)}`,
-        type: "Payment",
+        type: reversed ? "Reversal" : "Payment",
         date: getPaymentDate(payment),
-        amount,
-        details: `${getPaymentMode(payment)} payment`,
+        amount: reversed ? Number(payment?.amount) || 0 : amount,
+        details: reversed ? `Receipt reversed: ${payment.reversalReason || "Reason not recorded"}` : `${getPaymentMode(payment)} payment`,
         meta: cleanText(
           payment?.reference ??
             payment?.transactionId ??
@@ -811,6 +807,19 @@ export default function Outstanding() {
       return;
     }
 
+    let existing;
+    try {
+      const parsedPayments = JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
+      existing = Array.isArray(parsedPayments) ? parsedPayments : [];
+    } catch {
+      alert("Payment history could not be read. Refresh or restore saved data before recording a receipt.");
+      return;
+    }
+    if (hasDuplicatePaymentReference(existing, partyName, paymentReference)) {
+      alert("This receipt reference is already recorded for the selected party.");
+      return;
+    }
+
     const payment = {
       id: `payment-${Date.now()}`,
       partyName,
@@ -822,22 +831,14 @@ export default function Outstanding() {
       createdAt: new Date().toISOString(),
     };
 
-    const existing = JSON.parse(
-      localStorage.getItem(PAYMENTS_KEY) || "[]"
-    );
-
     const nextPayments = Array.isArray(existing)
       ? [...existing, payment]
       : [payment];
 
-    localStorage.setItem(
-      PAYMENTS_KEY,
-      JSON.stringify(nextPayments)
-    );
-
-    window.dispatchEvent(
-      new Event("saoAutoTractorDataChanged")
-    );
+    if (!writePayments(nextPayments)) {
+      alert("Payment could not be saved. Your form is still open; no change was made.");
+      return;
+    }
 
     setShowPaymentModal(false);
     loadData();
@@ -869,15 +870,7 @@ export default function Outstanding() {
       account.dueAge !== null ? account.dueAge : "",
     ]);
 
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob([csv], {
+    const blob = new Blob([buildCsv([headers, ...rows])], {
       type: "text/csv;charset=utf-8;",
     });
 
@@ -1213,7 +1206,7 @@ export default function Outstanding() {
         />
 
         <StatCard
-          icon={<CircleDollarSign size={19} />}
+          icon={<IndianRupee size={19} />}
           label="Outstanding"
           value={formatMoney(summary.positiveDue)}
           helper={`${summary.partiesDue} ${summary.partiesDue === 1 ? "party" : "parties"} with due`}
@@ -1375,6 +1368,7 @@ export default function Outstanding() {
                 <input
                   type="date"
                   value={dateFrom}
+                  max={dateTo || undefined}
                   onChange={(event) =>
                     setDateFrom(event.target.value)
                   }
@@ -1389,6 +1383,7 @@ export default function Outstanding() {
                 <input
                   type="date"
                   value={dateTo}
+                  min={dateFrom || undefined}
                   onChange={(event) =>
                     setDateTo(event.target.value)
                   }
@@ -1407,6 +1402,10 @@ export default function Outstanding() {
               </button>
             )}
           </div>
+        )}
+
+        {dateFrom && dateTo && dateFrom > dateTo && (
+          <p className="finance-range-error" role="alert">From date must be on or before the To date.</p>
         )}
 
         <div className="outstanding-table-meta">

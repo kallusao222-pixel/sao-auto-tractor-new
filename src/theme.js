@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "saoTheme";
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-
 const META_COLOR = {
   light: "#f5f6f3",
   dark: "#111713",
@@ -22,13 +20,9 @@ export function getStoredTheme() {
 }
 
 export function getSystemTheme() {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
-  return window.matchMedia(DARK_QUERY).matches
-    ? "dark"
-    : "light";
+  // First visit stays in the app's familiar light appearance. Users can
+  // switch to dark mode explicitly and that choice is persisted per browser.
+  return "light";
 }
 
 export function resolveTheme() {
@@ -38,6 +32,9 @@ export function resolveTheme() {
 export function storeTheme(theme) {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("saoThemeChanged"));
+    }
     return true;
   } catch {
     return false;
@@ -74,30 +71,12 @@ export function useTheme() {
   }, [theme]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const media = window.matchMedia(DARK_QUERY);
-
-    const handleChange = (event) => {
-      if (getStoredTheme() === null) {
-        setTheme(
-          event.matches ? "dark" : "light",
-        );
-      }
-    };
-
-    media.addEventListener(
-      "change",
-      handleChange,
-    );
-
+    const syncTheme = () => setTheme(resolveTheme());
+    window.addEventListener("saoThemeChanged", syncTheme);
+    window.addEventListener("storage", syncTheme);
     return () => {
-      media.removeEventListener(
-        "change",
-        handleChange,
-      );
+      window.removeEventListener("saoThemeChanged", syncTheme);
+      window.removeEventListener("storage", syncTheme);
     };
   }, []);
 

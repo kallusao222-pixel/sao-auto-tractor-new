@@ -25,6 +25,16 @@ import {
   Layers3,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import SavedReportPresets from "../../components/ui/SavedReportPresets";
+import {
+  getLocalDateKey,
+  getReportAmount,
+  getReportQuantity,
+  getReportRate,
+  getReportTripDate,
+  getReportDateRange,
+  normalizeReportDate,
+} from "../../utils/reporting";
 import "./DateWise.css";
 
 const TRIPS_KEY = "saoAutoTractorTrips";
@@ -49,47 +59,18 @@ const readTrips = () => {
 };
 
 const writeTrips = (trips) => {
-  localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
-  window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
-};
-
-const normalizeDate = (value) => {
-  if (!value) return "";
-
-  const text = String(value).trim();
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-    return text;
+  try {
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    return true;
+  } catch (error) {
+    console.error("Unable to save trip records:", error);
+    return false;
   }
-
-  const match = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-
-  if (match) {
-    const [, day, month, year] = match;
-    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
-      2,
-      "0"
-    )}`;
-  }
-
-  const parsed = new Date(text);
-
-  if (Number.isNaN(parsed.getTime())) return "";
-
-  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(parsed.getDate()).padStart(2, "0")}`;
 };
 
-const getToday = () => {
-  const now = new Date();
-
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(now.getDate()).padStart(2, "0")}`;
-};
+const normalizeDate = normalizeReportDate;
+const getToday = getLocalDateKey;
 
 const formatDate = (value) => {
   const normalized = normalizeDate(value);
@@ -159,67 +140,20 @@ const getMaterial = (trip) =>
 const getSite = (trip) =>
   String(trip?.site ?? trip?.location ?? "").trim();
 
-const getQuantity = (trip) => Number(trip?.quantity) || 0;
-
-const getRate = (trip) => Number(trip?.rate) || 0;
-
-const getAmount = (trip) => {
-  if (trip?.amount !== undefined && trip?.amount !== null) {
-    const amount = Number(trip.amount);
-
-    if (Number.isFinite(amount)) return amount;
-  }
-
-  return getQuantity(trip) * getRate(trip);
-};
+const getQuantity = getReportQuantity;
+const getRate = getReportRate;
+const getAmount = getReportAmount;
 
 const getUnit = (trip) =>
   String(trip?.unit ?? trip?.quantityUnit ?? "Trip").trim() || "Trip";
 
 const getDateRange = (type) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const format = (date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}-${String(date.getDate()).padStart(2, "0")}`;
-
-  if (type === "today") {
-    const value = format(today);
-    return [value, value];
-  }
-
-  if (type === "yesterday") {
-    const date = new Date(today);
-    date.setDate(date.getDate() - 1);
-
-    const value = format(date);
-    return [value, value];
-  }
-
-  if (type === "week") {
-    const start = new Date(today);
-    const day = start.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-
-    start.setDate(start.getDate() + diff);
-
-    return [format(start), format(today)];
-  }
-
-  if (type === "month") {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    return [format(start), format(today)];
-  }
-
-  return ["", ""];
+  return getReportDateRange(type);
 };
 
 const escapeCSV = (value) => {
-  const text = value === null || value === undefined ? "" : String(value);
+  let text = value === null || value === undefined ? "" : String(value);
+  if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 };
 
@@ -322,10 +256,10 @@ function DateWisePrintDocument({
                     key={
                       trip?.id ??
                       trip?._id ??
-                      `${normalizeDate(trip?.date)}-${getVehicle(trip)}-${index}`
+                      `${getReportTripDate(trip)}-${getVehicle(trip)}-${index}`
                     }
                   >
-                    <td>{formatDate(trip?.date)}</td>
+                    <td>{formatDate(getReportTripDate(trip))}</td>
                     <td>{getVehicle(trip) || "—"}</td>
                     <td>{getParty(trip) || "—"}</td>
                     <td>{getMaterial(trip) || "—"}</td>
@@ -436,15 +370,12 @@ function DateWise() {
       handleDataChange
     );
 
-    const interval = window.setInterval(loadTrips, 1500);
-
     return () => {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         handleDataChange
       );
-      window.clearInterval(interval);
     };
   }, [loadTrips]);
 
@@ -493,9 +424,11 @@ function DateWise() {
   const filteredTrips = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
+    if (fromDate && toDate && fromDate > toDate) return [];
+
     return trips
       .filter((trip) => {
-        const tripDate = normalizeDate(trip?.date);
+        const tripDate = getReportTripDate(trip);
 
         if (fromDate && (!tripDate || tripDate < fromDate)) {
           return false;
@@ -543,8 +476,8 @@ function DateWise() {
         return true;
       })
       .sort((a, b) => {
-        const dateA = normalizeDate(a?.date);
-        const dateB = normalizeDate(b?.date);
+        const dateA = getReportTripDate(a);
+        const dateB = getReportTripDate(b);
 
         if (dateA !== dateB) {
           return dateB.localeCompare(dateA);
@@ -570,7 +503,7 @@ function DateWise() {
     const map = new Map();
 
     filteredTrips.forEach((trip) => {
-      const date = normalizeDate(trip?.date);
+      const date = getReportTripDate(trip);
       if (!date) return;
 
       if (!map.has(date)) {
@@ -694,11 +627,11 @@ function DateWise() {
     )}`;
 
     const todayTrips = filteredTrips.filter(
-      (trip) => normalizeDate(trip?.date) === today
+      (trip) => getReportTripDate(trip) === today
     );
 
     const yesterdayTrips = filteredTrips.filter(
-      (trip) => normalizeDate(trip?.date) === yesterday
+      (trip) => getReportTripDate(trip) === yesterday
     );
 
     const todayBilling = todayTrips.reduce(
@@ -730,7 +663,7 @@ function DateWise() {
   const quickStats = useMemo(() => {
     const days = new Set(
       filteredTrips
-        .map((trip) => normalizeDate(trip?.date))
+        .map((trip) => getReportTripDate(trip))
         .filter(Boolean)
     );
 
@@ -746,7 +679,7 @@ function DateWise() {
     const dailyBilling = new Map();
 
     filteredTrips.forEach((trip) => {
-      const date = normalizeDate(trip?.date);
+      const date = getReportTripDate(trip);
       if (!date) return;
 
       dailyBilling.set(
@@ -809,7 +742,7 @@ function DateWise() {
     const map = new Map();
 
     filteredTrips.forEach((trip) => {
-      const date = normalizeDate(trip?.date);
+      const date = getReportTripDate(trip);
       if (!date) return;
 
       if (!map.has(date)) {
@@ -1003,7 +936,7 @@ function DateWise() {
     ];
 
     const rows = filteredTrips.map((trip) => [
-      formatDate(trip?.date),
+      formatDate(getReportTripDate(trip)),
       getVehicle(trip),
       getParty(trip),
       getMaterial(trip),
@@ -1103,7 +1036,10 @@ function DateWise() {
 
     delete clonedTrip.__id;
 
-    writeTrips([clonedTrip, ...currentTrips]);
+    if (!writeTrips([clonedTrip, ...currentTrips])) {
+      window.alert("Trip could not be saved. Browser storage is unavailable; no change was made.");
+      return;
+    }
     loadTrips();
     setSelectedTrip(null);
   };
@@ -1111,7 +1047,7 @@ function DateWise() {
   const shareWhatsApp = (trip) => {
     const message = [
       "Trip Details",
-      `Date: ${formatDate(trip?.date)}`,
+      `Date: ${formatDate(getReportTripDate(trip))}`,
       `Vehicle: ${getVehicle(trip) || "—"}`,
       `Party: ${getParty(trip) || "—"}`,
       `Material: ${getMaterial(trip) || "—"}`,
@@ -1155,7 +1091,10 @@ function DateWise() {
       updatedAt: Date.now(),
     };
 
-    writeTrips(currentTrips);
+    if (!writeTrips(currentTrips)) {
+      window.alert("Trip could not be saved. Your edit is still open.");
+      return;
+    }
     loadTrips();
     setEditTrip(null);
   };
@@ -1300,6 +1239,7 @@ function DateWise() {
               <input
                 type="date"
                 value={fromDate}
+                max={toDate || undefined}
                 onChange={(event) => {
                   setFromDate(event.target.value);
                   setActivePreset("");
@@ -1321,6 +1261,7 @@ function DateWise() {
               <input
                 type="date"
                 value={toDate}
+                min={fromDate || undefined}
                 onChange={(event) => {
                   setToDate(event.target.value);
                   setActivePreset("");
@@ -1334,6 +1275,26 @@ function DateWise() {
             <strong>{periodText}</strong>
           </div>
         </div>
+        {fromDate && toDate && fromDate > toDate && (
+          <p className="dw-date-range-error" role="alert">
+            From date must be on or before the To date.
+          </p>
+        )}
+        <SavedReportPresets
+          scope="date-wise"
+          filters={{ fromDate, toDate, search, partyFilter, tractorFilter, materialFilter, tripTypeFilter }}
+          onApply={(saved) => {
+            setFromDate(saved.fromDate || "");
+            setToDate(saved.toDate || "");
+            setSearch(saved.search || "");
+            setPartyFilter(saved.partyFilter || "");
+            setTractorFilter(saved.tractorFilter || "");
+            setMaterialFilter(saved.materialFilter || "");
+            setTripTypeFilter(saved.tripTypeFilter || "");
+            setActivePreset("");
+            setPage(1);
+          }}
+        />
       </section>
 
       {/* =====================================================
@@ -1886,7 +1847,7 @@ function DateWise() {
                         key={
                           trip?.id ??
                           trip?._id ??
-                          `${normalizeDate(trip?.date)}-${getVehicle(
+                          `${getReportTripDate(trip)}-${getVehicle(
                             trip
                           )}-${index}`
                         }
@@ -1894,7 +1855,7 @@ function DateWise() {
                         <td>
                           <div className="dw-date-cell">
                             <strong>
-                              {formatDate(trip?.date)}
+                              {formatDate(getReportTripDate(trip))}
                             </strong>
 
                             <span>
@@ -2034,7 +1995,7 @@ function DateWise() {
                     key={
                       trip?.id ??
                       trip?._id ??
-                      `${normalizeDate(trip?.date)}-${getVehicle(
+                      `${getReportTripDate(trip)}-${getVehicle(
                         trip
                       )}-${index}`
                     }
@@ -2043,7 +2004,7 @@ function DateWise() {
                       <div>
                         <span>Date</span>
                         <strong>
-                          {formatDate(trip?.date)}
+                          {formatDate(getReportTripDate(trip))}
                         </strong>
                       </div>
 
@@ -2315,7 +2276,7 @@ function DateWise() {
                       {
                         filteredTrips.filter(
                           (trip) =>
-                            normalizeDate(trip?.date) ===
+                            getReportTripDate(trip) ===
                               day.date &&
                             getTripType(trip) === "Loading"
                         ).length
@@ -2329,7 +2290,7 @@ function DateWise() {
                       {
                         filteredTrips.filter(
                           (trip) =>
-                            normalizeDate(trip?.date) ===
+                            getReportTripDate(trip) ===
                               day.date &&
                             getTripType(trip) === "Unloading"
                         ).length
@@ -2343,7 +2304,7 @@ function DateWise() {
                       {
                         filteredTrips.filter(
                           (trip) =>
-                            normalizeDate(trip?.date) ===
+                            getReportTripDate(trip) ===
                               day.date &&
                             getTripType(trip) ===
                               "Site to Site"
@@ -2732,7 +2693,7 @@ function DateWise() {
 function DateWiseEditModal({ trip, onClose, onSave }) {
   const [form, setForm] = useState({
     id: trip?.id,
-    date: normalizeDate(trip?.date),
+    date: getReportTripDate(trip),
     vehicleNumber: getVehicle(trip),
     partyName: getParty(trip),
     materialName: getMaterial(trip),

@@ -37,6 +37,14 @@ import {
 } from "lucide-react";
 
 import "./Settings.css";
+import CloudBackupPanel from "./CloudBackupPanel";
+import { applyTheme, getStoredTheme, storeTheme } from "../../theme";
+import {
+  getLocalWorkspaceBackupCounts,
+  LOCAL_BACKUP_SCHEMA_VERSION,
+  restoreLocalWorkspaceBackup,
+  validateLocalWorkspaceBackup,
+} from "../../data/localWorkspaceBackup";
 
 const STORAGE_KEYS = {
   settings: "saoAutoTractorSettings",
@@ -53,6 +61,9 @@ const STORAGE_KEYS = {
   staff: "saoAutoTractorStaff",
   staffAttendance: "saoAutoTractorStaffAttendance",
   staffSalaryPayments: "saoAutoTractorStaffSalaryPayments",
+  tripTemplates: "saoAutoTractorTripTemplates",
+  tripEntryPreferences: "saoAutoTractorTripEntryPreferences",
+  preferredTripTractor: "saoAutoTractorPreferredTripTractor",
 
   invoices: "saoAutoTractorInvoices",
   invoiceNumber: "saoAutoTractorInvoiceNumber",
@@ -62,6 +73,15 @@ const STORAGE_KEYS = {
 };
 
 const APP_VERSION = "1.4.0";
+const BACKUP_DATA_LABELS = {
+  staffAttendance: "Attendance marks",
+  staffSalaryPayments: "Staff payroll entries",
+  invoiceNumber: "Invoice sequence",
+  businessDetails: "Business details",
+  tripTemplates: "Trip templates",
+  tripEntryPreferences: "Trip entry preferences",
+  preferredTripTractor: "Remembered tractor",
+};
 
 const defaultSettings = {
   companyName: "SAO AUTO TRACTOR",
@@ -217,8 +237,8 @@ const menuGroups = [
       {
         id: "cloud",
         icon: Cloud,
-        title: "Cloud Sync",
-        subtitle: "Future multi-device sync",
+        title: "Cloud Backup",
+        subtitle: "On-demand cloud backups",
       },
       {
         id: "security",
@@ -278,17 +298,77 @@ function readObject(key, fallback = {}) {
   }
 }
 
+function inspectStoredValue(key, expectedType) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return { status: "empty", count: 0 };
+  try {
+    const parsed = JSON.parse(raw);
+    const valid = expectedType === "array"
+      ? Array.isArray(parsed)
+      : parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+    if (!valid) return { status: "invalid", count: 0 };
+    return {
+      status: "ok",
+      count: expectedType === "array" ? parsed.length : Object.keys(parsed).length,
+    };
+  } catch {
+    return { status: "invalid", count: 0 };
+  }
+}
+
+function readBackupArray(key) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return [];
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed)) throw new Error(`Saved data for ${key} is not a list; backup was not created.`);
+  return parsed;
+}
+
+function readBackupObject(key, fallback = {}) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return fallback;
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`Saved data for ${key} is not an object; backup was not created.`);
+  }
+  return parsed;
+}
+
+function readBackupSalaryPayments() {
+  const raw = localStorage.getItem(STORAGE_KEYS.staffSalaryPayments);
+  if (raw === null) return {};
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Saved staff payroll data is invalid; backup was not created.");
+  }
+  return parsed;
+}
+
 function formatDateTime(value) {
   if (!value) return "Never";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Never";
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+  let preferences = {};
+  try {
+    preferences = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || "{}");
+  } catch {
+    preferences = {};
+  }
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+  const dateFormats = {
+    "DD-MM-YYYY": `${day}-${month}-${year}`,
+    "DD/MM/YYYY": `${day}/${month}/${year}`,
+    "YYYY-MM-DD": `${year}-${month}-${day}`,
+    "MM-DD-YYYY": `${month}-${day}-${year}`,
+  };
+  const time = date.toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: preferences.timeFormat !== "24 Hour",
   });
+  return `${dateFormats[preferences.dateFormat] || dateFormats["DD-MM-YYYY"]} · ${time}`;
 }
 
 function formatBytes(bytes) {
@@ -585,6 +665,7 @@ export default function Settings() {
   const [logoError, setLogoError] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [dataStats, setDataStats] = useState({});
+  const [dataHealth, setDataHealth] = useState({ invalid: [], total: 0 });
   const [storageEstimate, setStorageEstimate] = useState(null);
   const [lastBackup, setLastBackup] = useState(null);
 
@@ -624,12 +705,23 @@ export default function Settings() {
     window.addEventListener("storage", sync);
     window.addEventListener("saoAutoTractorDataChanged", sync);
 
+    const syncThemePreference = () => {
+      const theme = getStoredTheme();
+      if (!theme) return;
+      setSettings((previous) => ({
+        ...previous,
+        theme: theme === "dark" ? "Dark" : "Light",
+      }));
+    };
+    window.addEventListener("saoThemeChanged", syncThemePreference);
+
     return () => {
       window.removeEventListener("storage", sync);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         sync
       );
+      window.removeEventListener("saoThemeChanged", syncThemePreference);
       if (messageTimerRef.current) {
         clearTimeout(messageTimerRef.current);
       }
@@ -742,37 +834,89 @@ export default function Settings() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.settings);
       if (!raw) {
-        setSettings(defaultSettings);
+        setSettings({
+          ...defaultSettings,
+          theme: getStoredTheme() === "dark" ? "Dark" : "Light",
+        });
         return;
       }
       const saved = JSON.parse(raw);
+      const savedTheme =
+        getStoredTheme() ||
+        (saved?.theme === "Dark" || saved?.theme === "dark" ? "dark" : "light");
+      const savedCompact =
+        saved?.compactTables === true ||
+        String(saved?.layout || "").toLowerCase() === "compact";
       setSettings({
         ...defaultSettings,
         ...(saved || {}),
+        currency: "₹",
+        compactTables: savedCompact,
+        layout: savedCompact ? "Compact" : "Comfortable",
+        theme: savedTheme === "dark" ? "Dark" : "Light",
       });
     } catch {
-      setSettings(defaultSettings);
+      setSettings({
+        ...defaultSettings,
+        theme: getStoredTheme() === "dark" ? "Dark" : "Light",
+      });
     }
   }
 
   function refreshDataStats() {
+    const collections = [
+      ["tractors", STORAGE_KEYS.tractors],
+      ["trips", STORAGE_KEYS.trips],
+      ["parties", STORAGE_KEYS.parties],
+      ["materials", STORAGE_KEYS.materials],
+      ["payments", STORAGE_KEYS.payments],
+      ["expenses", STORAGE_KEYS.expenses],
+      ["staff", STORAGE_KEYS.staff],
+      ["invoices", STORAGE_KEYS.invoices],
+      ["tripTemplates", STORAGE_KEYS.tripTemplates],
+      ["tractorMaintenance", STORAGE_KEYS.tractorMaintenance],
+    ];
+    const objectStores = [
+      ["attendance", STORAGE_KEYS.staffAttendance],
+      ["businessDetails", STORAGE_KEYS.businessDetails],
+      ["tripEntryPreferences", STORAGE_KEYS.tripEntryPreferences],
+    ];
+    const collectionResults = collections.map(([name, key]) => [
+      name,
+      inspectStoredValue(key, "array"),
+    ]);
+    const objectResults = objectStores.map(([name, key]) => [
+      name,
+      inspectStoredValue(key, "object"),
+    ]);
+    const salaryRaw = localStorage.getItem(STORAGE_KEYS.staffSalaryPayments);
+    let salaryResult = { status: "empty", count: 0 };
+    if (salaryRaw !== null) {
+      try {
+        const salaryData = JSON.parse(salaryRaw);
+        if (Array.isArray(salaryData)) {
+          salaryResult = { status: "ok", count: salaryData.length };
+        } else if (salaryData && typeof salaryData === "object") {
+          salaryResult = { status: "ok", count: Object.keys(salaryData).length };
+        } else {
+          salaryResult = { status: "invalid", count: 0 };
+        }
+      } catch {
+        salaryResult = { status: "invalid", count: 0 };
+      }
+    }
     const stats = {
-      tractors: readArray(STORAGE_KEYS.tractors).length,
-      trips: readArray(STORAGE_KEYS.trips).length,
-      parties: readArray(STORAGE_KEYS.parties).length,
-      materials: readArray(STORAGE_KEYS.materials).length,
-      payments: readArray(STORAGE_KEYS.payments).length,
-      expenses: readArray(STORAGE_KEYS.expenses).length,
-      staff: readArray(STORAGE_KEYS.staff).length,
-      invoices: readArray(STORAGE_KEYS.invoices).length,
-      attendance: Object.keys(
-        readObject(STORAGE_KEYS.staffAttendance, {})
-      ).length,
-      salaryPayments: readArray(
-        STORAGE_KEYS.staffSalaryPayments
-      ).length,
+      ...Object.fromEntries(collectionResults.map(([name, result]) => [name, result.count])),
+      ...Object.fromEntries(objectResults.map(([name, result]) => [name, result.count])),
+      salaryPayments: salaryResult.count,
     };
     setDataStats(stats);
+    setDataHealth({
+      invalid: [...collectionResults, ...objectResults, ["salaryPayments", salaryResult]]
+        .filter(([, result]) => result.status === "invalid")
+        .map(([name]) => name),
+      total: collections.length + objectStores.length + 1,
+    });
   }
 
   async function estimateStorage() {
@@ -806,6 +950,11 @@ export default function Settings() {
   }
 
   function updateSetting(key, value) {
+    if (key === "theme") {
+      const normalizedTheme = value === "Dark" ? "dark" : "light";
+      applyTheme(normalizedTheme);
+      storeTheme(normalizedTheme);
+    }
     setSettings((previous) => ({
       ...previous,
       [key]: value,
@@ -813,12 +962,61 @@ export default function Settings() {
     setHasUnsavedChanges(true);
   }
 
+  function validateCompanyProfile() {
+    const companyName = String(settings.companyName || "").trim();
+    if (!companyName) {
+      showMessage("Company Name is required.", "error");
+      setActiveSection("company");
+      return false;
+    }
+
+    for (const [label, value] of [
+      ["Owner Email", settings.ownerEmail],
+      ["Business Email", settings.email],
+    ]) {
+      const email = String(value || "").trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showMessage(`${label} does not look like a valid email address.`, "error");
+        setActiveSection("company");
+        return false;
+      }
+    }
+
+    for (const [label, value] of [
+      ["Owner Phone", settings.ownerPhone],
+      ["Business Phone", settings.phone],
+    ]) {
+      const phone = String(value || "").replace(/\D/g, "");
+      if (phone && (phone.length < 7 || phone.length > 15)) {
+        showMessage(`${label} must contain 7 to 15 digits.`, "error");
+        setActiveSection("company");
+        return false;
+      }
+    }
+
+    if (settings.pinCode && !/^\d{6}$/.test(String(settings.pinCode).trim())) {
+      showMessage("PIN Code must contain 6 digits.", "error");
+      setActiveSection("company");
+      return false;
+    }
+
+    return true;
+  }
+
   function saveSettings() {
     try {
+      if (!validateCompanyProfile()) return;
+
+      const normalizedSettings = {
+        ...settings,
+        companyName: String(settings.companyName).trim(),
+        currency: "₹",
+      };
       localStorage.setItem(
         STORAGE_KEYS.settings,
-        JSON.stringify(settings)
+        JSON.stringify(normalizedSettings)
       );
+      storeTheme(normalizedSettings.theme === "Dark" ? "dark" : "light");
 
       setHasUnsavedChanges(false);
 
@@ -838,10 +1036,13 @@ export default function Settings() {
 
   function saveAndReload() {
     try {
+      if (!validateCompanyProfile()) return;
+      const normalizedSettings = { ...settings, currency: "₹" };
       localStorage.setItem(
         STORAGE_KEYS.settings,
-        JSON.stringify(settings)
+        JSON.stringify(normalizedSettings)
       );
+      storeTheme(normalizedSettings.theme === "Dark" ? "dark" : "light");
 
       setHasUnsavedChanges(false);
 
@@ -926,68 +1127,42 @@ export default function Settings() {
   function createBackupObject() {
     return {
       application: "SAO AUTO TRACTOR",
+      schemaVersion: LOCAL_BACKUP_SCHEMA_VERSION,
       version: APP_VERSION,
       backupType: "Full Local Backup",
       createdAt: new Date().toISOString(),
 
-      settings: readObject(
+      settings: readBackupObject(
         STORAGE_KEYS.settings,
         defaultSettings
       ),
 
       data: {
-        trips: readArray(STORAGE_KEYS.trips),
-        payments: readArray(STORAGE_KEYS.payments),
-        parties: readArray(STORAGE_KEYS.parties),
-        tractors: readArray(STORAGE_KEYS.tractors),
-        materials: readArray(STORAGE_KEYS.materials),
-        expenses: readArray(STORAGE_KEYS.expenses),
-        staff: readArray(STORAGE_KEYS.staff),
-        staffAttendance: readObject(
+        trips: readBackupArray(STORAGE_KEYS.trips),
+        payments: readBackupArray(STORAGE_KEYS.payments),
+        parties: readBackupArray(STORAGE_KEYS.parties),
+        tractors: readBackupArray(STORAGE_KEYS.tractors),
+        materials: readBackupArray(STORAGE_KEYS.materials),
+        expenses: readBackupArray(STORAGE_KEYS.expenses),
+        staff: readBackupArray(STORAGE_KEYS.staff),
+        staffAttendance: readBackupObject(
           STORAGE_KEYS.staffAttendance,
           {}
         ),
-        staffSalaryPayments: readArray(
-          STORAGE_KEYS.staffSalaryPayments
-        ),
-        invoices: readArray(STORAGE_KEYS.invoices),
+        staffSalaryPayments: readBackupSalaryPayments(),
+        invoices: readBackupArray(STORAGE_KEYS.invoices),
         invoiceNumber: localStorage.getItem(
           STORAGE_KEYS.invoiceNumber
         ),
-        businessDetails: readObject(
+        businessDetails: readBackupObject(
           STORAGE_KEYS.businessDetails,
           {}
         ),
+        tripTemplates: readBackupArray(STORAGE_KEYS.tripTemplates),
+        tractorMaintenance: readBackupArray(STORAGE_KEYS.tractorMaintenance),
+        tripEntryPreferences: readBackupObject(STORAGE_KEYS.tripEntryPreferences, {}),
+        preferredTripTractor: localStorage.getItem(STORAGE_KEYS.preferredTripTractor),
       },
-    };
-  }
-
-  function getBackupCounts(backup) {
-    const data = backup?.data || {};
-    return {
-      trips: Array.isArray(data.trips) ? data.trips.length : 0,
-      payments: Array.isArray(data.payments)
-        ? data.payments.length
-        : 0,
-      parties: Array.isArray(data.parties)
-        ? data.parties.length
-        : 0,
-      tractors: Array.isArray(data.tractors)
-        ? data.tractors.length
-        : 0,
-      materials: Array.isArray(data.materials)
-        ? data.materials.length
-        : 0,
-      expenses: Array.isArray(data.expenses)
-        ? data.expenses.length
-        : 0,
-      staff: Array.isArray(data.staff)
-        ? data.staff.length
-        : 0,
-      invoices: Array.isArray(data.invoices)
-        ? data.invoices.length
-        : 0,
-      settings: backup?.settings ? "Included" : "Not included",
     };
   }
 
@@ -1007,13 +1182,13 @@ export default function Settings() {
     anchor.click();
     anchor.remove();
 
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function backupData() {
     try {
       const backup = createBackupObject();
-      const counts = getBackupCounts(backup);
+      const counts = getLocalWorkspaceBackupCounts(backup);
 
       downloadJSON(
         `SAO-AUTO-TRACTOR-Backup-${new Date()
@@ -1095,10 +1270,21 @@ export default function Settings() {
           return;
         }
 
-        setSettings({
+        const importedSettings = {
           ...defaultSettings,
           ...parsed.settings,
-        });
+          currency: "₹",
+          theme:
+            parsed.settings.theme === "Dark" || parsed.settings.theme === "dark"
+              ? "Dark"
+              : "Light",
+        };
+        const compact =
+          parsed.settings.compactTables === true ||
+          String(parsed.settings.layout || "").toLowerCase() === "compact";
+        importedSettings.layout = compact ? "Compact" : "Comfortable";
+        importedSettings.compactTables = compact;
+        setSettings(importedSettings);
 
         setHasUnsavedChanges(true);
 
@@ -1149,12 +1335,12 @@ export default function Settings() {
           throw new Error("Backup data section is missing.");
         }
 
-        setBackupPreview(backup);
+        setBackupPreview(validateLocalWorkspaceBackup(backup));
         setRestoreLoading(false);
       } catch (error) {
         console.error(error);
         showMessage(
-          "Invalid or corrupted backup file.",
+          error.message || "Invalid or corrupted backup file.",
           "error"
         );
         setRestoreLoading(false);
@@ -1177,107 +1363,25 @@ export default function Settings() {
     if (!backup) return;
 
     try {
-      /* ---- Auto-snapshot: current data ko pehle download kar lo ---- */
-      try {
-        const preRestoreSnapshot = createBackupObject();
-        preRestoreSnapshot.backupType =
-          "Pre-Restore Safety Snapshot";
-        preRestoreSnapshot.restoredFrom = {
-          createdAt: backup.createdAt || null,
-          version: backup.version || null,
-        };
+      restoreLocalWorkspaceBackup(backup, {
+        defaultSettings,
+        beforeRestore: () => {
+          const preRestoreSnapshot = createBackupObject();
+          preRestoreSnapshot.backupType = "Pre-Restore Safety Snapshot";
+          preRestoreSnapshot.restoredFrom = {
+            createdAt: backup.createdAt || null,
+            version: backup.version || null,
+          };
 
-        downloadJSON(
-          `SAO-AUTO-TRACTOR-PRE-RESTORE-${new Date()
-            .toISOString()
-            .slice(0, 19)
-            .replace(/[:T]/g, "-")}.json`,
-          preRestoreSnapshot
-        );
-      } catch (snapshotError) {
-        console.warn(
-          "Pre-restore snapshot failed:",
-          snapshotError
-        );
-        // Snapshot fail ho toh bhi restore rokna nahi
-      }
-
-      if (backup.settings) {
-        localStorage.setItem(
-          STORAGE_KEYS.settings,
-          JSON.stringify({
-            ...defaultSettings,
-            ...backup.settings,
-          })
-        );
-      }
-
-      const data = backup.data;
-
-      const arrayKeys = [
-        ["trips", STORAGE_KEYS.trips],
-        ["payments", STORAGE_KEYS.payments],
-        ["parties", STORAGE_KEYS.parties],
-        ["tractors", STORAGE_KEYS.tractors],
-        ["materials", STORAGE_KEYS.materials],
-        ["expenses", STORAGE_KEYS.expenses],
-        ["staff", STORAGE_KEYS.staff],
-        [
-          "staffSalaryPayments",
-          STORAGE_KEYS.staffSalaryPayments,
-        ],
-        ["invoices", STORAGE_KEYS.invoices],
-      ];
-
-      arrayKeys.forEach(([sourceKey, storageKey]) => {
-        if (Array.isArray(data[sourceKey])) {
-          localStorage.setItem(
-            storageKey,
-            JSON.stringify(data[sourceKey])
+          downloadJSON(
+            `SAO-AUTO-TRACTOR-PRE-RESTORE-${new Date()
+              .toISOString()
+              .slice(0, 19)
+              .replace(/[:T]/g, "-")}.json`,
+            preRestoreSnapshot
           );
-        }
+        },
       });
-
-      if (
-        data.staffAttendance &&
-        typeof data.staffAttendance === "object"
-      ) {
-        localStorage.setItem(
-          STORAGE_KEYS.staffAttendance,
-          JSON.stringify(data.staffAttendance)
-        );
-      }
-
-      if (
-        Object.prototype.hasOwnProperty.call(
-          data,
-          "invoiceNumber"
-        )
-      ) {
-        if (
-          data.invoiceNumber === null ||
-          data.invoiceNumber === undefined
-        ) {
-          localStorage.removeItem(
-            STORAGE_KEYS.invoiceNumber
-          );
-        } else {
-          localStorage.setItem(
-            STORAGE_KEYS.invoiceNumber,
-            String(data.invoiceNumber)
-          );
-        }
-      }
-
-      if (
-        data.businessDetails &&
-        typeof data.businessDetails === "object"
-      ) {
-        localStorage.setItem(
-          STORAGE_KEYS.businessDetails,
-          JSON.stringify(data.businessDetails)
-        );
-      }
 
       window.dispatchEvent(
         new Event("saoAutoTractorDataChanged")
@@ -1295,7 +1399,7 @@ export default function Settings() {
       }, 700);
     } catch (error) {
       console.error(error);
-      showMessage("Restore failed.", "error");
+      showMessage(error.message || "Restore failed.", "error");
     }
   }
 
@@ -1354,7 +1458,7 @@ export default function Settings() {
 
     updateSetting("appLock", true);
 
-    showMessage("App PIN saved. Save settings to finish.");
+    showMessage("PIN saved on this browser. The additional app-lock behavior is not active yet.");
   }
 
   function removePin() {
@@ -1382,10 +1486,7 @@ export default function Settings() {
     const current = currentPassword.trim();
     const next = newPassword.trim();
     const confirm = confirmPassword.trim();
-
-    const savedPassword =
-      localStorage.getItem(STORAGE_KEYS.loginPassword) ||
-      "1234";
+    const savedPassword = localStorage.getItem(STORAGE_KEYS.loginPassword) || "1234";
 
     if (!current || !next || !confirm) {
       showMessage(
@@ -1397,17 +1498,14 @@ export default function Settings() {
 
     if (current !== savedPassword) {
       showMessage(
-        "Current password is incorrect.",
+        "Current passcode is incorrect.",
         "error"
       );
       return;
     }
 
-    if (next.length < 4) {
-      showMessage(
-        "New password must contain at least 4 characters.",
-        "error"
-      );
+    if (!/^\d{4,6}$/.test(next)) {
+      showMessage("New passcode must contain 4 to 6 digits.", "error");
       return;
     }
 
@@ -1420,23 +1518,15 @@ export default function Settings() {
     }
 
     if (next === current) {
-      showMessage(
-        "New password must be different from the current password.",
-        "error"
-      );
+      showMessage("New passcode must differ from the current passcode.", "error");
       return;
     }
 
-    localStorage.setItem(
-      STORAGE_KEYS.loginPassword,
-      next
-    );
-
+    localStorage.setItem(STORAGE_KEYS.loginPassword, next);
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
-
-    showMessage("Login password changed successfully.");
+    showMessage("Login passcode changed successfully.");
   }
 
   /* =======================================================
@@ -1507,12 +1597,6 @@ export default function Settings() {
   function simulateCloudSync() {
     showMessage(
       "Cloud Sync is ready for future backend integration. No fake online sync was performed."
-    );
-  }
-
-  function simulateAccountAction() {
-    showMessage(
-      "Online account system is not connected yet. Local mode remains active."
     );
   }
 
@@ -1666,8 +1750,7 @@ export default function Settings() {
         return (
           <>
             <InfoBox icon={Building2} title="Business identity">
-              These details are used across invoices,
-              billing and business documents.
+              Profile details appear in Add Trip documents. Invoice sender details are managed separately under Finance → Invoice.
             </InfoBox>
 
             <SettingsCard
@@ -1889,8 +1972,7 @@ export default function Settings() {
         return (
           <>
             <InfoBox icon={Tractor} title="Transport defaults">
-              These settings control the default behavior
-              when creating new transport records.
+              Default trip type and unit are applied in Add Trip. Rate type and required-step switches are saved for reference but are not enforced by the trip form yet.
             </InfoBox>
 
             <SettingsCard
@@ -1990,10 +2072,9 @@ export default function Settings() {
                 <Field
                   label="Currency"
                   value={settings.currency}
-                  onChange={(value) =>
-                    updateSetting("currency", value)
-                  }
-                  options={["₹", "$", "€", "£"]}
+                  onChange={() => updateSetting("currency", "₹")}
+                  options={[{ value: "₹", label: "INR · Indian Rupee (₹)" }]}
+                  hint="This business workspace and its invoices use Indian Rupees."
                 />
                 <Field
                   label="Decimal Places"
@@ -2030,7 +2111,7 @@ export default function Settings() {
 
             <SettingsCard
               title="Payment Rules"
-              description="Control payment and credit behavior."
+              description="Advance and extra-payment switches are saved preferences; receipt validation does not enforce them yet."
             >
               <SettingRow
                 icon={WalletCards}
@@ -2058,6 +2139,9 @@ export default function Settings() {
       case "party":
         return (
           <>
+            <InfoBox icon={Users} title="Party entry preferences">
+              Automatic party codes and duplicate-name prompts apply when adding parties. Billing and received balances stay enabled for accurate accounts.
+            </InfoBox>
             <SettingsCard
               title="Party Management"
               description="Customer and credit management preferences."
@@ -2069,15 +2153,6 @@ export default function Settings() {
                 value={settings.autoPartyCode}
                 onChange={(value) =>
                   updateSetting("autoPartyCode", value)
-                }
-              />
-              <SettingRow
-                icon={WalletCards}
-                title="Credit Tracking"
-                description="Track billed, received and outstanding amounts."
-                value={settings.creditTracking}
-                onChange={(value) =>
-                  updateSetting("creditTracking", value)
                 }
               />
               <SettingRow
@@ -2099,8 +2174,11 @@ export default function Settings() {
           <>
             <SettingsCard
               title="Date & Time"
-              description="Choose how dates and times appear across the application."
+              description="Choose how dates and times appear in supported app views."
             >
+              <InfoBox icon={CalendarDays} title="Date and time display preferences">
+                These formats apply to shared record labels and app headers. Printed reports may keep their own layout; changing format never edits saved dates.
+              </InfoBox>
               <div className="settings-grid">
                 <Field
                   label="Date Format"
@@ -2114,6 +2192,7 @@ export default function Settings() {
                     "YYYY-MM-DD",
                     "MM-DD-YYYY",
                   ]}
+                  hint="Applied to shared record dates and app headers."
                 />
                 <Field
                   label="Time Format"
@@ -2122,6 +2201,7 @@ export default function Settings() {
                     updateSetting("timeFormat", value)
                   }
                   options={["12 Hour", "24 Hour"]}
+                  hint="Applied to timestamps and the dashboard clock."
                 />
                 <Field
                   label="Financial Year"
@@ -2133,6 +2213,7 @@ export default function Settings() {
                     "April - March",
                     "January - December",
                   ]}
+                  hint="Saved as your preference; report date ranges still need to be selected manually."
                 />
               </div>
             </SettingsCard>
@@ -2216,15 +2297,13 @@ export default function Settings() {
       case "notifications":
         return (
           <>
-            <InfoBox icon={Bell} title="Smart notifications">
-              These controls prepare the app for useful
-              business reminders. No fake notifications are
-              generated.
+            <InfoBox icon={Bell} title="Reminder preferences">
+              In-app reminders use your saved trip, payment, tractor-document, service, driver-licence and backup records. Switch off any reminder group you do not need.
             </InfoBox>
 
             <SettingsCard
               title="Business Alerts"
-              description="Enable the reminders you actually need."
+              description="Choose which live in-app reminders appear in the top-bar inbox."
             >
               <SettingRow
                 icon={Bell}
@@ -2238,7 +2317,7 @@ export default function Settings() {
               <SettingRow
                 icon={WalletCards}
                 title="Due Payment Alerts"
-                description="Remind about pending party payments."
+                description="Show high-value overdue party balances."
                 value={settings.dueAlerts}
                 onChange={(value) =>
                   updateSetting("dueAlerts", value)
@@ -2247,7 +2326,7 @@ export default function Settings() {
               <SettingRow
                 icon={Tractor}
                 title="Trip Alerts"
-                description="Prepare reminders around transport activity."
+                description="Show active tractors with no trip today."
                 value={settings.tripAlerts}
                 onChange={(value) =>
                   updateSetting("tripAlerts", value)
@@ -2256,7 +2335,7 @@ export default function Settings() {
               <SettingRow
                 icon={Wrench}
                 title="Maintenance Alerts"
-                description="Prepare tractor maintenance reminders."
+                description="Show service, insurance, registration, fitness and PUC due dates."
                 value={settings.maintenanceAlerts}
                 onChange={(value) =>
                   updateSetting("maintenanceAlerts", value)
@@ -2265,7 +2344,7 @@ export default function Settings() {
               <SettingRow
                 icon={Users}
                 title="Staff Salary Alerts"
-                description="Prepare salary and staff payment reminders."
+                description="Staff salary reminder preference (payroll alerts are not yet generated)."
                 value={settings.staffSalaryAlerts}
                 onChange={(value) =>
                   updateSetting("staffSalaryAlerts", value)
@@ -2274,7 +2353,7 @@ export default function Settings() {
               <SettingRow
                 icon={Database}
                 title="Backup Reminder"
-                description="Remind you to keep regular local backups."
+                description="Remind when a local backup has never been made or is over seven days old."
                 value={settings.backupReminder}
                 onChange={(value) =>
                   updateSetting("backupReminder", value)
@@ -2285,7 +2364,7 @@ export default function Settings() {
 
             <SettingsCard
               title="Browser Notifications"
-              description="Optional browser permission for future real reminders."
+              description="Allow a one-time browser test notification. Business alerts are not sent automatically."
             >
               <SettingRow
                 icon={Bell}
@@ -2334,15 +2413,20 @@ export default function Settings() {
                   onChange={(value) =>
                     updateSetting("theme", value)
                   }
-                  options={["Light", "Dark", "System"]}
-                  hint="Light remains the current master Dashboard theme."
+                  options={["Light", "Dark"]}
+                  hint="Changes the app theme immediately; Save Settings also stores the preference."
                 />
                 <Field
                   label="Layout"
                   value={settings.layout}
-                  onChange={(value) =>
-                    updateSetting("layout", value)
-                  }
+                  onChange={(value) => {
+                    setSettings((previous) => ({
+                      ...previous,
+                      layout: value,
+                      compactTables: value === "Compact",
+                    }));
+                    setHasUnsavedChanges(true);
+                  }}
                   options={["Comfortable", "Compact"]}
                 />
               </div>
@@ -2382,21 +2466,6 @@ export default function Settings() {
               </div>
             </SettingsCard>
 
-            <SettingsCard
-              title="Density"
-              description="Optional compact mode for users who manage many records."
-            >
-              <SettingRow
-                icon={Package}
-                title="Compact Tables"
-                description="Reduce table spacing where supported."
-                value={settings.compactTables}
-                onChange={(value) =>
-                  updateSetting("compactTables", value)
-                }
-                last
-              />
-            </SettingsCard>
           </>
         );
 
@@ -2405,18 +2474,20 @@ export default function Settings() {
           <>
             <InfoBox
               icon={ShieldCheck}
-              title="Your PIN and Login Password are never included in backups."
+              title="Backups include business records, never your PIN or password."
             >
-              Full backups contain business data and
-              settings, but your App PIN and Login Password
-              are deliberately excluded for security.
+              Full backups include trips, invoices, payments,
+              staff attendance and payroll, templates, preferences,
+              business details and settings. Restore validates the file,
+              creates a recovery download first, and only replaces
+              categories included in that backup.
             </InfoBox>
 
             <div className="backup-grid">
               <BackupCard
                 icon={Download}
                 title="Create Full Backup"
-                description="Export trips, parties, tractors, materials, payments, expenses, staff, attendance, salary payments, invoices and business details."
+                description="Export trips, invoices, payments, staff, attendance, payroll, templates, preferences, business details and settings."
                 buttonText="Create Backup"
                 onClick={backupData}
               />
@@ -2495,8 +2566,12 @@ export default function Settings() {
 
             <SettingsCard
               title="Data Health"
-              description="Current local record counts across the application."
+              description="Read-only checks of saved browser data and its expected format."
             >
+              <div className={`data-health-status ${dataHealth.invalid.length ? "has-issues" : "is-healthy"}`} role="status" aria-live="polite">
+                <strong>{dataHealth.invalid.length ? `${dataHealth.invalid.length} storage issue${dataHealth.invalid.length === 1 ? "" : "s"} found` : "Local data format looks healthy"}</strong>
+                <span>{dataHealth.invalid.length ? `Affected sections: ${dataHealth.invalid.join(", ")}. Export a backup before attempting any recovery.` : `${dataHealth.total} local data sections checked. Counts below show valid saved records.`}</span>
+              </div>
               <div className="data-health-grid">
                 <div className="data-health-item">
                   <Tractor />
@@ -2537,6 +2612,16 @@ export default function Settings() {
                   <FileBarChart />
                   <span>Invoices</span>
                   <strong>{dataStats.invoices || 0}</strong>
+                </div>
+                <div className="data-health-item">
+                  <ReceiptText />
+                  <span>Attendance marks</span>
+                  <strong>{dataStats.attendance || 0}</strong>
+                </div>
+                <div className="data-health-item">
+                  <WalletCards />
+                  <span>Salary periods</span>
+                  <strong>{dataStats.salaryPayments || 0}</strong>
                 </div>
               </div>
             </SettingsCard>
@@ -2677,85 +2762,18 @@ export default function Settings() {
       case "cloud":
         return (
           <>
-            <InfoBox icon={Cloud} title="Cloud Sync is future-ready">
-              The interface is prepared for Firebase,
-              Supabase or another backend later. The current
-              app does not pretend to sync data online.
+            <InfoBox icon={Cloud} title="Cloud backup stays under your control">
+              Sign in with a separate cloud backup account, then upload or restore only when you choose.
             </InfoBox>
-
-            <SettingsCard
-              title="Cloud Sync"
-              description="Optional cloud configuration for future multi-device support."
-            >
-              <SettingRow
-                icon={Cloud}
-                title="Enable Cloud Sync"
-                description="Prepare the application for future online synchronization."
-                value={settings.cloudSync}
-                onChange={(value) =>
-                  updateSetting("cloudSync", value)
-                }
-              />
-              <SettingRow
-                icon={RefreshCw}
-                title="Automatic Sync"
-                description="Automatically sync changes when a backend is connected."
-                value={settings.autoSync}
-                onChange={(value) =>
-                  updateSetting("autoSync", value)
-                }
-              />
-              <SettingRow
-                icon={Database}
-                title="Cloud Backup"
-                description="Prepare automatic backup to a connected cloud service."
-                value={settings.cloudBackup}
-                onChange={(value) =>
-                  updateSetting("cloudBackup", value)
-                }
-                last
-              />
-            </SettingsCard>
-
-            <SettingsCard
-              title="Sync Status"
-              description="Current local status."
-            >
-              <div className="future-feature-panel">
-                <div className="future-feature-icon">
-                  <Cloud size={20} />
-                </div>
-                <div className="future-feature-copy">
-                  <strong>Local mode active</strong>
-                  <span>
-                    No cloud account or backend is connected.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="settings-btn settings-btn-secondary"
-                  onClick={simulateCloudSync}
-                >
-                  <RefreshCw size={14} />
-                  Sync Now
-                </button>
-              </div>
-            </SettingsCard>
+            <CloudBackupPanel />
           </>
         );
 
       case "account":
         return (
           <>
-            <InfoBox
-              icon={Users}
-              title="Online account system is optional"
-            >
-              Your current application works completely in
-              local mode. Online sign-in, multi-device access
-              and online account management require a real
-              backend. Your local app login password is managed
-              separately under Security.
+            <InfoBox icon={Users} title="This device's workspace access">
+              Sign in with the 4–6 digit passcode saved on this device. Business records remain in this browser unless you upload a cloud backup.
             </InfoBox>
 
             <SettingsCard
@@ -2768,9 +2786,9 @@ export default function Settings() {
                 </div>
                 <div className="account-mode-copy">
                   <span>Current mode</span>
-                  <strong>Local Business Account</strong>
+                  <strong>Local Business Workspace</strong>
                   <small>
-                    Data is stored locally in this browser.
+                    Business data is stored locally in this browser.
                   </small>
                 </div>
                 <span className="status-badge-local">
@@ -2780,21 +2798,21 @@ export default function Settings() {
             </SettingsCard>
 
             <SettingsCard
-              title="Online Account"
-              description="Future-ready controls without fake authentication."
+              title="Workspace access"
+              description="This device uses a local passcode to open the workspace."
             >
               <div className="future-feature-list">
                 <div>
                   <KeyRound size={16} />
-                  <span>Sign In / Create Account</span>
+                  <span>4-digit passcode</span>
                 </div>
                 <div>
                   <Hash size={16} />
-                  <span>Business ID</span>
+                  <span>Passcode stays on this device</span>
                 </div>
                 <div>
                   <Users size={16} />
-                  <span>Multi-device Access</span>
+                  <span>No email sign-in required</span>
                 </div>
                 <div>
                   <ShieldCheck size={16} />
@@ -2802,14 +2820,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="settings-btn settings-btn-secondary"
-                onClick={simulateAccountAction}
-              >
-                <Sparkles size={14} />
-                Configure Later
-              </button>
+              <p className="settings-help-text">Change the local passcode in Security. Cloud backup remains managed separately.</p>
             </SettingsCard>
           </>
         );
@@ -2818,14 +2829,12 @@ export default function Settings() {
         return (
           <>
             <InfoBox icon={ShieldCheck} title="Local app security">
-              Your App PIN and Login Password are stored
-              locally in this browser and are never included
-              in backups.
+              The 4–6 digit login passcode is stored in this browser and excluded from backups. It does not encrypt business records; use a device lock and keep a separate backup.
             </InfoBox>
 
             <SettingsCard
               title="Login Password"
-              description="Change the password used to access SAO AUTO TRACTOR."
+              description="Change the passcode used to access this device's workspace."
             >
               <div className="password-editor">
                 <div className="password-editor-header">
@@ -2835,8 +2844,7 @@ export default function Settings() {
                   <div>
                     <strong>Change Login Password</strong>
                     <p>
-                      Use at least 4 characters. Your password
-                      is stored locally in this browser.
+                      Choose 4 to 6 digits. The passcode stays in this browser.
                     </p>
                   </div>
                 </div>
@@ -2978,8 +2986,8 @@ export default function Settings() {
             </SettingsCard>
 
             <SettingsCard
-              title="App Lock"
-              description="Protect the application with a 4–6 digit PIN."
+              title="Additional App Lock (not active)"
+              description="This saved preference does not currently lock or encrypt the workspace."
             >
               <SettingRow
                 icon={Lock}
@@ -3090,8 +3098,8 @@ export default function Settings() {
             </SettingsCard>
 
             <SettingsCard
-              title="Automatic Lock"
-              description="Choose when the app should automatically lock."
+              title="Automatic Lock (not active)"
+              description="The selected timeout is stored, but automatic session locking is not currently enforced."
             >
               <Field
                 label="Auto Lock"
@@ -3597,7 +3605,7 @@ export default function Settings() {
                 <div className="backup-preview-row">
                   <span>Version</span>
                   <strong>
-                    {backupPreview.version || "—"}
+                    {backupPreview.version || "—"} · schema {backupPreview.schemaVersion || LOCAL_BACKUP_SCHEMA_VERSION}
                   </strong>
                 </div>
                 <div className="backup-preview-row">
@@ -3610,16 +3618,15 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="backup-preview-counts">
+          <div className="backup-preview-counts">
                 <h4>Data included</h4>
                 <div className="backup-preview-grid">
                   {Object.entries(
-                    getBackupCounts(backupPreview)
+                    getLocalWorkspaceBackupCounts(backupPreview)
                   ).map(([key, value]) => (
                     <div key={key}>
                       <span>
-                        {key.charAt(0).toUpperCase() +
-                          key.slice(1)}
+                        {BACKUP_DATA_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1)}
                       </span>
                       <strong>{value}</strong>
                     </div>
@@ -3630,11 +3637,12 @@ export default function Settings() {
               <div className="backup-preview-warning">
                 <AlertCircle size={16} />
                 <span>
-                  Restore will replace the current saved
-                  data for these modules. Your App PIN and
-                  Login Password will NOT be restored.
-                  A safety copy of your previous data will
-                  be downloaded automatically.
+                  Included categories replace matching data on
+                  this device. Categories missing from older backup
+                  files stay unchanged. Your App PIN and legacy local password
+                  are excluded. A recovery file must download before
+                  restore starts; a failed restore attempts to roll back
+                  the browser data.
                 </span>
               </div>
             </div>

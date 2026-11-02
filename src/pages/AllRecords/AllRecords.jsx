@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -26,7 +26,18 @@ import {
 import "./AllRecords.css";
 
 const TRIPS_KEY = "saoAutoTractorTrips";
+const SAVED_VIEWS_KEY = "saoAutoTractorSavedRecordViews";
 const ITEMS_PER_PAGE = 15;
+const BULK_UNDO_MS = 10000;
+
+function readSavedViews() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVED_VIEWS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((view) => view?.id && view?.name && view?.filters) : [];
+  } catch {
+    return [];
+  }
+}
 
 function readTrips() {
   try {
@@ -45,8 +56,10 @@ function writeTrips(trips) {
   try {
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
     window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    return true;
   } catch (error) {
     console.error("Unable to save trips:", error);
+    return false;
   }
 }
 
@@ -970,13 +983,12 @@ function BulkDeleteConfirmModal({ count, onCancel, onConfirm }) {
           </h2>
 
           <p>
-            All {count} selected transport records will be
-            permanently removed.
+            {count} selected trips will be removed from the ledger. You can undo this action for 10 seconds.
           </p>
         </div>
 
         <div className="all-records-delete-warning">
-          <strong>This action cannot be undone.</strong>
+          <strong>Undo is available for 10 seconds after confirmation.</strong>
 
           <span>
             Billing, reports and other calculations based on these
@@ -1031,6 +1043,16 @@ function AllRecords() {
   const [selectedTripIds, setSelectedTripIds] = useState(new Set());
 
   const [quickPreset, setQuickPreset] = useState("");
+  const [savedViews, setSavedViews] = useState(readSavedViews);
+  const [activeSavedViewId, setActiveSavedViewId] = useState("");
+  const [lastBulkDelete, setLastBulkDelete] = useState(null);
+  const applyingSavedViewRef = useRef(false);
+
+  useEffect(() => {
+    if (!lastBulkDelete) return undefined;
+    const timer = window.setTimeout(() => setLastBulkDelete(null), BULK_UNDO_MS);
+    return () => window.clearTimeout(timer);
+  }, [lastBulkDelete]);
 
   useEffect(() => {
     const refresh = () => {
@@ -1043,15 +1065,12 @@ function AllRecords() {
       refresh,
     );
 
-    const interval = window.setInterval(refresh, 1500);
-
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener(
         "saoAutoTractorDataChanged",
         refresh,
       );
-      window.clearInterval(interval);
     };
   }, []);
 
@@ -1282,8 +1301,80 @@ function AllRecords() {
     setMaterialFilter("");
     setTripTypeFilter("");
     setQuickPreset("");
+    setActiveSavedViewId("");
     setCurrentPage(1);
   };
+
+  const getCurrentFilters = () => ({
+    search,
+    dateFrom,
+    dateTo,
+    partyFilter,
+    tractorFilter,
+    materialFilter,
+    tripTypeFilter,
+  });
+
+  const saveCurrentView = () => {
+    const name = window.prompt("Name this record view:", "My record view")?.trim();
+    if (!name) return;
+
+    const view = {
+      id: `view-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: name.slice(0, 48),
+      filters: getCurrentFilters(),
+      updatedAt: new Date().toISOString(),
+    };
+    const next = [...savedViews, view];
+    try {
+      localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next));
+      setSavedViews(next);
+      setActiveSavedViewId(view.id);
+    } catch {
+      window.alert("Unable to save this view in browser storage.");
+    }
+  };
+
+  const applySavedView = (id) => {
+    const view = savedViews.find((item) => item.id === id);
+    if (!view) {
+      setActiveSavedViewId("");
+      return;
+    }
+
+    applyingSavedViewRef.current = true;
+    setSearch(view.filters.search || "");
+    setDateFrom(view.filters.dateFrom || "");
+    setDateTo(view.filters.dateTo || "");
+    setPartyFilter(view.filters.partyFilter || "");
+    setTractorFilter(view.filters.tractorFilter || "");
+    setMaterialFilter(view.filters.materialFilter || "");
+    setTripTypeFilter(view.filters.tripTypeFilter || "");
+    setQuickPreset("");
+    setActiveSavedViewId(view.id);
+  };
+
+  const deleteActiveSavedView = () => {
+    const view = savedViews.find((item) => item.id === activeSavedViewId);
+    if (!view || !window.confirm(`Delete saved view “${view.name}”? Trip records will not be affected.`)) return;
+
+    const next = savedViews.filter((item) => item.id !== view.id);
+    try {
+      localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(next));
+      setSavedViews(next);
+      setActiveSavedViewId("");
+    } catch {
+      window.alert("Unable to update saved views in browser storage.");
+    }
+  };
+
+  useEffect(() => {
+    if (applyingSavedViewRef.current) {
+      applyingSavedViewRef.current = false;
+      return;
+    }
+    setActiveSavedViewId("");
+  }, [search, dateFrom, dateTo, partyFilter, tractorFilter, materialFilter, tripTypeFilter]);
 
   const refreshRecords = () => {
     setTrips(readTrips());
@@ -1305,8 +1396,8 @@ function AllRecords() {
      EXPORT CSV
   ========================================================= */
 
-  const exportCSV = () => {
-    if (!filteredTrips.length) return;
+  const exportCSV = (sourceTrips = filteredTrips, filePrefix = "records") => {
+    if (!sourceTrips.length) return;
 
     const headers = [
       "Date",
@@ -1322,7 +1413,7 @@ function AllRecords() {
       "Amount",
     ];
 
-    const rows = filteredTrips.map((trip) => [
+    const rows = sourceTrips.map((trip) => [
       formatDate(trip.__date),
       trip.__vehicle,
       trip.__party,
@@ -1336,14 +1427,15 @@ function AllRecords() {
       trip.__amount,
     ]);
 
+    const escapeCell = (value) => {
+      let text = String(value ?? "");
+      if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
     const csvContent = [
-      headers.join(","),
+      headers.map(escapeCell).join(","),
       ...rows.map((row) =>
-        row
-          .map((value) =>
-            `"${String(value ?? "").replace(/"/g, '""')}"`,
-          )
-          .join(","),
+        row.map(escapeCell).join(","),
       ),
     ].join("\n");
 
@@ -1355,7 +1447,7 @@ function AllRecords() {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `records-${getToday()}.csv`;
+    link.download = `${filePrefix}-${getToday()}.csv`;
 
     document.body.appendChild(link);
     link.click();
@@ -1419,7 +1511,10 @@ function AllRecords() {
 
     const updatedTrips = [newTrip, ...currentTrips];
 
-    writeTrips(updatedTrips);
+    if (!writeTrips(updatedTrips)) {
+      window.alert("Trip could not be saved in this browser. No change was made.");
+      return;
+    }
     setTrips(readTrips());
     setSelectedTrip(null);
   };
@@ -1470,18 +1565,52 @@ function AllRecords() {
     }
 
     const currentTrips = readTrips();
-
+    const deletedEntries = currentTrips.flatMap((trip, index) =>
+      bulkDeleteTrips.has(getTripId(trip, index)) ? [{ trip, index }] : [],
+    );
     const updatedTrips = currentTrips.filter(
-      (trip, index) => {
-        const id = getTripId(trip, index);
-        return !bulkDeleteTrips.has(id);
-      },
+      (trip, index) => !bulkDeleteTrips.has(getTripId(trip, index)),
     );
 
-    writeTrips(updatedTrips);
+    if (!deletedEntries.length) return;
+    if (!writeTrips(updatedTrips)) {
+      window.alert("Records could not be deleted because browser storage is unavailable. No change was made.");
+      return;
+    }
     setTrips(readTrips());
     setSelectedTripIds(new Set());
     setBulkDeleteTrips(null);
+    setLastBulkDelete({ entries: deletedEntries, count: deletedEntries.length });
+  };
+
+  const undoBulkDelete = () => {
+    if (!lastBulkDelete?.entries?.length) return;
+
+    const restoredTrips = readTrips();
+    const existingIds = new Set(
+      restoredTrips
+        .map((trip) => trip?.id || trip?._id || trip?.tripId)
+        .filter(Boolean)
+        .map(String),
+    );
+    const entriesToRestore = lastBulkDelete.entries
+      .filter(({ trip }) => {
+        const id = trip?.id || trip?._id || trip?.tripId;
+        return !id || !existingIds.has(String(id));
+      })
+      .sort((a, b) => a.index - b.index);
+
+    entriesToRestore.forEach(({ trip, index }) => {
+      restoredTrips.splice(Math.min(index, restoredTrips.length), 0, trip);
+    });
+
+    if (!writeTrips(restoredTrips)) {
+      window.alert("Records could not be restored because browser storage is unavailable. Please retry.");
+      return;
+    }
+    setTrips(readTrips());
+    setSelectedTripIds(new Set());
+    setLastBulkDelete(null);
   };
 
   /* =========================================================
@@ -1515,7 +1644,10 @@ function AllRecords() {
       (_, index) => index !== targetIndex,
     );
 
-    writeTrips(updatedTrips);
+    if (!writeTrips(updatedTrips)) {
+      window.alert("Trip could not be deleted because browser storage is unavailable. No change was made.");
+      return;
+    }
 
     setTrips(updatedTrips);
     setDeleteTrip(null);
@@ -1588,7 +1720,10 @@ function AllRecords() {
 
     updatedTrips[targetIndex] = updatedTrip;
 
-    writeTrips(updatedTrips);
+    if (!writeTrips(updatedTrips)) {
+      window.alert("Trip could not be saved in this browser. Your edit is still open.");
+      return;
+    }
 
     setTrips(updatedTrips);
     setEditTrip(null);
@@ -1827,6 +1962,39 @@ function AllRecords() {
               )}
             </div>
 
+            <div className="all-records-saved-views">
+              <select
+                aria-label="Saved record views"
+                value={activeSavedViewId}
+                onChange={(event) => applySavedView(event.target.value)}
+              >
+                <option value="">Saved views ({savedViews.length})</option>
+                {savedViews.map((view) => (
+                  <option key={view.id} value={view.id}>{view.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="all-records-secondary-button"
+                onClick={saveCurrentView}
+                title="Save the current filters as a named view"
+              >
+                <Save size={14} />
+                Save view
+              </button>
+              {activeSavedViewId && (
+                <button
+                  type="button"
+                  className="all-records-saved-view-delete"
+                  onClick={deleteActiveSavedView}
+                  aria-label="Delete selected saved view"
+                  title="Delete this saved view"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+
             {hasFilters && (
               <button
                 type="button"
@@ -1878,6 +2046,7 @@ function AllRecords() {
               <input
                 type="date"
                 value={dateFrom}
+                max={dateTo || undefined}
                 onChange={(event) =>
                   setDateFrom(event.target.value)
                 }
@@ -1894,6 +2063,7 @@ function AllRecords() {
               <input
                 type="date"
                 value={dateTo}
+                min={dateFrom || undefined}
                 onChange={(event) =>
                   setDateTo(event.target.value)
                 }
@@ -1989,6 +2159,11 @@ function AllRecords() {
             </select>
           </label>
         </div>
+        {dateFrom && dateTo && dateFrom > dateTo && (
+          <p className="all-records-date-range-error" role="alert">
+            From date must be on or before the To date.
+          </p>
+        )}
       </section>
 
       {/* =====================================================
@@ -2064,14 +2239,27 @@ function AllRecords() {
 
           <div className="all-records-table-header-right">
             {selectedTripIds.size > 0 && (
-              <button
-                type="button"
-                className="all-records-bulk-delete-btn"
-                onClick={requestBulkDelete}
-              >
-                <Trash2 size={15} />
-                Delete ({selectedTripIds.size})
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="all-records-secondary-button"
+                  onClick={() => {
+                    const selected = filteredTrips.filter((trip) => selectedTripIds.has(trip.__id));
+                    exportCSV(selected, "selected-records");
+                  }}
+                >
+                  <Download size={15} />
+                  Export selected ({selectedTripIds.size})
+                </button>
+                <button
+                  type="button"
+                  className="all-records-bulk-delete-btn"
+                  onClick={requestBulkDelete}
+                >
+                  <Trash2 size={15} />
+                  Delete ({selectedTripIds.size})
+                </button>
+              </>
             )}
 
             <span className="all-records-result-count">
@@ -2527,6 +2715,13 @@ function AllRecords() {
             onConfirm={confirmBulkDelete}
           />
         )}
+
+      {lastBulkDelete && (
+        <div className="all-records-undo-toast" role="status" aria-live="polite">
+          <span>{lastBulkDelete.count} trip{lastBulkDelete.count === 1 ? "" : "s"} removed.</span>
+          <button type="button" onClick={undoBulkDelete}>Undo</button>
+        </div>
+      )}
     </div>
   );
 }

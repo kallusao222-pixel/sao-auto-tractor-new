@@ -104,6 +104,7 @@ export function buildAlerts({
   parties = [],
   payments = [],
   tractors = [],
+  staff = [],
 } = {}) {
   const alerts = [];
   const today = getTodayISO();
@@ -112,6 +113,10 @@ export function buildAlerts({
   const safeParties = Array.isArray(parties) ? parties : [];
   const safePayments = Array.isArray(payments) ? payments : [];
   const safeTractors = Array.isArray(tractors) ? tractors : [];
+  const safeStaff = Array.isArray(staff) ? staff : [];
+  let preferences = {};
+  try { preferences = JSON.parse(localStorage.getItem("saoAutoTractorSettings") || "{}"); } catch { preferences = {}; }
+  if (preferences.notifications === false) return alerts;
 
   /* =========================================================
      1. HIGH — Outstanding parties ( > ₹50,000 )
@@ -132,7 +137,7 @@ export function buildAlerts({
       (a, b) => Number(b?.outstanding || 0) - Number(a?.outstanding || 0)
     );
 
-  outstandingParties.slice(0, MAX_OUTSTANDING_ALERTS).forEach((party) => {
+  (preferences.dueAlerts === false ? [] : outstandingParties.slice(0, MAX_OUTSTANDING_ALERTS)).forEach((party) => {
     const amount = Number(party.outstanding || 0);
 
     alerts.push({
@@ -165,7 +170,7 @@ export function buildAlerts({
     return vehicle && !todayVehicleNames.has(vehicle);
   });
 
-  idleTractors.slice(0, MAX_IDLE_ALERTS).forEach((tractor) => {
+  (preferences.tripAlerts === false ? [] : idleTractors.slice(0, MAX_IDLE_ALERTS)).forEach((tractor) => {
     const vehicle = getVehicleNumber(tractor);
 
     alerts.push({
@@ -178,11 +183,34 @@ export function buildAlerts({
     });
   });
 
+  if (preferences.maintenanceAlerts !== false) {
+    const dateFields = [["insuranceExpiryDate", "Insurance"], ["registrationExpiryDate", "Registration"], ["fitnessExpiryDate", "Fitness certificate"], ["pucExpiryDate", "PUC"], ["nextServiceDate", "Service"]];
+    const daysLeft = (value) => {
+      if (!value) return null;
+      const date = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return null;
+      const current = new Date(); current.setHours(0, 0, 0, 0);
+      const days = Math.ceil((date - current) / 86400000);
+      return days <= 30 ? days : null;
+    };
+    safeTractors.forEach((tractor) => dateFields.forEach(([field, label]) => {
+      const days = daysLeft(tractor?.[field]);
+      if (days === null) return;
+      const vehicle = getVehicleNumber(tractor);
+      alerts.push({ id: `fleet-date-${vehicle}-${field}`, title: `${vehicle} · ${label}`, message: days < 0 ? `Overdue by ${Math.abs(days)} days — update fleet record.` : days === 0 ? "Due today — review fleet record." : `Due in ${days} days — review fleet record.`, severity: days <= 7 ? "high" : "medium", action: "tractors", label: `${label} reminder` });
+    }));
+    safeStaff.filter((person) => person?.driverLicenseNumber).forEach((person) => {
+      const days = daysLeft(person?.licenseExpiryDate);
+      if (days === null) return;
+      alerts.push({ id: `license-${person.id}`, title: `${person.name} · Driver licence`, message: days < 0 ? `Expired ${Math.abs(days)} days ago — update staff details.` : days === 0 ? "Expires today — review staff details." : `Expires in ${days} days — review staff details.`, severity: days <= 7 ? "high" : "medium", action: "staff", label: "Driver licence" });
+    });
+  }
+
   /* =========================================================
      3. LOW — Backup reminder
      ========================================================= */
 
-  const backupAlert = getBackupReminder();
+  const backupAlert = preferences.backupReminder === false ? null : getBackupReminder();
   if (backupAlert) alerts.push(backupAlert);
 
   return alerts;

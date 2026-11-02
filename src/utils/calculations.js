@@ -1,5 +1,6 @@
 import { toNumber } from "./currency";
 import { getTripCount } from "./trip";
+import { getActivePaymentAmount } from "./paymentRecords";
 
 export function calculateTripAmount(
   trip,
@@ -52,7 +53,7 @@ export function calculateTotalReceived(
   return payments.reduce(
     (total, payment) =>
       total +
-      toNumber(payment?.amount),
+      getActivePaymentAmount(payment),
     0,
   );
 }

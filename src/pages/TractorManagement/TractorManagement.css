@@ -86,6 +86,7 @@
   gap: var(--space-5);
 
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .tractor-page-header-icon {
@@ -215,6 +216,27 @@
   flex-shrink: 0;
 }
 
+/* ---- Header action (Add Tractor button) — clean z-index ---- */
+
+.tractor-page-header-action {
+  position: relative;
+  z-index: 5;
+
+  flex: 0 0 auto;
+
+  margin-left: auto;
+  align-self: center;
+}
+
+.tractor-page-header-action button,
+.tractor-page-header-action .button {
+  position: relative;
+  z-index: 6;
+
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* =========================================================
    SHARED LABELS
    ========================================================= */
@@ -237,12 +259,12 @@
 }
 
 /* =========================================================
-   SUMMARY — 8 CARDS
+   SUMMARY — FLEET, TRIPS, BILLING
    ========================================================= */
 
 .tractor-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
 
   margin-bottom: var(--space-6);
@@ -373,6 +395,14 @@
 
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tractor-summary-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .tractor-summary-finance .tractor-summary-icon {
@@ -536,6 +566,10 @@
     background-color var(--transition-fast);
 }
 
+.tractor-field input[type="date"] {
+  padding-right: var(--space-3);
+}
+
 .tractor-field input:hover,
 .tractor-field select:hover {
   border-color: var(--color-border-strong);
@@ -552,6 +586,12 @@
 
 .tractor-field input::placeholder {
   color: var(--color-text-disabled);
+}
+
+.tractor-field input:disabled,
+.tractor-field select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .tractor-form-actions {
@@ -1036,17 +1076,20 @@
 }
 
 /* =========================================================
-   ROW ACTIONS
+   ROW ACTIONS (UPDATED — 2 buttons + dropdown menu)
    ========================================================= */
 
 .tractor-row-actions {
+  position: relative;
+
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 3px;
 }
 
-.tractor-row-actions button {
+.tractor-row-actions .tractor-row-primary-action,
+.tractor-row-actions .tractor-row-menu-btn {
   display: grid;
 
   width: 32px;
@@ -1071,7 +1114,8 @@
     color var(--transition-fast);
 }
 
-.tractor-row-actions button:hover {
+.tractor-row-actions .tractor-row-primary-action:hover,
+.tractor-row-actions .tractor-row-menu-btn:hover {
   transform: translateY(-1px);
 
   border-color: var(--color-border);
@@ -1079,17 +1123,117 @@
   color: var(--color-text);
 }
 
-.tractor-row-actions button:focus-visible,
-.tractor-daily-btn:focus-visible,
-.tractor-whatsapp-row-btn:focus-visible {
+.tractor-row-actions .tractor-row-primary-action:focus-visible,
+.tractor-row-actions .tractor-row-menu-btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.tractor-row-actions button:last-child:hover {
-  border-color: var(--color-danger);
+.tractor-row-actions .tractor-row-menu-btn[aria-expanded="true"] {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* ---- Dropdown menu ---- */
+
+.tractor-row-menu {
+  position: absolute;
+
+  top: calc(100% + 6px);
+  right: 0;
+
+  z-index: var(--z-dropdown, 60);
+
+  display: flex;
+  flex-direction: column;
+
+  min-width: 190px;
+
+  padding: 5px;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-surface);
+
+  box-shadow: var(--shadow-md);
+
+  animation: tractor-row-menu-in 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes tractor-row-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tractor-row-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+
+  padding: 8px 10px;
+
+  border: 0;
+  border-radius: 6px;
+
+  background: transparent;
+  color: var(--color-text);
+
+  font-size: 12px;
+  font-weight: 500;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.tractor-row-menu-item:hover {
+  background: var(--color-surface-muted);
+}
+
+.tractor-row-menu-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.tractor-row-menu-item svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.tractor-row-menu-item--danger {
+  color: var(--color-danger);
+}
+
+.tractor-row-menu-item--danger svg {
+  color: var(--color-danger);
+}
+
+.tractor-row-menu-item--danger:hover {
   background: var(--color-danger-soft);
   color: var(--color-danger);
+}
+
+.tractor-row-menu-divider {
+  height: 1px;
+
+  margin: 4px 6px;
+
+  background: var(--color-border-soft);
 }
 
 /* =========================================================
@@ -1389,8 +1533,30 @@
   font-size: 10px;
 }
 
+.tractor-maintenance-panel {
+  margin: 0 0 var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.tractor-maintenance-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.tractor-maintenance-heading span { color: var(--color-primary); font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+.tractor-maintenance-heading h3 { margin: 3px 0 0; font-size: 16px; }
+.tractor-maintenance-heading small,.tractor-maintenance-empty { color: var(--color-text-muted); font-size: 11px; }
+.tractor-maintenance-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.tractor-maintenance-form label { display: grid; gap: 4px; color: var(--color-text-secondary); font-size: 10px; }
+.tractor-maintenance-form input,.tractor-maintenance-form select { min-width: 0; width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 11px; }
+.tractor-maintenance-form .maintenance-notes { grid-column: 1/-1; }
+.tractor-maintenance-form button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border: 0; border-radius: 8px; background: var(--color-primary); color: #fff; font-size: 11px; font-weight: 650; cursor: pointer; }
+.tractor-maintenance-list { display: grid; gap: 0; margin-top: 10px; }
+.tractor-maintenance-list > div { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 9px 0; border-top: 1px solid var(--color-border); font-size: 11px; }
+.tractor-maintenance-list span,.tractor-maintenance-list small { color: var(--color-text-muted); }
+.tractor-maintenance-list b { grid-column: 2; grid-row: 1; }
+.tractor-maintenance-list small { grid-column: 1/-1; }
+
 /* =========================================================
-   DETAIL STATS
+   DETAIL STATS (reserved — kept for backward compatibility)
    ========================================================= */
 
 .tractor-detail-stats {
@@ -1581,42 +1747,26 @@
   background: var(--color-surface);
 }
 
+.tractor-document-reminder-item {
+  width: 100%;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  background: transparent;
+}
+
+.tractor-document-reminder-item:hover,
+.tractor-document-reminder-item:focus-visible {
+  background: var(--color-surface-hover, var(--color-surface));
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 /* =========================================================
    WHATSAPP
    ========================================================= */
-
-.tractor-whatsapp-row-btn {
-  display: grid;
-
-  width: 32px;
-  height: 32px;
-
-  padding: 0;
-
-  place-items: center;
-
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-
-  background: transparent;
-  color: #25d366;
-
-  cursor: pointer;
-
-  transition:
-    transform var(--transition-fast),
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.tractor-whatsapp-row-btn:hover {
-  transform: scale(1.05);
-
-  border-color: #25d366;
-  background: #e8f5e9;
-  color: #1da851;
-}
 
 .tractor-whatsapp-driver-btn {
   display: grid;
@@ -1651,6 +1801,11 @@
 
   background: #25d366;
   color: #ffffff;
+}
+
+.tractor-whatsapp-driver-btn:focus-visible {
+  outline: 2px solid #25d366;
+  outline-offset: 2px;
 }
 
 /* =========================================================
@@ -1869,6 +2024,11 @@
 
   background: var(--color-primary-soft);
   color: var(--color-primary);
+}
+
+.tractor-date-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .tractor-date-input {
@@ -2105,44 +2265,6 @@
 }
 
 /* =========================================================
-   DAILY ACTIVITY BUTTON
-   ========================================================= */
-
-.tractor-daily-btn {
-  display: grid;
-
-  width: 32px;
-  height: 32px;
-
-  padding: 0;
-
-  place-items: center;
-
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-
-  background: transparent;
-  color: var(--color-primary);
-
-  cursor: pointer;
-
-  transition:
-    transform var(--transition-fast),
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.tractor-daily-btn:hover {
-  transform: scale(1.05);
-
-  border-color: var(--color-primary-border);
-
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-/* =========================================================
    DARK MODE
    ========================================================= */
 
@@ -2238,6 +2360,32 @@
   box-shadow: none;
 }
 
+/* Dark mode: row actions menu */
+[data-theme="dark"] .tractor-row-menu {
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .tractor-row-actions .tractor-row-primary-action:hover,
+[data-theme="dark"] .tractor-row-actions .tractor-row-menu-btn:hover {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="dark"] .tractor-row-menu-item:hover {
+  background: var(--color-surface-muted);
+}
+
+/* Dark mode: WhatsApp — keep recognisable */
+[data-theme="dark"] .tractor-whatsapp-driver-btn {
+  background: rgba(37, 211, 102, 0.12);
+  color: #4ade80;
+  border-color: rgba(37, 211, 102, 0.42);
+}
+
+[data-theme="dark"] .tractor-whatsapp-driver-btn:hover {
+  background: #25d366;
+  color: #0b1f10;
+}
+
 /* =========================================================
    TABLET
    ========================================================= */
@@ -2273,6 +2421,8 @@
     min-height: 128px;
 
     padding: var(--space-5) var(--space-6);
+
+    flex-wrap: wrap;
   }
 
   .tractor-page-header::after {
@@ -2280,6 +2430,9 @@
   }
 
   .tractor-page-header-content {
+    flex: 1 1 100%;
+    width: 100%;
+
     gap: var(--space-4);
   }
 
@@ -2296,6 +2449,17 @@
 
   .tractor-page-header p {
     max-width: 560px;
+  }
+
+  .tractor-page-header-action {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .tractor-page-header-action button,
+  .tractor-page-header-action .button {
+    width: 100%;
+    justify-content: center;
   }
 
   .tractor-toolbar {
@@ -2322,6 +2486,11 @@
     flex: 1;
 
     max-width: 240px;
+  }
+
+  /* Row menu — keep right-aligned, no overflow */
+  .tractor-row-menu {
+    right: 0;
   }
 }
 
@@ -2482,6 +2651,12 @@
     padding: 13px var(--space-4);
   }
 
+  /* Row menu — full width safety on small screens */
+  .tractor-row-menu {
+    min-width: 180px;
+    right: 0;
+  }
+
   .tractor-details-drawer {
     width: 100%;
   }
@@ -2577,6 +2752,43 @@
   }
 }
 
+@media (max-width: 640px) {
+  .tractor-table-wrap { overflow: visible; }
+  .tractor-table { min-width: 0; border-collapse: separate; border-spacing: 0 10px; }
+  .tractor-table thead { display: none; }
+  .tractor-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+  .tractor-table td {
+    display: flex;
+    min-width: 0;
+    height: auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border-soft);
+    font-size: 12px;
+  }
+  .tractor-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--color-text-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .tractor-table td:first-child { grid-column: 1 / -1; }
+  .tractor-table td:last-child { grid-column: 1 / -1; justify-content: flex-end; }
+  .tractor-table .tractor-identity { min-width: 0; }
+}
+
 /* =========================================================
    SMALL MOBILE
    ========================================================= */
@@ -2656,78 +2868,53 @@
   .tractor-summary-icon,
   .tractor-avatar,
   .tractor-detail-stats > div,
-  .tractor-row-actions button,
-  .tractor-daily-btn,
-  .tractor-whatsapp-row-btn,
-  .tractor-whatsapp-driver-btn,
-  .tractor-export-btn {
+  .tractor-export-btn,
+  .tractor-row-actions .tractor-row-primary-action,
+  .tractor-row-actions .tractor-row-menu-btn,
+  .tractor-row-menu-item,
+  .tractor-whatsapp-driver-btn {
     transition: none;
   }
 
-  .tractor-details-drawer {
+  .tractor-details-drawer,
+  .tractor-row-menu {
     animation: none;
   }
 }
+
 /* =========================================================
-   ADD TRACTOR BUTTON — HEADER FIX
+   PRINT (Tractor module)
    ========================================================= */
 
-.tractor-page-header {
-  position: relative;
-}
-
-.tractor-page-header-action {
-  position: relative;
-  z-index: 5;
-
-  flex: 0 0 auto;
-
-  margin-left: auto;
-  align-self: center;
-}
-
-.tractor-page-header-action button,
-.tractor-page-header-action .button {
-  position: relative;
-  z-index: 6;
-
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* Prevent header content from overlapping the button */
-.tractor-page-header-content {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* Tablet */
-@media (max-width: 900px) {
-  .tractor-page-header {
-    flex-wrap: wrap;
+@media print {
+  .tractor-page-header::before,
+  .tractor-page-header::after,
+  .tractor-page-header-accent,
+  .tractor-page-header-action,
+  .tractor-toolbar-card,
+  .tractor-row-actions,
+  .tractor-details-overlay,
+  .tractor-reminder-card,
+  .tractor-summary-card::after {
+    display: none !important;
   }
 
-  .tractor-page-header-content {
-    flex: 1 1 100%;
-    width: 100%;
+  .tractor-table-card,
+  .tractor-summary-card,
+  .tractor-table,
+  .tractor-table th,
+  .tractor-table td {
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border-color: #cccccc !important;
   }
 
-  .tractor-page-header-action {
-    width: 100%;
-    margin-left: 0;
+  .tractor-table-wrap {
+    overflow: visible !important;
   }
 
-  .tractor-page-header-action button,
-  .tractor-page-header-action .button {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-/* Mobile */
-@media (max-width: 640px) {
-  .tractor-page-header-action {
-    width: 100%;
-    padding-left: 0;
+  .tractor-table {
+    min-width: 0 !important;
   }
 }

@@ -4,7 +4,7 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
-  CircleDollarSign,
+  IndianRupee,
   Download,
   Eye,
   FileText,
@@ -14,25 +14,56 @@ import {
   Printer,
   ReceiptText,
   RefreshCw,
+  RotateCcw,
   Search,
-  Trash2,
   UserRound,
   WalletCards,
   X,
   AlertCircle,
 } from "lucide-react";
 import "./Payments.css";
+import { getTodayISO } from "../../utils/date";
+import { getActivePaymentAmount, hasDuplicatePaymentReference, isPaymentReversed } from "../../utils/paymentRecords";
+import { getInvoiceFinance, getPaymentAllocations, getPaymentUnallocatedAmount, validateInvoiceAllocation } from "../../utils/financeReconciliation";
+import { buildCsv } from "../../utils/csv";
 
 const PAYMENTS_KEY = "saoAutoTractorPayments";
 const PARTIES_KEY = "saoAutoTractorParties";
 const TRIPS_KEY = "saoAutoTractorTrips";
+const INVOICES_KEY = "saoAutoTractorInvoices";
+
+function writePayments(nextPayments) {
+  try {
+    localStorage.setItem(PAYMENTS_KEY, JSON.stringify(nextPayments));
+    window.dispatchEvent(new Event("saoAutoTractorDataChanged"));
+    return true;
+  } catch (error) {
+    console.error("Payment save error:", error);
+    return false;
+  }
+}
 
 const PAYMENT_MODES = ["Cash", "UPI", "Bank", "Other"];
+
+function createEmptyPayment() {
+  let paymentMode = "Cash";
+  try {
+    const settings = JSON.parse(
+      localStorage.getItem("saoAutoTractorSettings") || "{}",
+    );
+    if (PAYMENT_MODES.includes(settings.paymentMode)) {
+      paymentMode = settings.paymentMode;
+    }
+  } catch {
+    // Keep the safe Cash default if browser storage cannot be read.
+  }
+  return { ...EMPTY_PAYMENT, paymentMode };
+}
 
 const EMPTY_PAYMENT = {
   partyName: "",
   amount: "",
-  date: new Date().toISOString().slice(0, 10),
+  date: getTodayISO(),
   paymentMode: "Cash",
   reference: "",
   notes: "",
@@ -49,7 +80,7 @@ const money = (value) =>
     maximumFractionDigits: 2,
   })}`;
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = getTodayISO;
 
 const getPartyName = (item) =>
   clean(
@@ -68,6 +99,16 @@ const getAmount = (item) =>
       item?.paidAmount ??
       0
   ) || 0;
+
+function getTripBillingAmount(trip) {
+  const direct = Number(
+    trip?.amount ?? trip?.totalAmount ?? trip?.billingAmount ?? trip?.total ?? 0,
+  );
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  const quantity = Number(trip?.quantity ?? trip?.qty ?? 0);
+  const rate = Number(trip?.rate ?? trip?.price ?? 0);
+  return Number.isFinite(quantity * rate) ? Math.max(0, quantity * rate) : 0;
+}
 
 const getDate = (item) =>
   item?.date ??
@@ -90,6 +131,11 @@ const getReference = (item) =>
 
 const getNotes = (item) =>
   clean(item?.notes ?? item?.note ?? item?.remarks ?? item?.description);
+
+const getAllocationLabel = (payment) =>
+  getPaymentAllocations(payment)
+    .map((allocation) => `${allocation.invoiceNumber || "Invoice"}: ${money(allocation.amount)}`)
+    .join("; ");
 
 const formatDate = (value) => {
   if (!value) return "—";
@@ -139,6 +185,7 @@ function ActionButton({
   label,
   onClick,
   danger = false,
+  disabled = false,
 }) {
   return (
     <button
@@ -146,6 +193,7 @@ function ActionButton({
       className={`payments-action-btn ${danger ? "danger" : ""}`}
       title={label}
       onClick={onClick}
+      disabled={disabled}
     >
       {icon}
       <span>{label}</span>
@@ -215,6 +263,7 @@ export default function Payments() {
   const [payments, setPayments] = useState([]);
   const [parties, setParties] = useState([]);
   const [trips, setTrips] = useState([]);
+  const [invoices, setInvoices] = useState([]);
 
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -226,8 +275,13 @@ export default function Payments() {
   const [editing, setEditing] = useState(null);
   const [viewPayment, setViewPayment] = useState(null);
   const [statementParty, setStatementParty] = useState("");
+  const [allocationPayment, setAllocationPayment] = useState(null);
+  const [allocationPaymentIndex, setAllocationPaymentIndex] = useState(-1);
+  const [allocationInvoiceId, setAllocationInvoiceId] = useState("");
+  const [allocationAmount, setAllocationAmount] = useState("");
+  const [allocationError, setAllocationError] = useState("");
 
-  const [form, setForm] = useState(EMPTY_PAYMENT);
+  const [form, setForm] = useState(createEmptyPayment);
 
   const loadData = () => {
     try {
@@ -242,6 +296,7 @@ export default function Payments() {
       const savedTrips = JSON.parse(
         localStorage.getItem(TRIPS_KEY) || "[]"
       );
+      const savedInvoices = JSON.parse(localStorage.getItem(INVOICES_KEY) || "[]");
 
       setPayments(
         Array.isArray(savedPayments)
@@ -260,12 +315,14 @@ export default function Payments() {
           ? savedTrips
           : []
       );
+      setInvoices(Array.isArray(savedInvoices) ? savedInvoices : []);
     } catch (error) {
       console.error("Payments load error:", error);
 
       setPayments([]);
       setParties([]);
       setTrips([]);
+      setInvoices([]);
     }
   };
 
@@ -286,11 +343,6 @@ export default function Payments() {
       sync
     );
 
-    const timer = setInterval(
-      loadData,
-      1500
-    );
-
     return () => {
       window.removeEventListener(
         "storage",
@@ -302,7 +354,6 @@ export default function Payments() {
         sync
       );
 
-      clearInterval(timer);
     };
   }, []);
 
@@ -337,7 +388,7 @@ export default function Payments() {
         (payment) => normalize(getPartyName(payment)) === normalize(party)
       );
       const totalReceived = partyPayments.reduce(
-        (sum, payment) => sum + getAmount(payment),
+        (sum, payment) => sum + getActivePaymentAmount(payment),
         0
       );
 
@@ -454,7 +505,7 @@ export default function Payments() {
     () =>
       payments.reduce(
         (sum, payment) =>
-          sum + getAmount(payment),
+          sum + getActivePaymentAmount(payment),
         0
       ),
     [payments]
@@ -470,7 +521,7 @@ export default function Payments() {
         )
         .reduce(
           (sum, payment) =>
-            sum + getAmount(payment),
+            sum + getActivePaymentAmount(payment),
           0
         ),
     [payments]
@@ -486,7 +537,7 @@ export default function Payments() {
         )
         .reduce(
           (sum, payment) =>
-            sum + getAmount(payment),
+            sum + getActivePaymentAmount(payment),
           0
         ),
     [payments]
@@ -496,7 +547,7 @@ export default function Payments() {
     () =>
       filteredPayments.reduce(
         (sum, payment) =>
-          sum + getAmount(payment),
+          sum + getActivePaymentAmount(payment),
         0
       ),
     [filteredPayments]
@@ -514,7 +565,7 @@ export default function Payments() {
           )
           .reduce(
             (sum, payment) =>
-              sum + getAmount(payment),
+              sum + getActivePaymentAmount(payment),
             0
           ),
       })),
@@ -538,7 +589,7 @@ export default function Payments() {
     setEditing(null);
 
     setForm({
-      ...EMPTY_PAYMENT,
+      ...createEmptyPayment(),
       date: todayISO(),
       partyName: "",
     });
@@ -546,10 +597,31 @@ export default function Payments() {
     setFormOpen(true);
   };
 
+  useEffect(() => {
+    const handleQuickAction = (event) => {
+      if (event.detail?.action !== "add-payment") return;
+      setEditing(null);
+      setForm({
+        ...createEmptyPayment(),
+        date: todayISO(),
+        partyName: String(event.detail?.payload?.partyName || ""),
+      });
+      setFormOpen(true);
+    };
+
+    window.addEventListener("saoAutoTractorQuickAction", handleQuickAction);
+    return () =>
+      window.removeEventListener("saoAutoTractorQuickAction", handleQuickAction);
+  }, []);
+
   const openEdit = (
     payment,
     index
   ) => {
+    if (isPaymentReversed(payment)) {
+      alert("Reversed receipts are kept as history and cannot be edited.");
+      return;
+    }
     setEditing({
       index,
       payment,
@@ -608,9 +680,99 @@ export default function Payments() {
       return;
     }
 
+    const reference = clean(form.reference);
+    if (hasDuplicatePaymentReference(payments, partyName, reference, editing?.payment?.id)) {
+      alert(`Receipt reference “${reference}” is already recorded for ${partyName}. Check the existing receipt before saving.`);
+      return;
+    }
+
+    let billingRules = {};
+    try {
+      billingRules = JSON.parse(localStorage.getItem("saoAutoTractorSettings") || "{}") || {};
+    } catch {
+      billingRules = {};
+    }
+    const partyTrips = trips.filter((trip) =>
+      normalize(trip?.partyName ?? trip?.party ?? trip?.customerName) === normalize(partyName),
+    );
+    const tripBilling = partyTrips.reduce(
+      (sum, trip) => sum + getTripBillingAmount(trip),
+      0,
+    );
+    const invoiceBilling = invoices
+      .filter((invoice) =>
+        normalize(
+          invoice?.partyName ??
+            invoice?.party ??
+            invoice?.customerName ??
+            invoice?.clientName ??
+            invoice?.billTo?.name,
+        ) === normalize(partyName),
+      )
+      .reduce(
+        (sum, invoice) =>
+          sum + Math.max(0, Number(invoice?.grandTotal ?? invoice?.totalAmount ?? invoice?.total ?? invoice?.amount) || 0),
+        0,
+      );
+    const partyBilling = Math.max(tripBilling, invoiceBilling);
+    const partyReceived = payments.reduce((sum, payment) => {
+      if (
+        editing?.payment?.id &&
+        String(payment?.id) === String(editing.payment.id)
+      ) return sum;
+      return normalize(getPartyName(payment)) === normalize(partyName)
+        ? sum + getActivePaymentAmount(payment)
+        : sum;
+    }, 0);
+    const partyDue = Math.max(0, partyBilling - partyReceived);
+
+    if (billingRules.allowAdvance === false && partyBilling <= 0) {
+      alert("Advance payments are disabled. Record a trip for this party before adding a receipt.");
+      return;
+    }
+    if (billingRules.allowExtraPayment === false && amount > partyDue + 0.005) {
+      alert(`This receipt is above the party's current due of ${money(partyDue)}. Reduce the amount or enable extra payments in Settings → Finance → Billing.`);
+      return;
+    }
+
+    const previousPayment = editing?.payment;
+    const allocatedAmount = Math.min(
+      getAmount(previousPayment),
+      getPaymentAllocations(previousPayment).reduce(
+        (sum, allocation) => sum + Math.max(0, Number(allocation?.amount) || 0),
+        0,
+      ),
+    );
+    if (previousPayment && allocatedAmount > 0 && normalize(getPartyName(previousPayment)) !== normalize(partyName)) {
+      alert("This receipt is allocated to invoices. Keep its party unchanged, or reverse it and record a new receipt.");
+      return;
+    }
+    if (previousPayment && amount + 0.005 < allocatedAmount) {
+      alert(`This receipt already has ₹${allocatedAmount.toLocaleString("en-IN")} allocated. Its amount cannot be reduced below that value.`);
+      return;
+    }
+
+    const changed = previousPayment && [
+      [getPartyName(previousPayment), partyName],
+      [getAmount(previousPayment), amount],
+      [String(getDate(previousPayment)).slice(0, 10), form.date || todayISO()],
+      [getMode(previousPayment), form.paymentMode || "Cash"],
+      [getReference(previousPayment), reference],
+      [getNotes(previousPayment), clean(form.notes)],
+    ].some(([before, after]) => String(before) !== String(after));
+    let correctionReason = "";
+    if (changed) {
+      correctionReason = window.prompt("Reason for correcting this receipt:")?.trim() || "";
+      if (correctionReason.length < 3) {
+        alert("Enter a short reason (at least 3 characters) to keep a correction history.");
+        return;
+      }
+    }
+
     const payment = {
+      ...(previousPayment || {}),
       id:
-        editing?.payment?.id ||
+        previousPayment?.id ||
         `PAY-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 8)}`,
@@ -629,17 +791,34 @@ export default function Payments() {
         form.paymentMode || "Cash",
 
       reference:
-        clean(form.reference),
+        reference,
 
       notes:
         clean(form.notes),
 
       createdAt:
-        editing?.payment?.createdAt ||
+        previousPayment?.createdAt ||
         new Date().toISOString(),
 
       updatedAt:
         new Date().toISOString(),
+      corrections: changed
+        ? [
+            ...(Array.isArray(previousPayment?.corrections) ? previousPayment.corrections : []),
+            {
+              correctedAt: new Date().toISOString(),
+              reason: correctionReason,
+              previous: {
+                partyName: getPartyName(previousPayment),
+                amount: getAmount(previousPayment),
+                date: getDate(previousPayment),
+                paymentMode: getMode(previousPayment),
+                reference: getReference(previousPayment),
+                notes: getNotes(previousPayment),
+              },
+            },
+          ]
+        : Array.isArray(previousPayment?.corrections) ? previousPayment.corrections : [],
     };
 
     const next = [...payments];
@@ -651,20 +830,14 @@ export default function Payments() {
       next.push(payment);
     }
 
-    localStorage.setItem(
-      PAYMENTS_KEY,
-      JSON.stringify(next)
-    );
-
-    window.dispatchEvent(
-      new Event(
-        "saoAutoTractorDataChanged"
-      )
-    );
+    if (!writePayments(next)) {
+      alert("Receipt could not be saved. Your form is still open; no change was made.");
+      return;
+    }
 
     setFormOpen(false);
     setEditing(null);
-    setForm(EMPTY_PAYMENT);
+    setForm(createEmptyPayment());
 
     loadData();
   };
@@ -673,37 +846,32 @@ export default function Payments() {
     payment,
     index
   ) => {
+    if (isPaymentReversed(payment)) return;
     const amount =
       getAmount(payment);
 
     const party =
       getPartyName(payment);
 
-    const confirmed =
-      window.confirm(
-        `Delete ${money(amount)} payment from ${
-          party || "this party"
-        }?`
-      );
+    const reason = window.prompt(
+      `Reason for reversing ${money(amount)} received from ${party || "this party"}:`,
+    )?.trim() || "";
+    if (reason.length < 3) {
+      alert("Enter a short reason (at least 3 characters). The receipt will remain in history as reversed.");
+      return;
+    }
 
-    if (!confirmed) return;
-
-    const next =
-      payments.filter(
-        (_, itemIndex) =>
-          itemIndex !== index
-      );
-
-    localStorage.setItem(
-      PAYMENTS_KEY,
-      JSON.stringify(next)
+    const reversedAt = new Date().toISOString();
+    const next = payments.map((item, itemIndex) =>
+      itemIndex === index
+        ? { ...item, status: "Reversed", reversedAt, reversalReason: reason, updatedAt: reversedAt }
+        : item,
     );
 
-    window.dispatchEvent(
-      new Event(
-        "saoAutoTractorDataChanged"
-      )
-    );
+    if (!writePayments(next)) {
+      alert("Receipt could not be reversed because browser storage is unavailable. No change was made.");
+      return;
+    }
 
     setViewPayment(null);
 
@@ -718,14 +886,6 @@ export default function Payments() {
       return;
     }
 
-    const csvEscape = (value) =>
-      `"${String(
-        value ?? ""
-      ).replaceAll(
-        '"',
-        '""'
-      )}"`;
-
     const rows = [
       [
         "Date",
@@ -734,6 +894,10 @@ export default function Payments() {
         "Payment Mode",
         "Reference",
         "Notes",
+        "Status",
+        "Reversal Reason",
+        "Correction Count",
+        "Invoice Allocations",
       ],
 
       ...filteredPayments.map(
@@ -746,20 +910,16 @@ export default function Payments() {
           getMode(payment),
           getReference(payment),
           getNotes(payment),
+          isPaymentReversed(payment) ? "Reversed" : "Recorded",
+          payment?.reversalReason || "",
+          Array.isArray(payment?.corrections) ? payment.corrections.length : 0,
+          getAllocationLabel(payment),
         ]
       ),
     ];
 
-    const csv = rows
-      .map((row) =>
-        row
-          .map(csvEscape)
-          .join(",")
-      )
-      .join("\n");
-
     const blob = new Blob(
-      ["\ufeff" + csv],
+      [buildCsv(rows)],
       {
         type:
           "text/csv;charset=utf-8;",
@@ -785,11 +945,93 @@ export default function Payments() {
   const printReceipt = (
     payment
   ) => {
+    if (isPaymentReversed(payment)) {
+      alert("This receipt has been reversed and cannot be reprinted as valid proof of payment.");
+      return;
+    }
     setViewPayment(payment);
 
     setTimeout(() => {
       window.print();
     }, 350);
+  };
+
+  const openAllocation = (payment) => {
+    setAllocationPayment(payment);
+    setAllocationPaymentIndex(payments.indexOf(payment));
+    setAllocationInvoiceId("");
+    setAllocationAmount("");
+    setAllocationError("");
+  };
+
+  const allocationCandidates = useMemo(() => {
+    if (!allocationPayment || isPaymentReversed(allocationPayment)) return [];
+    return invoices.filter((invoice) =>
+      normalize(getPartyName(invoice)) === normalize(getPartyName(allocationPayment)) &&
+      getInvoiceFinance(invoice, payments).due > 0.005,
+    );
+  }, [allocationPayment, invoices, payments]);
+
+  const allocateReceipt = () => {
+    setAllocationError("");
+    let storedPayments;
+    let storedInvoices;
+    try {
+      storedPayments = JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
+      storedInvoices = JSON.parse(localStorage.getItem(INVOICES_KEY) || "[]");
+    } catch {
+      setAllocationError("Saved payment or invoice data could not be read.");
+      return;
+    }
+
+    const paymentId = String(allocationPayment?.id ?? allocationPayment?._id ?? "");
+    const freshPayment = paymentId
+      ? (Array.isArray(storedPayments) ? storedPayments : []).find((payment) => String(payment?.id ?? payment?._id ?? "") === paymentId)
+      : storedPayments?.[allocationPaymentIndex];
+    const invoice = (Array.isArray(storedInvoices) ? storedInvoices : []).find((item) =>
+      String(item?.id ?? item?._id ?? "") === String(allocationInvoiceId),
+    );
+    const validation = validateInvoiceAllocation(
+      freshPayment,
+      invoice,
+      allocationAmount,
+      storedPayments,
+      storedInvoices,
+    );
+    if (!validation.valid) {
+      setAllocationError(validation.error);
+      return;
+    }
+
+    const amount = Math.round(Number(allocationAmount) * 100) / 100;
+    const updatedPayments = storedPayments.map((payment) =>
+      payment === freshPayment
+        ? {
+            ...payment,
+            allocations: [
+              ...getPaymentAllocations(payment),
+              {
+                invoiceId: String(invoice.id ?? invoice._id),
+                invoiceNumber: invoice.invoiceNumber || "",
+                amount,
+                allocatedAt: new Date().toISOString(),
+              },
+            ],
+          }
+        : payment,
+    );
+
+    try {
+      if (!writePayments(updatedPayments)) {
+        setAllocationError("Allocation could not be saved. Check browser storage and try again.");
+        return;
+      }
+      setAllocationPayment(null);
+      setViewPayment(null);
+    } catch (error) {
+      console.error("Receipt allocation save error:", error);
+      setAllocationError("Allocation could not be saved. Check available browser storage and try again.");
+    }
   };
 
   // ============================================================
@@ -831,6 +1073,10 @@ export default function Payments() {
       payments,
       statementParty,
     ]);
+
+  const statementAccount = statementParty
+    ? partyDueMap.get(statementParty)
+    : null;
 
   // ============================================================
   // 🆕 SELECTED PARTY DUE FOR DISPLAY
@@ -893,7 +1139,7 @@ export default function Payments() {
       <section className="payments-overview">
         <div className="payments-overview-card featured">
           <div className="payments-overview-icon">
-            <CircleDollarSign size={20} />
+            <IndianRupee size={20} />
           </div>
 
           <div>
@@ -1030,6 +1276,7 @@ export default function Payments() {
               <input
                 type="date"
                 value={dateFrom}
+                max={dateTo || undefined}
                 onChange={(event) =>
                   setDateFrom(
                     event.target.value
@@ -1044,6 +1291,7 @@ export default function Payments() {
               <input
                 type="date"
                 value={dateTo}
+                min={dateFrom || undefined}
                 onChange={(event) =>
                   setDateTo(
                     event.target.value
@@ -1090,6 +1338,10 @@ export default function Payments() {
               </strong>
             </div>
           </div>
+        )}
+
+        {dateFrom && dateTo && dateFrom > dateTo && (
+          <p className="finance-range-error" role="alert">From date must be on or before the To date.</p>
         )}
 
         <div className="payments-card-heading">
@@ -1237,6 +1489,8 @@ export default function Payments() {
                               payment
                             ) || "—"}
                           </span>
+                          {isPaymentReversed(payment) && <small className="payment-reversed-label">Reversed · {payment.reversalReason || "Reason not recorded"}</small>}
+                          {payment.corrections?.length > 0 && <small className="payment-correction-label">{payment.corrections.length} correction{payment.corrections.length === 1 ? "" : "s"} recorded</small>}
                         </td>
 
                         <td className="amount-column">
@@ -1265,20 +1519,11 @@ export default function Payments() {
                               }
                             />
 
-                            <ActionButton
-                              icon={
-                                <Pencil
-                                  size={14}
-                                />
-                              }
+                            {!isPaymentReversed(payment) && <ActionButton
+                              icon={<Pencil size={14} />}
                               label="Edit"
-                              onClick={() =>
-                                openEdit(
-                                  payment,
-                                  originalIndex
-                                )
-                              }
-                            />
+                              onClick={() => openEdit(payment, originalIndex)}
+                            />}
 
                             <ActionButton
                               icon={
@@ -1295,13 +1540,10 @@ export default function Payments() {
                             />
 
                             <ActionButton
-                              icon={
-                                <Trash2
-                                  size={14}
-                                />
-                              }
-                              label="Delete"
+                              icon={<RotateCcw size={14} />}
+                              label={isPaymentReversed(payment) ? "Reversed" : "Reverse"}
                               danger
+                              disabled={isPaymentReversed(payment)}
                               onClick={() =>
                                 deletePayment(
                                   payment,
@@ -1663,7 +1905,7 @@ export default function Payments() {
           <div className="payment-detail-card">
             <div className="payment-detail-hero">
               <div className="payment-detail-icon">
-                <CircleDollarSign
+                <IndianRupee
                   size={25}
                 />
               </div>
@@ -1735,6 +1977,26 @@ export default function Payments() {
               </div>
 
               <div className="full">
+                <span>Status</span>
+                <strong>{isPaymentReversed(viewPayment) ? `Reversed · ${viewPayment.reversalReason || "Reason not recorded"}` : "Recorded"}</strong>
+              </div>
+
+              {viewPayment.corrections?.length > 0 && (
+                <div className="full">
+                  <span>Correction History</span>
+                  <strong>{viewPayment.corrections.map((correction, index) => `${index + 1}. ${correction.reason} (${formatDate(correction.correctedAt)})`).join(" · ")}</strong>
+                </div>
+              )}
+
+              <div className="full">
+                <span>Invoice Allocations</span>
+                <strong>{getAllocationLabel(viewPayment) || "No invoice allocation"}</strong>
+                {!isPaymentReversed(viewPayment) && (
+                  <small>Unallocated receipt balance: {money(getPaymentUnallocatedAmount(viewPayment))}</small>
+                )}
+              </div>
+
+              <div className="full">
                 <span>
                   Notes
                 </span>
@@ -1748,6 +2010,15 @@ export default function Payments() {
             </div>
 
             <div className="payments-form-actions">
+              {!isPaymentReversed(viewPayment) && getPaymentUnallocatedAmount(viewPayment) > 0.005 && (
+                <button
+                  type="button"
+                  className="payments-btn payments-btn-secondary"
+                  onClick={() => openAllocation(viewPayment)}
+                >
+                  <FileText size={16} /> Allocate to Invoice
+                </button>
+              )}
               <button
                 type="button"
                 className="payments-btn payments-btn-secondary"
@@ -1775,6 +2046,72 @@ export default function Payments() {
         </Modal>
       )}
 
+      {allocationPayment && (
+        <Modal
+          title="Allocate Receipt to Invoice"
+          subtitle={`${getPartyName(allocationPayment)} · ${money(getPaymentUnallocatedAmount(allocationPayment))} unallocated`}
+          onClose={() => setAllocationPayment(null)}
+        >
+          <div className="payment-allocation-form">
+            <label>
+              <span>Invoice *</span>
+              <select
+                value={allocationInvoiceId}
+                onChange={(event) => {
+                  const invoiceId = event.target.value;
+                  setAllocationInvoiceId(invoiceId);
+                  const invoice = allocationCandidates.find((item) => String(item?.id ?? item?._id ?? "") === invoiceId);
+                  const invoiceDue = invoice ? getInvoiceFinance(invoice, payments).due : 0;
+                  const cap = Math.min(getPaymentUnallocatedAmount(allocationPayment), invoiceDue);
+                  setAllocationAmount(cap > 0 ? cap.toFixed(2) : "");
+                  setAllocationError("");
+                }}
+              >
+                <option value="">Choose invoice</option>
+                {allocationCandidates.map((invoice) => {
+                  const finance = getInvoiceFinance(invoice, payments);
+                  return (
+                    <option key={invoice.id ?? invoice._id} value={String(invoice.id ?? invoice._id)}>
+                      {invoice.invoiceNumber || "Invoice"} · {formatDate(invoice.invoiceDate)} · Due {money(finance.due)}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label>
+              <span>Amount to allocate *</span>
+              <div className="payments-input-wrap">
+                <span>₹</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={allocationAmount}
+                  onChange={(event) => setAllocationAmount(event.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+            </label>
+
+            {allocationError && <p className="payment-allocation-error" role="alert">{allocationError}</p>}
+            {!allocationCandidates.length && <p className="payment-allocation-empty">There are no saved invoices with a balance due for this party.</p>}
+
+            <div className="payments-form-actions">
+              <button type="button" className="payments-btn payments-btn-secondary" onClick={() => setAllocationPayment(null)}>Cancel</button>
+              <button
+                type="button"
+                className="payments-btn payments-btn-primary"
+                disabled={!allocationInvoiceId || !allocationAmount || !allocationCandidates.length}
+                onClick={allocateReceipt}
+              >
+                <Check size={16} /> Save Allocation
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {statementParty && (
         <Modal
           title={`${statementParty} — Payment Statement`}
@@ -1789,21 +2126,22 @@ export default function Payments() {
               <div className="statement-summary">
                 <div>
                   <span>
-                    Total Received
+                    Total Billed
                   </span>
 
                   <strong>
-                    {money(
-                      statementPayments.reduce(
-                        (sum, payment) =>
-                          sum +
-                          getAmount(
-                            payment
-                          ),
-                        0
-                      )
-                    )}
+                    {money(statementAccount?.totalBilling || 0)}
                   </strong>
+                </div>
+
+                <div>
+                  <span>Total Received</span>
+                  <strong>{money(statementPayments.reduce((sum, payment) => sum + getActivePaymentAmount(payment), 0))}</strong>
+                </div>
+
+                <div>
+                  <span>Balance Due</span>
+                  <strong>{money(statementAccount?.due || 0)}</strong>
                 </div>
 
                 <div>
@@ -1826,6 +2164,7 @@ export default function Payments() {
                       <th>Date</th>
                       <th>Mode</th>
                       <th>Reference</th>
+                      <th>Invoice Allocation</th>
                       <th>Notes</th>
                       <th>Amount</th>
                     </tr>
@@ -1863,18 +2202,21 @@ export default function Payments() {
                             ) || "—"}
                           </td>
 
+                          <td>{getAllocationLabel(payment) || "Unallocated"}</td>
+
                           <td>
                             {getNotes(
                               payment
                             ) || "—"}
                           </td>
 
-                          <td>
+                          <td className={isPaymentReversed(payment) ? "payment-reversed-cell" : ""}>
                             {money(
                               getAmount(
                                 payment
                               )
                             )}
+                            {isPaymentReversed(payment) && <small>Reversed · {payment.reversalReason || "Reason not recorded"}</small>}
                           </td>
                         </tr>
                       )
@@ -2061,11 +2403,21 @@ export default function Payments() {
                   {money(
                     statementPayments.reduce(
                       (sum, payment) =>
-                        sum + getAmount(payment),
+                        sum + getActivePaymentAmount(payment),
                       0
                     )
                   )}
                 </strong>
+              </div>
+
+              <div>
+                <span>Total Billed</span>
+                <strong>{money(statementAccount?.totalBilling || 0)}</strong>
+              </div>
+
+              <div>
+                <span>Balance Due</span>
+                <strong>{money(statementAccount?.due || 0)}</strong>
               </div>
 
               <div>
@@ -2085,6 +2437,7 @@ export default function Payments() {
                   <th>Date</th>
                   <th>Mode</th>
                   <th>Reference</th>
+                  <th>Invoice Allocation</th>
                   <th>Notes</th>
                   <th>Amount</th>
                 </tr>
@@ -2096,9 +2449,11 @@ export default function Payments() {
                     <td>{formatDate(getDate(payment))}</td>
                     <td>{getMode(payment)}</td>
                     <td>{getReference(payment) || "—"}</td>
+                    <td>{getAllocationLabel(payment) || "Unallocated"}</td>
                     <td>{getNotes(payment) || "—"}</td>
                     <td className="align-right">
                       {money(getAmount(payment))}
+                      {isPaymentReversed(payment) && <small>Reversed: {payment.reversalReason || "Reason not recorded"}</small>}
                     </td>
                   </tr>
                 ))}

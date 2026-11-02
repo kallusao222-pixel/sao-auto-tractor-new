@@ -1542,6 +1542,41 @@
   gap: 10px;
 }
 
+.data-health-status {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-soft, #e9e3d9);
+  border-radius: 10px;
+  background: var(--color-surface, #fffcf7);
+  color: var(--color-text-muted, #6d675e);
+  font-size: 12px;
+}
+
+.data-health-status strong {
+  color: var(--color-text, #152033);
+  font-size: 13px;
+}
+
+.data-health-status.is-healthy {
+  border-color: rgba(46, 125, 89, 0.24);
+  background: rgba(46, 125, 89, 0.06);
+}
+
+.data-health-status.is-healthy strong {
+  color: #28734f;
+}
+
+.data-health-status.has-issues {
+  border-color: rgba(190, 70, 57, 0.3);
+  background: rgba(190, 70, 57, 0.06);
+}
+
+.data-health-status.has-issues strong {
+  color: #a63730;
+}
+
 .data-health-item {
   display: flex;
   align-items: center;

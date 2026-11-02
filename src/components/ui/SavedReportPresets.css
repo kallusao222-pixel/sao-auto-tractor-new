@@ -1,0 +1,47 @@
+.saved-report-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saved-report-presets select,
+.saved-report-presets button {
+  min-height: 40px;
+  border: 1px solid var(--border, var(--color-border, #ddd6ca));
+  border-radius: 9px;
+  background: var(--surface, var(--color-surface, #fffcf7));
+  color: var(--text-primary, var(--color-text, #152033));
+  padding: 0 11px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.saved-report-presets button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.saved-report-presets button:hover {
+  border-color: var(--color-primary, #1b4b73);
+}
+
+.saved-report-presets button:focus-visible,
+.saved-report-presets select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary, #1b4b73) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.saved-report-presets .saved-report-delete {
+  color: var(--color-danger, #a14c46);
+}
+
+@media (max-width: 560px) {
+  .saved-report-presets select {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}

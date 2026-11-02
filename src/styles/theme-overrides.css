@@ -1,0 +1,338 @@
+/* Theme bridge for page modules that still contain legacy light-only values. */
+@media screen {
+  html[data-theme="dark"] body {
+    color-scheme: dark;
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .app,
+  html[data-theme="dark"] .app-main,
+  html[data-theme="dark"] .app-content,
+  html[data-theme="dark"] .app-page,
+  html[data-theme="dark"] .app-page-placeholder {
+    background-color: var(--bg);
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .desktop-header,
+  html[data-theme="dark"] .mobile-header {
+    background: var(--header-bg);
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+
+  /* These modules define their own light palette locally; point it back at
+     the shared dark tokens so forms, labels, and nested controls agree. */
+  html[data-theme="dark"] :is(
+    .invoice-page,
+    .payments-page,
+    .outstanding-page,
+    .expenses-page,
+    .billing-page,
+    .staff-page,
+    .party-management-page,
+    .party-ledger-page,
+    .material-management-page,
+    .tractor-management-page,
+    .all-records-page,
+    .date-wise-page,
+    .reports-page,
+    .settings-page,
+    .daily-report-page,
+    .daily-full-report-page
+  ) {
+    --color-primary: var(--primary);
+    --color-primary-dark: var(--primary-dark);
+    --color-primary-light: var(--primary-light);
+    --color-primary-soft: var(--primary-soft);
+    --color-primary-border: var(--primary-border);
+    --color-accent: var(--accent);
+    --color-accent-dark: var(--accent-dark);
+    --color-accent-light: var(--accent-light);
+    --color-accent-soft: var(--accent-soft);
+    --color-text: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-muted: var(--text-muted);
+    --color-text-soft: var(--text-muted);
+    --color-text-disabled: var(--text-disabled);
+    --color-surface: var(--surface);
+    --color-surface-soft: var(--surface-soft);
+    --color-background: var(--bg);
+    --color-border: var(--border);
+    --color-border-soft: var(--border-soft);
+    --color-border-strong: var(--border-strong);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-danger: var(--danger);
+    --color-danger-dark: var(--danger-dark);
+    --color-danger-soft: var(--danger-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
+    --pay-surface: var(--surface);
+    --pay-surface-soft: var(--surface-soft);
+    --pay-border: var(--border);
+    --pay-border-soft: var(--border-soft);
+    --os-surface: var(--surface);
+    --os-surface-soft: var(--surface-soft);
+    --os-border: var(--border);
+  }
+
+  /* Main work surfaces across legacy modules. Invoice paper is intentionally
+     excluded so its on-screen and printed customer document stays white. */
+  html[data-theme="dark"] .app-content :is(
+    .billing-card,
+    .billing-main-card,
+    .billing-filter-card,
+    .billing-modal,
+    .expenses-card,
+    .expenses-overview-card,
+    .expenses-filter-panel,
+    .expenses-modal,
+    .expenses-preview-card,
+    .payments-card,
+    .payments-overview-card,
+    .payments-filter-panel,
+    .payments-modal,
+    .payment-detail-card,
+    .payments-form,
+    .outstanding-card,
+    .outstanding-stat-card,
+    .outstanding-collection-card,
+    .outstanding-aging-card,
+    .outstanding-filter-panel,
+    .outstanding-info-card,
+    .outstanding-modal,
+    .outstanding-payment-modal,
+    .outstanding-bulk-modal,
+    .quick-account-panel,
+    .account-history-table,
+    .ledger-summary-card,
+    .material-summary-card,
+    .material-form-card,
+    .material-toolbar-card,
+    .material-table-card,
+    .material-register-card,
+    .tractor-summary-card,
+    .party-summary-card,
+    .all-records-summary-card,
+    .all-records-table-card,
+    .all-records-modal,
+    .all-records-edit-modal,
+    .all-records-delete-modal,
+    .invoice-live-preview,
+    .staff-page .staff-card,
+    .staff-modal,
+    .staff-preview-modal,
+    .pay-summary-card,
+    .pay-form,
+    .settings-page .settings-card,
+    .settings-page .settings-section,
+    .settings-page .settings-panel,
+    .reports-page .report-card,
+    .reports-page .report-panel
+  ) {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .payments-modal-header,
+    .outstanding-modal-header,
+    .staff-modal-header,
+    .payments-filter-panel,
+    .outstanding-filter-panel,
+    .account-history-table th,
+    .account-history-table td
+  ) {
+    border-color: var(--border) !important;
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .account-history-table th,
+    .account-history-table thead,
+    .payments-table th,
+    .outstanding-table th
+  ) {
+    background: var(--surface-muted) !important;
+    color: var(--text-secondary) !important;
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-header,
+    .expenses-page-header,
+    .payments-page-header,
+    .outstanding-page-header,
+    .invoice-page-header,
+    .staff-page-header,
+    .all-records-page-header,
+    .tractor-page-header,
+    .party-page-header,
+    .material-page-header,
+    .settings-page-header
+  ) {
+    background: linear-gradient(135deg, var(--surface), var(--surface-soft)) !important;
+    border-color: var(--border) !important;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-header,
+    .expenses-page-header,
+    .payments-page-header,
+    .outstanding-page-header,
+    .invoice-page-header,
+    .staff-page-header,
+    .all-records-page-header,
+    .tractor-page-header,
+    .party-page-header,
+    .material-page-header,
+    .settings-page-header
+  ) :is(h1, h2, h3, p, small, label, span) {
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea
+  ) {
+    color-scheme: dark;
+    background-color: var(--surface-soft);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .app-content :is(input, textarea)::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-table,
+    .expenses-table,
+    .payments-table,
+    .outstanding-table,
+    .material-table,
+    .tractor-table,
+    .all-records-table,
+    .party-ledger-table,
+    .staff-table,
+    .report-table,
+    .date-wise-table
+  ) {
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-table,
+    .expenses-table,
+    .payments-table,
+    .outstanding-table,
+    .material-table,
+    .tractor-table,
+    .all-records-table,
+    .party-ledger-table,
+    .staff-table,
+    .report-table,
+    .date-wise-table
+  ) :is(th, thead) {
+    background-color: var(--surface-muted);
+    color: var(--text-secondary);
+    border-color: var(--border);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-table,
+    .expenses-table,
+    .payments-table,
+    .outstanding-table,
+    .material-table,
+    .tractor-table,
+    .all-records-table,
+    .party-ledger-table,
+    .staff-table,
+    .report-table,
+    .date-wise-table
+  ) :is(td, tbody tr) {
+    background-color: var(--surface);
+    color: var(--text-primary);
+    border-color: var(--border-soft);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-table,
+    .expenses-table,
+    .payments-table,
+    .outstanding-table,
+    .material-table,
+    .tractor-table,
+    .all-records-table,
+    .party-ledger-table,
+    .staff-table,
+    .report-table,
+    .date-wise-table
+  ) tbody tr:hover > td {
+    background-color: var(--surface-soft);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-modal,
+    .expenses-modal,
+    .all-records-modal,
+    .all-records-edit-modal,
+    .all-records-delete-modal,
+    .invoice-modal,
+    .payments-modal,
+    .party-modal,
+    .tractor-modal,
+    .material-modal,
+    .settings-modal
+  ) :is(h1, h2, h3, p, label, span, strong, small) {
+    color: var(--text-primary);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .section-kicker,
+    .billing-page p,
+    .expenses-page p,
+    .payments-page p,
+    .outstanding-page p,
+    .staff-page p,
+    .party-ledger-page p,
+    .material-management-page p,
+    .tractor-management-page p,
+    .settings-page p
+  ) {
+    color: var(--text-secondary);
+  }
+
+  html[data-theme="dark"] .app-content :is(
+    .billing-page,
+    .expenses-page,
+    .payments-page,
+    .outstanding-page,
+    .staff-page,
+    .party-ledger-page,
+    .material-management-page,
+    .tractor-management-page,
+    .settings-page,
+    .reports-page
+  ) ::selection {
+    background: rgba(142, 191, 224, 0.28);
+    color: var(--text-primary);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] *,
+  html[data-theme="dark"] *::before,
+  html[data-theme="dark"] *::after {
+    scroll-behavior: auto;
+  }
+}

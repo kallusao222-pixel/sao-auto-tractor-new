@@ -850,6 +850,14 @@
   white-space: nowrap;
 }
 
+.staff-license-note {
+  display: block;
+  margin: 4px 0 0 18px;
+  color: var(--color-text-muted, #6d675e);
+  font-size: 10px;
+  white-space: normal;
+}
+
 .rate-stack span {
   display: block;
   color: var(--color-text-muted, #6d675e);
@@ -1050,6 +1058,9 @@
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+.week-controls button { min-height: 44px; }
+.week-controls .staff-fast-attendance { padding-inline: 14px; }
 
 .current-week-btn {
   color: var(--color-primary, #1b4b73) !important;
@@ -1353,8 +1364,9 @@
 
 .salary-equation {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 14px;
   padding: 12px 14px;
@@ -1365,6 +1377,7 @@
 }
 
 .salary-equation span {
+  flex: 0 0 100%;
   color: var(--color-text-muted, #6d675e);
   font-size: 10px;
   font-weight: 800;
@@ -1373,11 +1386,19 @@
 }
 
 .salary-equation strong {
+  flex: 0 1 auto;
   color: var(--color-primary, #1b4b73);
   font-family: var(--font-mono, "IBM Plex Mono", monospace);
   font-size: 10px;
-  text-align: right;
+  text-align: left;
   font-weight: 700;
+}
+
+.salary-equation small {
+  flex: 0 0 100%;
+  color: var(--color-text-muted, #6d675e);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* =========================================================
