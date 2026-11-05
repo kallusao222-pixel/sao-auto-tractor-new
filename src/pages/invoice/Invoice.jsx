@@ -857,12 +857,18 @@ function Invoice() {
     const handleQuickAction = (event) => {
       if (event.detail?.action === "prefill-invoice-trip") {
         const tripId = String(event.detail?.payload?.tripId || "");
-        const index = trips.findIndex((trip) => String(trip?.id || trip?.tripId || "") === tripId);
-        const trip = trips[index];
+        // Read the latest saved records here instead of relying only on the
+        // component state. The Add Trip -> Invoice navigation can dispatch
+        // this action before Invoice's initial state hydration has committed.
+        const storedTrips = readStorage(TRIPS_KEY, []);
+        const currentTrips = Array.isArray(storedTrips) ? storedTrips : trips;
+        const index = currentTrips.findIndex((trip) => String(trip?.id || trip?.tripId || "") === tripId);
+        const trip = currentTrips[index];
         if (!trip) {
           setError("That saved work entry could not be found. Open All Records and try again.");
           return;
         }
+        setTrips(currentTrips);
         setEditingInvoiceId(null);
         setSelectedHistoryInvoice(null);
         setPreviewOpen(false);
@@ -2728,7 +2734,11 @@ function Invoice() {
   const currentPreviewFinance = getInvoiceFinance(currentPreviewInvoice, payments);
   const previewPayableAmount = getInvoicePayableAmount(currentPreviewInvoice, payments);
   const previewQrUrl = buildUpiQrUrl(previewPayableAmount);
-  const isJcbInvoicePreview = currentPreviewInvoice.invoiceType === "jcb-hours-bill";
+  const previewItems = currentPreviewInvoice.items || [];
+  const isJcbInvoicePreview = currentPreviewInvoice.invoiceType === "jcb-hours-bill" || (
+    previewItems.length > 0 &&
+    previewItems.every((item) => Boolean(item?.jcbWork || getTripTypeSafe(item) === "JCB Work"))
+  );
   const isJcbTransportInvoicePreview = currentPreviewInvoice.invoiceType === "jcb-transport-bill";
 
   /* =======================================================
