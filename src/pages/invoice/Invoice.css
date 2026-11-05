@@ -1961,9 +1961,10 @@
 
 /* ---------- HISTORY ---------- */
 .history-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
   align-items: center;
-  gap: 9px;
+  gap: 10px 12px;
   padding: 12px 15px;
   border-bottom: 1px solid var(--color-border, #ded8cd);
   background: var(--color-surface-soft, #f8f5ef);
@@ -1993,7 +1994,48 @@
   color: var(--color-text, #152033);
   font-size: 12px;
 }
-.history-toolbar select { width: 160px; }
+.history-toolbar > .invoice-btn { min-height: 40px; }
+.history-filter-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.history-filter-control {
+  display: grid;
+  gap: 4px;
+  color: var(--color-text-muted, #6d675e);
+  font-size: 10px;
+  font-weight: 650;
+}
+.history-filter-control select,
+.history-filter-control input {
+  width: 156px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border, #ded8cd);
+  border-radius: 8px;
+  background: var(--color-surface, #fffcf7);
+  color: var(--color-text, #152033);
+  font: inherit;
+  font-size: 11px;
+}
+.history-filter-control.history-date-filter input { width: 148px; }
+.history-clear-btn {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary, #1b4b73);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.history-clear-btn:hover { border-color: var(--color-primary-border, rgba(27, 75, 115, 0.25)); background: var(--color-primary-soft, #edf3f7); }
+.history-toolbar .invoice-btn:disabled { opacity: .48; cursor: not-allowed; }
 
 .history-summary-grid {
   display: grid;
@@ -2004,6 +2046,20 @@
   background: var(--color-surface, #fffcf7);
 }
 .history-summary-grid .invoice-stat { min-height: auto; padding: 6px 8px; }
+.history-results-line {
+  min-height: 34px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--color-border-soft, #e8e3db);
+  color: var(--color-text-muted, #6d675e);
+  font-size: 10px;
+}
+.history-filter-active { color: var(--color-primary, #1b4b73); font-weight: 700; }
+.invoice-history-empty { flex: 1; min-height: 220px; gap: 2px; }
+.invoice-history-empty .invoice-btn { margin-top: 14px; }
 
 /* ---------- HISTORY TABLE ---------- */
 .invoice-history-table-wrapper { flex: 1; overflow: auto; }
@@ -2086,8 +2142,8 @@
   gap: 5px;
 }
 .history-actions button {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--color-border, #ded8cd);
   border-radius: 7px;
   background: var(--color-surface, #fffcf7);
@@ -2299,8 +2355,14 @@
   .invoice-paid-stamp-option { flex: auto; }
   .received-input { width: 100%; }
   .invoice-custom-charge-fields { grid-template-columns: 1fr; }
-  .history-toolbar { align-items: stretch; flex-direction: column; }
-  .history-toolbar select { width: 100%; }
+  .history-toolbar { grid-template-columns: 1fr; align-items: stretch; }
+  .history-filter-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .history-filter-control select,
+  .history-filter-control input,
+  .history-filter-control.history-date-filter input { width: 100%; box-sizing: border-box; }
+  .history-toolbar > .invoice-btn { width: 100%; }
+  .history-clear-btn { justify-self: start; }
+  .history-results-line { padding: 0 12px; }
   .invoice-history-modal, .invoice-preview { width: calc(100vw - 18px); max-height: calc(100vh - 18px); }
   .invoice-preview-toolbar { align-items: flex-start; flex-direction: column; }
   .invoice-preview-toolbar-actions { width: 100%; }

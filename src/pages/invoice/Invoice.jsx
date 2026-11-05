@@ -602,6 +602,10 @@ function Invoice() {
   const [historyStatus, setHistoryStatus] =
     useState("All");
 
+  const [historyType, setHistoryType] = useState("All");
+  const [historyFrom, setHistoryFrom] = useState("");
+  const [historyTo, setHistoryTo] = useState("");
+
   /* =======================================================
      MESSAGE
      ======================================================= */
@@ -2546,9 +2550,19 @@ function Invoice() {
             return false;
           }
 
+          const invoiceDate = getISODate(invoice.invoiceDate);
+          const invoiceKind = invoice.invoiceType || "trip-invoice";
+          if (historyType !== "All" && invoiceKind !== historyType) return false;
+          if (historyFrom && (!invoiceDate || invoiceDate < historyFrom)) return false;
+          if (historyTo && (!invoiceDate || invoiceDate > historyTo)) return false;
+
           if (!search) {
             return true;
           }
+
+          const searchableItems = Array.isArray(invoice.items)
+            ? invoice.items.map((item) => [item?.description, item?.product, item?.site, item?.workSite, item?.vehicleNumber, item?.tripType].join(" ")).join(" ")
+            : "";
 
           return (
             normalizeText(
@@ -2556,7 +2570,8 @@ function Invoice() {
             ).includes(search) ||
             normalizeText(
               invoice.partyName
-            ).includes(search)
+            ).includes(search) ||
+            normalizeText(searchableItems).includes(search)
           );
         })
         .sort(
@@ -2576,8 +2591,23 @@ function Invoice() {
       invoiceHistory,
       historySearch,
       historyStatus,
+      historyType,
+      historyFrom,
+      historyTo,
       payments,
     ]);
+
+  const hasHistoryFilters = Boolean(
+    historySearch || historyStatus !== "All" || historyType !== "All" || historyFrom || historyTo
+  );
+
+  const clearHistoryFilters = () => {
+    setHistorySearch("");
+    setHistoryStatus("All");
+    setHistoryType("All");
+    setHistoryFrom("");
+    setHistoryTo("");
+  };
 
   /* =======================================================
      HISTORY TOTALS
@@ -4692,13 +4722,14 @@ function Invoice() {
                 </h2>
 
                 <p>
-                  Search, preview, edit or export saved invoices.
+                  Find bills quickly, track collections, and reopen any saved invoice.
                 </p>
               </div>
 
               <button
                 type="button"
                 className="modal-close-btn"
+                aria-label="Close invoice history"
                 onClick={() =>
                   setHistoryOpen(false)
                 }
@@ -4723,44 +4754,47 @@ function Invoice() {
                       e.target.value
                     )
                   }
-                  placeholder="Search invoice or party..."
+                  aria-label="Search invoices"
+                  placeholder="Search invoice, party, product, site or vehicle..."
                 />
               </div>
 
-              <select
-                value={
-                  historyStatus
-                }
-                onChange={(e) =>
-                  setHistoryStatus(
-                    e.target.value
-                  )
-                }
-              >
-                <option value="All">
-                  All Status
-                </option>
+              <div className="history-filter-row">
+                <label className="history-filter-control">
+                  <span>Status</span>
+                  <select value={historyStatus} onChange={(e) => setHistoryStatus(e.target.value)} aria-label="Filter invoices by payment status">
+                    <option value="All">All statuses</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Partially Paid">Partially paid</option>
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Advance">Advance</option>
+                    <option value="Draft">Draft</option>
+                  </select>
+                </label>
 
-                <option value="Paid">
-                  Paid
-                </option>
+                <label className="history-filter-control">
+                  <span>Bill type</span>
+                  <select value={historyType} onChange={(e) => setHistoryType(e.target.value)} aria-label="Filter invoices by bill type">
+                    <option value="All">All bill types</option>
+                    <option value="trip-invoice">Trip invoice</option>
+                    <option value="quick-bill">Transport quick bill</option>
+                    <option value="jcb-hours-bill">JCB working hours</option>
+                    <option value="jcb-transport-bill">JCB + transport</option>
+                  </select>
+                </label>
 
-                <option value="Partially Paid">
-                  Partially Paid
-                </option>
+                <label className="history-filter-control history-date-filter">
+                  <span>From</span>
+                  <input type="date" value={historyFrom} max={historyTo || undefined} onChange={(e) => setHistoryFrom(e.target.value)} aria-label="Invoices from date" />
+                </label>
 
-                <option value="Unpaid">
-                  Unpaid
-                </option>
+                <label className="history-filter-control history-date-filter">
+                  <span>To</span>
+                  <input type="date" value={historyTo} min={historyFrom || undefined} onChange={(e) => setHistoryTo(e.target.value)} aria-label="Invoices to date" />
+                </label>
 
-                <option value="Advance">
-                  Advance
-                </option>
-
-                <option value="Draft">
-                  Draft
-                </option>
-              </select>
+                {hasHistoryFilters && <button type="button" className="history-clear-btn" onClick={clearHistoryFilters}>Clear filters</button>}
+              </div>
 
               <button
                 type="button"
@@ -4768,9 +4802,11 @@ function Invoice() {
                 onClick={
                   exportHistoryCSV
                 }
+                disabled={filteredHistory.length === 0}
+                title={filteredHistory.length ? `Export ${filteredHistory.length} filtered invoices` : "No invoices to export"}
               >
                 <Download size={14} />
-                Export CSV
+                Export CSV{filteredHistory.length ? ` (${filteredHistory.length})` : ""}
               </button>
 
             </div>
@@ -4815,6 +4851,11 @@ function Invoice() {
 
             </div>
 
+            <div className="history-results-line" aria-live="polite">
+              <span>{filteredHistory.length === invoiceHistory.length ? `${invoiceHistory.length} saved invoice${invoiceHistory.length === 1 ? "" : "s"}` : `Showing ${filteredHistory.length} of ${invoiceHistory.length} invoices`}</span>
+              {hasHistoryFilters && <span className="history-filter-active">Filters active</span>}
+            </div>
+
             {/* HISTORY TABLE */}
 
             {filteredHistory.length ===
@@ -4822,13 +4863,9 @@ function Invoice() {
               <div className="invoice-history-empty">
                 <FileText size={26} />
 
-                <strong>
-                  No invoices found
-                </strong>
-
-                <span>
-                  Saved invoices will appear here.
-                </span>
+                <strong>{invoiceHistory.length === 0 ? "Your invoice history is ready" : "No invoices match these filters"}</strong>
+                <span>{invoiceHistory.length === 0 ? "Save a trip bill, transport quick bill, or JCB bill and it will appear here." : "Try another search or clear the filters to see more invoices."}</span>
+                {hasHistoryFilters && <button type="button" className="invoice-btn invoice-btn-secondary" onClick={clearHistoryFilters}>Clear filters</button>}
               </div>
             ) : (
               <div className="invoice-history-table-wrapper">
@@ -4862,8 +4899,9 @@ function Invoice() {
                                 invoice.invoiceNumber
                               }
                             </strong>
-                            {invoice.invoiceType === "jcb-hours-bill" && <small className="history-invoice-type">JCB Hours</small>}
+                            {(invoice.invoiceType === "jcb-hours-bill" || invoice.items?.some((item) => item.jcbWork)) && <small className="history-invoice-type">JCB Hours</small>}
                             {invoice.invoiceType === "jcb-transport-bill" && <small className="history-invoice-type">JCB + Transport</small>}
+                            {invoice.invoiceType === "quick-bill" && <small className="history-invoice-type">Transport Quick Bill</small>}
                           </td>
 
                           <td>
