@@ -13,6 +13,7 @@ import {
   History,
   IndianRupee,
   Pencil,
+  Phone,
   Plus,
   Printer,
   QrCode,
@@ -24,7 +25,9 @@ import {
   X,
 } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 import "./Invoice.css";
 import { buildUpiQrUrl, SAO_UPI_PAYEE, SAO_UPI_VPA } from "../../utils/upiPayment";
@@ -75,6 +78,28 @@ const TRIP_TYPES = [
   "Unloading",
   "Site to Site",
 ];
+
+const createJcbWorkRow = (rate = "900") => ({
+  id: `jcb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  date: todayISO(),
+  hours: "",
+  minutes: "0",
+  rate: String(rate || "900"),
+});
+
+const createTransportBillRow = (overrides = {}) => ({
+  id: `tripbill-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  date: todayISO(),
+  tripType: "Loading",
+  description: "",
+  site: "",
+  vehicleEnabled: false,
+  multipleVehicles: false,
+  vehicleNumbers: "",
+  quantity: "1",
+  rate: "",
+  ...overrides,
+});
 
 /* =========================================================
    HELPERS
@@ -299,6 +324,34 @@ function getTripDescription(trip) {
   ).trim();
 }
 
+function getBusinessAddressLines(address) {
+  const savedLines = String(address || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (savedLines.length > 1) return savedLines;
+  const value = savedLines[0] || String(address || "").replace(/\s+/g, " ").trim();
+  const postalMatch = value.match(/^(.*?\b723101\b)[\s,;–—-]*(.*)$/i);
+  return postalMatch
+    ? [postalMatch[1].trim().replace(/[,;]+$/, ""), postalMatch[2].trim().replace(/^[,;]+/, "")].filter(Boolean)
+    : value ? [value] : [];
+}
+
+function phoneDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function isWhatsAppBusinessNumber(value) {
+  return phoneDigits(value).endsWith("3057");
+}
+
+function phoneHref(value) {
+  const digits = phoneDigits(value);
+  return `tel:${digits.length === 10 ? `+91${digits}` : `+${digits}`}`;
+}
+
+function whatsAppHref(value) {
+  const digits = phoneDigits(value);
+  return `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}`;
+}
+
 function getTripSite(trip) {
   const from =
     trip?.from ||
@@ -435,6 +488,8 @@ function Invoice() {
   const [previewOpen, setPreviewOpen] =
     useState(false);
 
+  const [pdfBusy, setPdfBusy] = useState(false);
+
   const [selectedHistoryInvoice, setSelectedHistoryInvoice] =
     useState(null);
 
@@ -475,6 +530,13 @@ function Invoice() {
 
   const [selectedTripIndexes, setSelectedTripIndexes] =
     useState([]);
+
+  const [quickBillMode, setQuickBillMode] = useState(false);
+  const [quickBillKind, setQuickBillKind] = useState("transport");
+  const [jcbWorkRows, setJcbWorkRows] = useState(() => [createJcbWorkRow()]);
+  const [jcbWorkSite, setJcbWorkSite] = useState("");
+  const [quickBillTransportRows, setQuickBillTransportRows] = useState(() => [createTransportBillRow()]);
+  const updateTransportBillRow = (id, patch) => setQuickBillTransportRows((rows) => rows.map((row) => row.id === id ? { ...row, ...patch } : row));
 
   /* =======================================================
      TRIP SEARCH / FILTER
@@ -1039,6 +1101,94 @@ function Invoice() {
       trips,
     ]);
 
+  const jcbBillRows = useMemo(() => jcbWorkRows.map((row) => {
+    const hours = Math.max(0, Number(row.hours) || 0);
+    const minutes = Math.max(0, Number(row.minutes) || 0);
+    const totalMinutes = hours * 60 + minutes;
+    const rate = Math.max(0, Number(row.rate) || 0);
+    const quantity = Number((totalMinutes / 60).toFixed(4));
+    const amount = Math.round(quantity * rate * 100) / 100;
+    return { ...row, hours, minutes, totalMinutes, quantity, rate, amount };
+  }).filter((row) => row.totalMinutes > 0 && row.rate > 0), [jcbWorkRows]);
+  const jcbTotalMinutes = jcbBillRows.reduce((sum, row) => sum + row.totalMinutes, 0);
+  const jcbTotalHours = Number((jcbTotalMinutes / 60).toFixed(2));
+  const jcbBillAmount = Math.round(jcbBillRows.reduce((sum, row) => sum + row.amount, 0) * 100) / 100;
+  const transportBillRows = quickBillTransportRows.map((row) => ({
+    ...row,
+    quantityNumber: Math.max(0, Number(row.quantity) || 0),
+    rateNumber: Math.max(0, Number(row.rate) || 0),
+    amount: Math.round(Math.max(0, Number(row.quantity) || 0) * Math.max(0, Number(row.rate) || 0) * 100) / 100,
+  }));
+  const transportQuickBillAmount = Math.round(transportBillRows.filter((row) => row.amount > 0 && row.description.trim()).reduce((sum, row) => sum + row.amount, 0) * 100) / 100;
+  const quickBillAmount = quickBillKind === "jcb-hours"
+    ? jcbBillAmount
+    : quickBillKind === "jcb-transport"
+      ? Math.round((jcbBillAmount + transportQuickBillAmount) * 100) / 100
+      : transportQuickBillAmount;
+  const jcbInvoiceRows = jcbBillRows.map((row) => ({
+    tripIndex: null,
+    tripId: null,
+    date: row.date,
+    vehicleNumber: "",
+    tractorName: "",
+    partyName,
+    tripType: "JCB Work",
+    description: "JCB working charge",
+    site: jcbWorkSite.trim(),
+    quantity: row.quantity,
+    rate: row.rate,
+    amount: row.amount,
+    jcbWork: true,
+    jcbHours: row.hours,
+    jcbMinutes: row.minutes,
+    quickBill: true,
+  }));
+  const transportInvoiceRows = transportBillRows.filter((row) => row.amount > 0 && row.description.trim()).map((row) => ({
+    tripIndex: null,
+    tripId: null,
+    date: row.date || invoiceDate,
+    vehicleNumber: !row.vehicleEnabled ? "" : row.multipleVehicles ? "Multiple tractors" : row.vehicleNumbers.trim(),
+    tractorName: "",
+    partyName,
+    tripType: row.tripType,
+    description: row.description.trim(),
+    site: row.site.trim(),
+    quantity: row.quantityNumber,
+    rate: row.rateNumber,
+    amount: row.amount,
+    quickBill: true,
+    multipleVehicles: row.vehicleEnabled && row.multipleVehicles,
+    vehicleNumbers: row.vehicleEnabled && !row.multipleVehicles && row.vehicleNumbers.trim()
+      ? [row.vehicleNumbers.trim()]
+      : [],
+  }));
+  const jcbInvoiceRowsWithSite = jcbInvoiceRows.map((row) => ({ ...row, site: jcbWorkSite.trim() }));
+  const invoiceRows = useMemo(() => quickBillMode
+    ? quickBillKind === "jcb-hours"
+      ? jcbInvoiceRowsWithSite
+      : quickBillKind === "jcb-transport"
+        ? [...jcbInvoiceRowsWithSite, ...transportInvoiceRows]
+        : transportInvoiceRows
+    : selectedTripRows.map(({ trip, index }) => {
+        const vehicle = getVehicleNumber(trip);
+        const tractor = tractorMap.get(normalizeText(vehicle));
+        return {
+          tripIndex: index,
+          tripId: trip?.id || trip?.tripId || null,
+          date: trip?.date || invoiceDate,
+          vehicleNumber: vehicle,
+          tractorName: tractor?.tractorName || tractor?.model || "",
+          partyName: trip?.partyName || partyName,
+          tripType: getTripTypeSafe(trip),
+          description: getTripDescription(trip),
+          site: getTripSite(trip),
+          quantity: getQuantity(trip),
+          rate: getRate(trip),
+          amount: getAmount(trip),
+          quickBill: false,
+      };
+      }), [quickBillMode, quickBillKind, quickBillAmount, jcbInvoiceRowsWithSite, transportInvoiceRows, invoiceDate, partyName, selectedTripRows, tractorMap]);
+
   /* =======================================================
      TRIP SELECTION
      ======================================================= */
@@ -1166,12 +1316,13 @@ function Invoice() {
      ======================================================= */
 
   const subtotal = useMemo(() => {
+    if (quickBillMode) return quickBillAmount;
     return selectedTrips.reduce(
       (sum, trip) =>
         sum + getAmount(trip),
       0
     );
-  }, [selectedTrips]);
+  }, [quickBillMode, quickBillAmount, selectedTrips]);
 
   const discountAmount =
     discountEnabled
@@ -1480,6 +1631,11 @@ function Invoice() {
     setPartySearchOpen(false);
 
     setSelectedTripIndexes([]);
+    setQuickBillMode(false);
+    setQuickBillKind("transport");
+    setJcbWorkRows([createJcbWorkRow()]);
+    setJcbWorkSite("");
+    setQuickBillTransportRows([createTransportBillRow()]);
 
     setTripSearchBy("Party");
     setTripSearchQuery("");
@@ -1529,14 +1685,45 @@ function Invoice() {
       return "Party name is required.";
     }
 
-    if (
-      selectedTrips.length ===
-      0
-    ) {
+    if (quickBillMode && quickBillKind !== "transport") {
+      if (jcbWorkRows.some((row) => (Number(row.hours) || 0) % 1 !== 0 || (Number(row.minutes) || 0) % 1 !== 0)) {
+        return "Enter whole hours and minutes for each JCB work day.";
+      }
+      if (jcbWorkRows.some((row) => (Number(row.hours) > 0 || Number(row.minutes) > 0) && !row.date)) {
+        return "Choose a date for every JCB work day with working time.";
+      }
+      if (jcbWorkRows.some((row) => Number(row.minutes) > 59)) {
+        return "Minutes must be between 0 and 59 for each JCB work day.";
+      }
+      if (jcbWorkRows.some((row) => (Number(row.hours) > 0 || Number(row.minutes) > 0) && !(Number(row.rate) > 0))) {
+        return "Enter an hourly rate for each JCB work day with working time.";
+      }
+      if (jcbBillRows.length === 0) {
+        return "Add at least one JCB work day with hours and an hourly rate.";
+      }
+    }
+
+    if (quickBillMode && quickBillKind !== "jcb-hours") {
+      const attemptedTransportRows = transportBillRows.filter((row) => row.description.trim() || row.rateNumber > 0 || row.vehicleEnabled);
+      if (attemptedTransportRows.some((row) => !row.description.trim())) {
+        return "Enter a product or description for every transport line.";
+      }
+      if (attemptedTransportRows.some((row) => !row.date)) {
+        return "Choose a trip date for every transport line.";
+      }
+      if (attemptedTransportRows.some((row) => row.amount <= 0)) {
+        return "Enter a quantity and rate greater than zero for every transport line.";
+      }
+      if (transportInvoiceRows.length === 0) {
+        return "Add at least one complete transport product or trip line.";
+      }
+    }
+
+    if (!quickBillMode && selectedTrips.length === 0) {
       return "Select at least one billable trip.";
     }
 
-    const selectedPartyNames = [
+    const selectedPartyNames = quickBillMode ? [] : [
       ...new Set(
         selectedTrips
           .map((trip) =>
@@ -1628,73 +1815,7 @@ function Invoice() {
   const buildInvoiceObject = (
     finalInvoiceNumber
   ) => {
-    const rows =
-      selectedTripRows.map(
-        ({ trip, index }) => {
-          const amount =
-            getAmount(trip);
-
-          const quantity =
-            getQuantity(trip);
-
-          const rate =
-            getRate(trip);
-
-          const vehicle =
-            getVehicleNumber(
-              trip
-            );
-
-          const tractor =
-            tractorMap.get(
-              normalizeText(
-                vehicle
-              )
-            );
-
-          return {
-            tripIndex: index,
-
-            tripId:
-              trip?.id ||
-              trip?.tripId ||
-              null,
-
-            date:
-              trip?.date ||
-              invoiceDate,
-
-            vehicleNumber:
-              vehicle,
-
-            tractorName:
-              tractor?.tractorName ||
-              tractor?.model ||
-              "",
-
-            partyName:
-              trip?.partyName ||
-              partyName,
-
-            tripType:
-              getTripTypeSafe(
-                trip
-              ),
-
-            description:
-              getTripDescription(
-                trip
-              ),
-
-            site:
-              getTripSite(trip),
-
-            quantity,
-            rate,
-            amount,
-          };
-        }
-      );
+    const rows = invoiceRows;
 
     const existingInvoice =
       editingInvoiceId
@@ -1734,6 +1855,7 @@ function Invoice() {
       subtotal,
 
       discountEnabled,
+      discountLabel: quickBillMode && quickBillKind !== "transport" ? "Deduction" : "Discount",
 
       discount:
         discountAmount,
@@ -1769,6 +1891,8 @@ function Invoice() {
 
       notes:
         notes.trim(),
+
+      invoiceType: quickBillMode ? (quickBillKind === "jcb-hours" ? "jcb-hours-bill" : quickBillKind === "jcb-transport" ? "jcb-transport-bill" : "quick-bill") : "trip-invoice",
 
       business: {
         ...business,
@@ -1858,6 +1982,52 @@ function Invoice() {
 
     const invoice = buildInvoiceObject(finalInvoiceNumber);
 
+    let updatedTrips = trips;
+    let quickBillRecordId = "";
+    if (quickBillMode) {
+      const quickBillItem = invoice.items[0];
+      const previousQuickBill = invoiceHistory.find((entry) => entry.id === editingInvoiceId)?.items?.find((item) => item.quickBill);
+      const previousRecordId = previousQuickBill?.recordId || previousQuickBill?.tripId;
+      const existingRecordIndex = previousRecordId
+        ? trips.findIndex((trip) => String(trip.id || trip.tripId || trip._id) === String(previousRecordId))
+        : -1;
+      const billRecordId = existingRecordIndex >= 0
+        ? String(trips[existingRecordIndex].id || trips[existingRecordIndex].tripId || trips[existingRecordIndex]._id)
+        : `QB-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      quickBillRecordId = billRecordId;
+      const isJcbHoursBill = quickBillKind !== "transport";
+      const isJcbTransportBill = quickBillKind === "jcb-transport";
+      const transportHasVehicle = transportInvoiceRows.some((row) => row.vehicleNumber);
+      const billRecord = {
+        id: billRecordId,
+        date: isJcbHoursBill ? (quickBillItem?.date || invoiceDate) : invoiceDate,
+        partyName: partyName.trim(),
+        vehicleNumber: isJcbHoursBill ? (isJcbTransportBill && transportHasVehicle ? (transportInvoiceRows.length === 1 ? transportInvoiceRows[0].vehicleNumber : "Multiple tractors") : "") : (transportInvoiceRows.length === 1 ? transportInvoiceRows[0].vehicleNumber : transportHasVehicle ? "Multiple tractors" : ""),
+        tripType: isJcbTransportBill ? "JCB + Transport" : isJcbHoursBill ? "JCB Work" : "Multiple trips",
+        materialName: isJcbTransportBill ? "JCB and transport work" : isJcbHoursBill ? "JCB working charge" : "Transport quick bill",
+        description: isJcbTransportBill
+          ? `JCB + Transport Bill · ${jcbBillRows.length} JCB day${jcbBillRows.length === 1 ? "" : "s"} · ${transportInvoiceRows.length} transport line${transportInvoiceRows.length === 1 ? "" : "s"}`
+          : isJcbHoursBill
+            ? `JCB Working Hours Bill · ${jcbBillRows.length} work day${jcbBillRows.length === 1 ? "" : "s"}`
+            : `${transportInvoiceRows.length} transport line${transportInvoiceRows.length === 1 ? "" : "s"}`,
+        site: isJcbHoursBill ? jcbWorkSite.trim() : transportInvoiceRows.map((row) => row.site).filter(Boolean).join(", "),
+        quantity: isJcbHoursBill ? jcbTotalHours : transportInvoiceRows.length,
+        rate: quickBillAmount > 0 ? Number((quickBillAmount / Math.max(1, invoice.items.length)).toFixed(2)) : 0,
+        amount: quickBillAmount,
+        invoiceNumber: finalInvoiceNumber,
+        invoiceId: invoice.id,
+        quickBill: true,
+        jcbWorkBill: isJcbHoursBill,
+        multipleVehicles: (isJcbTransportBill || !isJcbHoursBill) && transportHasVehicle && transportInvoiceRows.length > 1,
+        vehicleNumbers: [],
+        createdAt: existingRecordIndex >= 0 ? trips[existingRecordIndex].createdAt : new Date().toISOString(),
+      };
+      updatedTrips = existingRecordIndex >= 0
+        ? trips.map((trip, index) => index === existingRecordIndex ? { ...trip, ...billRecord } : trip)
+        : [billRecord, ...trips];
+      invoice.items = invoice.items.map((item) => ({ ...item, tripId: billRecordId, recordId: billRecordId }));
+    }
+
     let updatedHistory = [];
 
     if (editingInvoiceId) {
@@ -1889,9 +2059,16 @@ function Invoice() {
       return;
     }
 
+    if (quickBillRecordId && !writeStorage(TRIPS_KEY, updatedTrips)) {
+      writeStorage(INVOICE_HISTORY_KEY, invoiceHistory);
+      setError("Unable to add the Quick Bill to Records. The invoice was not saved; please retry.");
+      return;
+    }
+
     setInvoiceHistory(
       updatedHistory
     );
+    if (updatedTrips !== trips) setTrips(updatedTrips);
 
     setSelectedHistoryInvoice(
       invoice
@@ -1995,9 +2172,11 @@ function Invoice() {
       )
         ? invoice.items
             .map((item) =>
-              Number(
-                item.tripIndex
-              )
+              item.tripIndex === null || item.tripIndex === undefined || item.tripIndex === ""
+                ? NaN
+                : Number(
+                    item.tripIndex
+                  )
             )
             .filter(
               (index) =>
@@ -2011,6 +2190,31 @@ function Invoice() {
     setSelectedTripIndexes(
       indexes
     );
+    setQuickBillMode(["quick-bill", "jcb-hours-bill", "jcb-transport-bill"].includes(invoice.invoiceType) || invoice.items?.some((item) => item.quickBill));
+    setQuickBillKind(invoice.invoiceType === "jcb-transport-bill" ? "jcb-transport" : invoice.invoiceType === "jcb-hours-bill" || invoice.items?.some((item) => item.jcbWork) ? "jcb-hours" : "transport");
+    const savedJcbRows = (invoice.items || []).filter((item) => item.jcbWork).map((item) => ({
+      id: `jcb-${item.tripId || item.date}-${Math.random().toString(36).slice(2, 6)}`,
+      date: item.date || invoice.invoiceDate || todayISO(),
+      hours: String(item.jcbHours ?? Math.floor((Number(item.quantity) || 0))),
+      minutes: String(item.jcbMinutes ?? Math.round(((Number(item.quantity) || 0) % 1) * 60)),
+      rate: String(item.rate || "900"),
+    }));
+    setJcbWorkRows(savedJcbRows.length ? savedJcbRows : [createJcbWorkRow()]);
+    const firstJcbItem = invoice.items?.find((item) => item.jcbWork);
+    setJcbWorkSite(firstJcbItem?.site || "");
+    const savedTransportRows = (invoice.items || []).filter((item) => item.quickBill && !item.jcbWork).map((item) => ({
+      ...createTransportBillRow(),
+      date: item.date || invoice.invoiceDate || todayISO(),
+      tripType: TRIP_TYPES.includes(item.tripType) ? item.tripType : "Loading",
+      description: item.description || "",
+      site: item.site || "",
+      vehicleEnabled: Boolean(item.vehicleNumber && item.vehicleNumber !== "—"),
+      multipleVehicles: Boolean(item.multipleVehicles || item.vehicleNumber === "Multiple tractors"),
+      vehicleNumbers: item.vehicleNumber && item.vehicleNumber !== "Multiple tractors" ? item.vehicleNumber : "",
+      quantity: String(item.quantity || "1"),
+      rate: String(item.rate || ""),
+    }));
+    setQuickBillTransportRows(savedTransportRows.length ? savedTransportRows : [createTransportBillRow()]);
 
     setDiscountEnabled(
       invoice.discountEnabled !==
@@ -2226,7 +2430,48 @@ function Invoice() {
       return;
     }
 
-    window.print();
+    const previousTitle = document.title;
+    document.title = " ";
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(() => { document.title = previousTitle; }, 500);
+    }, 80);
+  };
+
+  const downloadInvoicePdf = async () => {
+    const invoiceElement = document.querySelector(".print-invoice");
+    if (!invoiceElement || pdfBusy) return;
+    setPdfBusy(true);
+    setError("");
+    try {
+      await document.fonts?.ready;
+      const canvas = await html2canvas(invoiceElement, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        windowWidth: invoiceElement.scrollWidth,
+      });
+      const imageData = canvas.toDataURL("image/jpeg", 0.96);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imageHeight = (canvas.height * pageWidth) / canvas.width;
+      const pageCount = Math.max(1, Math.ceil(imageHeight / pageHeight));
+      for (let page = 0; page < pageCount; page += 1) {
+        if (page > 0) pdf.addPage();
+        pdf.addImage(imageData, "JPEG", 0, -page * pageHeight, pageWidth, imageHeight, undefined, "FAST");
+      }
+      const safeNumber = String(currentPreviewInvoice.invoiceNumber || "invoice").replace(/[^a-z0-9_-]/gi, "-");
+      pdf.save(`SAO-AUTO-TRACTOR-${safeNumber}.pdf`);
+      setMessage("Invoice PDF downloaded.");
+    } catch (cause) {
+      console.error("Unable to generate invoice PDF:", cause);
+      setError("PDF could not be created. Try Print and choose Save as PDF.");
+    } finally {
+      setPdfBusy(false);
+    }
   };
 
   /* =======================================================
@@ -2442,6 +2687,8 @@ function Invoice() {
   const currentPreviewFinance = getInvoiceFinance(currentPreviewInvoice, payments);
   const previewPayableAmount = getInvoicePayableAmount(currentPreviewInvoice, payments);
   const previewQrUrl = buildUpiQrUrl(previewPayableAmount);
+  const isJcbInvoicePreview = currentPreviewInvoice.invoiceType === "jcb-hours-bill";
+  const isJcbTransportInvoicePreview = currentPreviewInvoice.invoiceType === "jcb-transport-bill";
 
   /* =======================================================
      RENDER
@@ -2647,11 +2894,8 @@ function Invoice() {
               </span>
             )}
 
-            {business.mobile && (
-              <span>
-                Mobile: {business.mobile}
-              </span>
-            )}
+            {business.mobile && <span>Call: {business.mobile}</span>}
+            {business.alternateMobile && <span>{isWhatsAppBusinessNumber(business.alternateMobile) ? "Call + WhatsApp" : "Call"}: {business.alternateMobile}</span>}
 
             {business.gstin && (
               <span>
@@ -2722,10 +2966,11 @@ function Invoice() {
                     )
                   }
                 />
+                <small className="invoice-field-help">Keep “Purulia, West Bengal, 723101” on the first line and the street / landmark on the next.</small>
               </div>
 
               <div className="invoice-field">
-                <label>Mobile</label>
+                <label>Phone 1 · Calls</label>
 
                 <input
                   value={
@@ -2744,7 +2989,7 @@ function Invoice() {
               </div>
 
               <div className="invoice-field">
-                <label>Alternate Mobile</label>
+                <label>Phone 2 · Calls{isWhatsAppBusinessNumber(businessDraft.alternateMobile) ? " + WhatsApp" : ""}</label>
 
                 <input
                   value={
@@ -2760,6 +3005,8 @@ function Invoice() {
                     )
                   }
                 />
+
+                <small className="invoice-field-help">Both saved numbers can receive calls. WhatsApp is available only on the number ending 3057.</small>
               </div>
 
               <div className="invoice-field">
@@ -3341,15 +3588,19 @@ function Invoice() {
               BILLABLE WORK
             </div>
 
-            <h2>Select Trip Records</h2>
+          <h2>{quickBillMode ? (quickBillKind === "jcb-hours" ? "JCB Working Hours" : quickBillKind === "jcb-transport" ? "JCB + Transport Bill" : "Quick Bill Details") : "Select Trip Records"}</h2>
 
             <p>
-              Select the transport records that should appear
-              on this invoice.
+              {quickBillMode ? (quickBillKind === "jcb-hours" ? "Add work dates and machine hours; the bill will be saved in invoice history and All Records." : quickBillKind === "jcb-transport" ? "Combine date-wise JCB hours and multiple transport lines in one bill." : "Create one or more transport bill lines without trip records; they will also be saved to All Records.") : "Select the transport records that should appear on this invoice."}
             </p>
           </div>
 
           <div className="invoice-card-actions">
+            <button type="button" className={`invoice-btn ${quickBillMode ? "invoice-btn-primary" : "invoice-btn-secondary"}`} onClick={() => { setQuickBillMode((value) => !value); setError(""); }}>
+              <ReceiptText size={14} />
+              {quickBillMode ? "Quick Bill On" : "Quick Bill"}
+            </button>
+            {!quickBillMode && <>
             <button
               type="button"
               className="invoice-btn invoice-btn-secondary"
@@ -3371,12 +3622,65 @@ function Invoice() {
               <X size={14} />
               Clear
             </button>
+
+            </>}
           </div>
         </div>
 
+        {quickBillMode && <div className="invoice-quick-bill-fields">
+          <div className="quick-bill-kind-picker" role="group" aria-label="Quick bill type">
+            <button type="button" aria-pressed={quickBillKind === "transport"} className={quickBillKind === "transport" ? "is-selected" : ""} onClick={() => setQuickBillKind("transport")}><ReceiptText size={15} /> Transport Quick Bill</button>
+            <button type="button" aria-pressed={quickBillKind === "jcb-hours"} className={quickBillKind === "jcb-hours" ? "is-selected" : ""} onClick={() => setQuickBillKind("jcb-hours")}><Building2 size={15} /> JCB Working Hours</button>
+            <button type="button" aria-pressed={quickBillKind === "jcb-transport"} className={quickBillKind === "jcb-transport" ? "is-selected" : ""} onClick={() => setQuickBillKind("jcb-transport")}><Building2 size={15} /><span>JCB + Transport</span></button>
+          </div>
+          {quickBillKind !== "transport" && <>
+            <div className="invoice-field quick-bill-site-field"><label>JCB Work / Site Location</label><input value={jcbWorkSite} onChange={(event) => setJcbWorkSite(event.target.value)} placeholder="e.g. Amdhia, Purulia" /></div>
+            <div className="jcb-work-rows">
+              <div className="jcb-work-rows-heading"><div><strong>Daily working hours</strong><span>Enter each work date, time and hourly rate.</span></div><button type="button" className="invoice-btn invoice-btn-secondary" onClick={() => setJcbWorkRows((rows) => [...rows, createJcbWorkRow(rows.at(-1)?.rate)])}><Plus size={14} /> Add work day</button></div>
+              {jcbWorkRows.map((row) => {
+                const rowMinutes = Math.max(0, Number(row.hours) || 0) * 60 + Math.max(0, Number(row.minutes) || 0);
+                const rowAmount = Math.round((rowMinutes / 60) * (Number(row.rate) || 0) * 100) / 100;
+                return <div className="jcb-work-row" key={row.id}>
+                  <div className="invoice-field"><label>Work date *</label><input type="date" value={row.date} onChange={(event) => setJcbWorkRows((rows) => rows.map((item) => item.id === row.id ? { ...item, date: event.target.value } : item))} /></div>
+                  <div className="invoice-field"><label>Hours *</label><input type="number" min="0" step="1" value={row.hours} onChange={(event) => setJcbWorkRows((rows) => rows.map((item) => item.id === row.id ? { ...item, hours: event.target.value } : item))} placeholder="0" /></div>
+                  <div className="invoice-field"><label>Minutes</label><input type="number" min="0" max="59" step="1" value={row.minutes} onChange={(event) => setJcbWorkRows((rows) => rows.map((item) => item.id === row.id ? { ...item, minutes: event.target.value } : item))} placeholder="0" /></div>
+                  <div className="invoice-field"><label>Rate / hour (₹) *</label><input type="number" min="0.01" step="0.01" value={row.rate} onChange={(event) => setJcbWorkRows((rows) => rows.map((item) => item.id === row.id ? { ...item, rate: event.target.value } : item))} /></div>
+                  <div className="jcb-work-line-total"><span>Line amount</span><strong>{currency(rowAmount)}</strong><button type="button" className="jcb-remove-row" aria-label="Remove work day" disabled={jcbWorkRows.length <= 1} onClick={() => setJcbWorkRows((rows) => rows.filter((item) => item.id !== row.id))}><Trash2 size={14} /></button></div>
+                </div>;
+              })}
+              <div className="jcb-work-summary"><span>Total time <strong>{Math.floor(jcbTotalMinutes / 60)} hr {jcbTotalMinutes % 60} min</strong></span><span>JCB work amount <strong>{currency(jcbBillAmount)}</strong></span></div>
+            </div>
+          </>}
+          {quickBillKind !== "jcb-hours" && <div className="transport-bill-rows">
+            <div className="transport-bill-heading"><div><strong>{quickBillKind === "jcb-transport" ? "Transport trips / products" : "Transport products / trips"}</strong><span>Add each product or trip as a separate invoice line.</span></div><button type="button" className="invoice-btn invoice-btn-secondary" onClick={() => setQuickBillTransportRows((rows) => [...rows, createTransportBillRow(rows.at(-1) ? { tripType: rows.at(-1).tripType } : {})])}><Plus size={14} /> Add another trip</button></div>
+            {quickBillTransportRows.map((row, index) => {
+              const amount = Math.round((Number(row.quantity) || 0) * (Number(row.rate) || 0) * 100) / 100;
+              const vehicleListId = `quick-bill-tractor-options-${row.id}`;
+              return <div className="transport-bill-row" key={row.id}>
+                <div className="transport-bill-row-heading"><strong>Transport line {index + 1}</strong><button type="button" className="jcb-remove-row" aria-label={`Remove transport line ${index + 1}`} disabled={quickBillTransportRows.length <= 1} onClick={() => setQuickBillTransportRows((rows) => rows.filter((item) => item.id !== row.id))}><Trash2 size={14} /></button></div>
+                <div className="transport-bill-inputs">
+                  <div className="invoice-field"><label>Trip date *</label><input type="date" value={row.date} onChange={(event) => updateTransportBillRow(row.id, { date: event.target.value })} /></div>
+                  <div className="invoice-field"><label>Trip type *</label><select value={row.tripType} onChange={(event) => updateTransportBillRow(row.id, { tripType: event.target.value })}>{TRIP_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}</select></div>
+                  <div className="invoice-field"><label>Product / Description *</label><input value={row.description} onChange={(event) => updateTransportBillRow(row.id, { description: event.target.value })} placeholder="e.g. Rubbish, stone" /></div>
+                  <div className="invoice-field"><label>Site / Work Location</label><input value={row.site} onChange={(event) => updateTransportBillRow(row.id, { site: event.target.value })} placeholder="Enter site address" /></div>
+                  <div className="invoice-field"><label>Quantity *</label><input type="number" min="0.01" step="0.01" value={row.quantity} onChange={(event) => updateTransportBillRow(row.id, { quantity: event.target.value })} /></div>
+                  <div className="invoice-field"><label>Rate (₹) *</label><input type="number" min="0.01" step="0.01" value={row.rate} onChange={(event) => updateTransportBillRow(row.id, { rate: event.target.value })} placeholder="Enter rate" /></div>
+                  <div className="invoice-field transport-vehicle-options"><label className="quick-bill-toggle-label"><input type="checkbox" checked={row.vehicleEnabled} onChange={(event) => updateTransportBillRow(row.id, { vehicleEnabled: event.target.checked })} /> Add vehicle details (optional)</label>
+                    {row.vehicleEnabled && <><label className="quick-bill-toggle-label"><input type="checkbox" checked={row.multipleVehicles} onChange={(event) => updateTransportBillRow(row.id, { multipleVehicles: event.target.checked, vehicleNumbers: event.target.checked ? "" : row.vehicleNumbers })} /> Multiple tractors</label>
+                      {row.multipleVehicles ? <div className="quick-bill-multiple-label">Invoice will show <strong>Multiple tractors</strong>.</div> : <><label>Vehicle number</label><input list={vehicleListId} value={row.vehicleNumbers} onChange={(event) => updateTransportBillRow(row.id, { vehicleNumbers: event.target.value })} placeholder="Enter or choose a vehicle" /><datalist id={vehicleListId}>{tractors.map((tractor, tractorIndex) => { const number = tractor?.vehicleNumber || tractor?.tractorNumber || tractor?.vehicleNo || ""; return number ? <option key={`${number}-${tractorIndex}`} value={number} /> : null; })}</datalist></>}
+                    </>}
+                  </div>
+                  <div className="transport-bill-line-total"><span>Line amount</span><strong>{currency(amount)}</strong></div>
+                </div>
+              </div>;
+            })}
+            <div className="transport-bill-total"><span>Transport subtotal <strong>{currency(transportQuickBillAmount)}</strong></span>{quickBillKind === "jcb-transport" && <span>Combined bill total <strong>{currency(quickBillAmount)}</strong></span>}</div>
+          </div>}
+        </div>}
+
         {/* SEARCH PANEL */}
 
-        <div className="invoice-trip-search-panel">
+        {!quickBillMode && <div className="invoice-trip-search-panel">
 
           <div className="invoice-trip-search-head">
             <div>
@@ -3601,11 +3905,11 @@ function Invoice() {
               Select Matching Trips
             </button>
           </div>
-        </div>
+        </div>}
 
         {/* TRIP STATS */}
 
-        <div className="invoice-filter-box">
+        {!quickBillMode && <div className="invoice-filter-box">
 
           <div className="invoice-stat">
             <span>Billable Records</span>
@@ -3642,11 +3946,11 @@ function Invoice() {
             </strong>
           </div>
 
-        </div>
+        </div>}
 
         {/* TRIP TABLE */}
 
-        {filteredTripRecords.length ===
+        {quickBillMode ? <div className="invoice-empty quick-bill-summary"><ReceiptText size={22} /><strong>{partyName || "Party not selected"}</strong><span>{quickBillKind === "jcb-hours" ? `${jcbBillRows.length} work day${jcbBillRows.length === 1 ? "" : "s"} · ${Math.floor(jcbTotalMinutes / 60)} hr ${jcbTotalMinutes % 60} min${jcbWorkSite ? ` · ${jcbWorkSite}` : ""} · ${currency(jcbBillAmount)}` : quickBillKind === "jcb-transport" ? `${jcbBillRows.length} JCB day${jcbBillRows.length === 1 ? "" : "s"} + ${transportInvoiceRows.length} transport line${transportInvoiceRows.length === 1 ? "" : "s"} · ${currency(quickBillAmount)}` : `${transportInvoiceRows.length} transport line${transportInvoiceRows.length === 1 ? "" : "s"} · ${transportInvoiceRows.map((row) => row.description).filter(Boolean).join(", ") || "Add a product or trip"} · ${currency(transportQuickBillAmount)}`}</span></div> : filteredTripRecords.length ===
         0 ? (
           <div className="invoice-empty">
             <ClipboardList size={22} />
@@ -3672,6 +3976,7 @@ function Invoice() {
                   <th>Vehicle</th>
                   <th>Party</th>
                   <th>Type</th>
+                  <th>Product / Description</th>
                   <th>Work / Site</th>
                   <th>Qty</th>
                   <th>Rate</th>
@@ -3756,25 +4061,9 @@ function Invoice() {
                           </span>
                         </td>
 
-                        <td>
-                          <div>
-                            <strong>
-                              {getTripDescription(
-                                trip
-                              )}
-                            </strong>
+                        <td>{getTripDescription(trip) || "—"}</td>
 
-                            {getTripSite(
-                              trip
-                            ) && (
-                              <small className="trip-site">
-                                {getTripSite(
-                                  trip
-                                )}
-                              </small>
-                            )}
-                          </div>
-                        </td>
+                        <td>{getTripSite(trip) || "—"}</td>
 
                         <td>
                           {getQuantity(
@@ -3844,9 +4133,9 @@ function Invoice() {
 
               <div className="invoice-option-main">
                 <div>
-                  <strong>Discount</strong>
+                  <strong>{quickBillMode && quickBillKind === "jcb-hours" ? "Deduction" : "Discount"}</strong>
                   <span>
-                    Reduce the invoice subtotal
+                    {quickBillMode && quickBillKind === "jcb-hours" ? "Subtract an adjustment from JCB work charges" : "Reduce the invoice subtotal"}
                   </span>
                 </div>
 
@@ -4035,7 +4324,7 @@ function Invoice() {
             </div>
 
             <div className="invoice-summary-row">
-              <span>Discount</span>
+              <span>{quickBillMode && quickBillKind === "jcb-hours" ? "Deduction" : "Discount"}</span>
 
               <strong className="negative-value">
                 {discountAmount > 0
@@ -4170,7 +4459,7 @@ function Invoice() {
             </div>
 
             <div className="total-panel-row">
-              <span>Discount</span>
+              <span>{currentPreviewInvoice.discountLabel || "Discount"}</span>
               <strong>
                 {discountAmount > 0
                   ? `- ${currency(
@@ -4519,6 +4808,8 @@ function Invoice() {
                                 invoice.invoiceNumber
                               }
                             </strong>
+                            {invoice.invoiceType === "jcb-hours-bill" && <small className="history-invoice-type">JCB Hours</small>}
+                            {invoice.invoiceType === "jcb-transport-bill" && <small className="history-invoice-type">JCB + Transport</small>}
                           </td>
 
                           <td>
@@ -4695,6 +4986,16 @@ function Invoice() {
 
                 <button
                   type="button"
+                  className="invoice-btn invoice-btn-secondary"
+                  onClick={downloadInvoicePdf}
+                  disabled={pdfBusy}
+                >
+                  <Download size={14} />
+                  {pdfBusy ? "Creating PDF…" : "Download PDF"}
+                </button>
+
+                <button
+                  type="button"
                   className="invoice-btn invoice-btn-primary"
                   onClick={
                     printInvoice
@@ -4739,18 +5040,19 @@ function Invoice() {
                       />
                     )}
 
-                    <div>
+                    <div className="print-business-identity">
                       <h1>
                         {currentPreviewInvoice
                           .business
                           ?.businessName ||
                           "SAO AUTO TRACTOR"}
                       </h1>
-
+                      {getBusinessAddressLines(currentPreviewInvoice.business?.address).map((line, index) => <p key={`business-address-${index}`}>{line}</p>)}
                       {currentPreviewInvoice
                         .business
                         ?.ownerName && (
-                        <p>
+                        <p className="print-business-owner">
+                          <span>Owner:</span>{" "}
                           {
                             currentPreviewInvoice
                               .business
@@ -4759,23 +5061,13 @@ function Invoice() {
                         </p>
                       )}
 
-                      {currentPreviewInvoice
-                        .business
-                        ?.address && (
-                        <p>
-                          {
-                            currentPreviewInvoice
-                              .business
-                              .address
-                          }
-                        </p>
-                      )}
-
                       {(currentPreviewInvoice.business?.mobile || currentPreviewInvoice.business?.alternateMobile) && (
-                        <p>
-                          {currentPreviewInvoice.business?.mobile && `Mob: ${currentPreviewInvoice.business.mobile}`}
-                          {currentPreviewInvoice.business?.mobile && currentPreviewInvoice.business?.alternateMobile && " | "}
-                          {currentPreviewInvoice.business?.alternateMobile && `Alt: ${currentPreviewInvoice.business.alternateMobile}`}
+                        <p className="print-business-phone-line">
+                          <Phone className="print-business-phone-icon" size={12} strokeWidth={2.2} aria-hidden="true" />
+                          {currentPreviewInvoice.business?.mobile && <a href={phoneHref(currentPreviewInvoice.business.mobile)}>{currentPreviewInvoice.business.mobile}</a>}
+                          {currentPreviewInvoice.business?.mobile && currentPreviewInvoice.business?.alternateMobile && " / "}
+                          {currentPreviewInvoice.business?.alternateMobile && <a href={phoneHref(currentPreviewInvoice.business.alternateMobile)}>{currentPreviewInvoice.business.alternateMobile}</a>}
+                          {currentPreviewInvoice.business?.alternateMobile && isWhatsAppBusinessNumber(currentPreviewInvoice.business.alternateMobile) && <> <span className="print-whatsapp-label">WhatsApp</span></>}
                         </p>
                       )}
 
@@ -4809,7 +5101,7 @@ function Invoice() {
                   <div className="print-invoice-heading">
 
                     <span>
-                      TAX / TRANSPORT INVOICE
+                      {isJcbTransportInvoicePreview ? "JCB + TRANSPORT BILL" : isJcbInvoicePreview ? "JCB WORKING HOURS BILL" : "TRANSPORT INVOICE"}
                     </span>
 
                     <strong>
@@ -4837,6 +5129,11 @@ function Invoice() {
                         currentPreviewFinance.status
                       }
                     </em>
+                    {currentPreviewFinance.status === "Partially Paid" && (
+                      <small className="print-payment-status-summary">
+                        {currency(currentPreviewFinance.received)} received · {currency(currentPreviewFinance.due)} due
+                      </small>
+                    )}
 
                   </div>
                 </div>
@@ -4938,12 +5235,11 @@ function Invoice() {
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>Date</th>
-                      <th>Vehicle</th>
-                      <th>Type</th>
-                      <th>Work / Site</th>
-                      <th>Qty</th>
-                      <th>Rate</th>
+                      {isJcbInvoicePreview ? <>
+                        <th>Work Date</th><th>Working Time</th><th>Hours</th><th>Rate / Hour</th>
+                      </> : <>
+                        <th>Date</th><th>Vehicle</th><th>Type</th><th>Product / Description</th><th>Qty</th><th>Rate</th>
+                      </>}
                       <th>Amount</th>
                     </tr>
                   </thead>
@@ -4951,12 +5247,16 @@ function Invoice() {
                   <tbody>
                     {(currentPreviewInvoice.items || []).map(
                       (item, index) => (
-                        <tr
-                          key={
-                            item.tripId ||
-                            `${item.tripIndex}-${index}`
-                          }
-                        >
+                        <Fragment key={`${item.tripId || item.tripIndex || "invoice"}-${index}`}>
+                        {isJcbInvoicePreview ? <tr className="print-item-main-row jcb-print-row">
+                          <td>{index + 1}</td>
+                          <td>{formatDate(item.date)}</td>
+                          <td>{`${item.jcbHours || 0} hr ${item.jcbMinutes || 0} min`}</td>
+                          <td>{Number(item.quantity || 0).toFixed(2)}</td>
+                          <td>{currency(item.rate)}</td>
+                          <td>{currency(item.amount)}</td>
+                        </tr> : <>
+                        <tr className="print-item-main-row">
                           <td>
                             {index + 1}
                           </td>
@@ -4973,32 +5273,12 @@ function Invoice() {
                             }
                           </td>
 
-                          <td>
-                            {
-                              item.tripType
-                            }
-                          </td>
+                          <td>{item.tripType || "—"}</td>
+
+                          <td>{item.description || "—"}</td>
 
                           <td>
-                            <strong>
-                              {
-                                item.description
-                              }
-                            </strong>
-
-                            {item.site && (
-                              <small>
-                                {
-                                  item.site
-                                }
-                              </small>
-                            )}
-                          </td>
-
-                          <td>
-                            {
-                              item.quantity
-                            }
+                            {item.jcbWork ? <><strong>{Number(item.quantity || 0).toFixed(2)} hr</strong><small>{item.jcbHours || 0} hr {item.jcbMinutes || 0} min</small></> : item.quantity}
                           </td>
 
                           <td>
@@ -5013,6 +5293,12 @@ function Invoice() {
                             )}
                           </td>
                         </tr>
+                        <tr className="print-item-site-row">
+                          <td colSpan={2}><span>WORK / SITE</span></td>
+                          <td colSpan={6}>{item.site || "—"}</td>
+                        </tr>
+                        </>}
+                        </Fragment>
                       )
                     )}
                   </tbody>
@@ -5060,7 +5346,7 @@ function Invoice() {
                                 loading="eager"
                                 referrerPolicy="no-referrer"
                               />
-                              <strong>Scan to pay {currency(previewPayableAmount)}</strong>
+                              <strong>Scan to pay balance {currency(previewPayableAmount)}</strong>
                             </>
                           ) : (
                             <p className="print-payment-settled">No balance due.</p>
@@ -5098,7 +5384,7 @@ function Invoice() {
                     {currentPreviewInvoice.discountEnabled && currentPreviewInvoice.discount > 0 && (
                       <div>
                         <span>
-                          Discount
+                          {currentPreviewInvoice.discountLabel || "Discount"}
                         </span>
 
                         <strong>
@@ -5251,8 +5537,8 @@ function Invoice() {
                 <footer>
                   <p>Thank you for your business.</p>
                   <p>
-                    If you have any questions or notice an error on this invoice, please contact {currentPreviewInvoice.business?.ownerName || currentPreviewInvoice.business?.businessName || "SAO AUTO TRACTOR"}
-                    {(currentPreviewInvoice.business?.mobile || currentPreviewInvoice.business?.alternateMobile) && ` at ${[currentPreviewInvoice.business.mobile, currentPreviewInvoice.business.alternateMobile].filter(Boolean).join(" / ")}`}.
+                    If you have any questions or notice an error on this invoice, please contact {currentPreviewInvoice.business?.ownerName || currentPreviewInvoice.business?.businessName || "SAO AUTO TRACTOR"}.
+                    {(currentPreviewInvoice.business?.mobile || currentPreviewInvoice.business?.alternateMobile) && <> Call: {currentPreviewInvoice.business?.mobile && <a href={phoneHref(currentPreviewInvoice.business.mobile)}>{currentPreviewInvoice.business.mobile}</a>}{currentPreviewInvoice.business?.mobile && currentPreviewInvoice.business?.alternateMobile && " / "}{currentPreviewInvoice.business?.alternateMobile && <a href={phoneHref(currentPreviewInvoice.business.alternateMobile)}>{currentPreviewInvoice.business.alternateMobile}</a>}{currentPreviewInvoice.business?.alternateMobile && isWhatsAppBusinessNumber(currentPreviewInvoice.business.alternateMobile) && <> (WhatsApp)</>}.</>}
                   </p>
                 </footer>
 

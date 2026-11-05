@@ -87,6 +87,7 @@ function getPartyName(trip) {
 }
 
 function getMaterialName(trip) {
+  if (trip?.quickBill) return trip?.description || "Manual invoice";
   return (
     trip?.materialName ||
     trip?.material ||
@@ -114,6 +115,8 @@ function getTripType(trip) {
   if (value.includes("site")) return "Site to Site";
   if (value.includes("load")) return "Loading";
 
+  if (trip?.jcbWorkBill) return trip?.tripType === "JCB + Transport" ? "JCB + Transport Bill" : "JCB Work · JCB Hours Bill";
+  if (trip?.quickBill) return type ? `${type} · Quick Bill` : "Quick Bill";
   return type || "—";
 }
 
@@ -263,8 +266,8 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
             </div>
 
             <div>
-              <span className="all-records-eyebrow">TRIP DETAILS</span>
-              <h2 id="all-records-detail-title">Transport Record</h2>
+              <span className="all-records-eyebrow">{trip.jcbWorkBill ? (trip.tripType === "JCB + Transport" ? "JCB + TRANSPORT BILL" : "JCB HOURS BILL") : trip.quickBill ? "QUICK BILL" : "TRIP DETAILS"}</span>
+              <h2 id="all-records-detail-title">{trip.jcbWorkBill ? (trip.tripType === "JCB + Transport" ? "JCB + Transport Bill Record" : "JCB Work Bill Record") : trip.quickBill ? "Quick Bill Record" : "Transport Record"}</h2>
             </div>
           </div>
 

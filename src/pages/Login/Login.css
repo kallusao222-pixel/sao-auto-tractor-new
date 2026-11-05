@@ -494,6 +494,94 @@
   gap: var(--space-4);
 }
 
+.login-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 var(--space-4);
+  padding: 4px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.login-method {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.login-method:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.login-method.is-active {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.login-method:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.login-method:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: var(--font-weight-medium);
+}
+
+.account-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.account-field input:focus-visible {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-primary-soft);
+}
+
+.account-field input:disabled {
+  opacity: 0.65;
+}
+
+.account-login-error {
+  margin: -8px 0 0;
+  color: var(--color-danger);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.account-login-help {
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
 .field {
   display: flex;
   flex-direction: column;

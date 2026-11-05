@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "./theme";
+import { supabase } from "./lib/supabaseClient";
 
 import CommandPalette from "./components/ui/CommandPalette";
 
@@ -1565,9 +1566,35 @@ function AppLayout({ onLogout }) {
 
 function App() {
   const [isStartupLoading, setIsStartupLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(
+  const [isDeviceUnlocked, setIsDeviceUnlocked] = useState(
     () => localStorage.getItem(LOGIN_KEY) === "true",
   );
+  const [cloudUser, setCloudUser] = useState(null);
+  const [authReady, setAuthReady] = useState(!supabase);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let mounted = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setCloudUser(session?.user ?? null);
+      setAuthReady(true);
+    });
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) console.error("Could not restore the Supabase session.", error);
+      setCloudUser(data.session?.user ?? null);
+      setAuthReady(true);
+    }).catch((error) => {
+      if (!mounted) return;
+      console.error("Could not restore the Supabase session.", error);
+      setAuthReady(true);
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const startupTimer = window.setTimeout(() => {
@@ -1577,18 +1604,28 @@ function App() {
     return () => window.clearTimeout(startupTimer);
   }, []);
 
-  const handleLogin = useCallback(() => setIsLoggedIn(true), []);
-
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem(LOGIN_KEY);
-    setIsLoggedIn(false);
+  const handleLogin = useCallback(({ method = "device" } = {}) => {
+    if (method !== "device") return;
+    localStorage.setItem(LOGIN_KEY, "true");
+    setIsDeviceUnlocked(true);
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    localStorage.removeItem(LOGIN_KEY);
+    setIsDeviceUnlocked(false);
+    if (cloudUser && supabase) {
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) console.error("Could not end the Supabase session.", error);
+    }
+  }, [cloudUser]);
+
+  const isLoggedIn = isDeviceUnlocked || Boolean(cloudUser);
 
   return (
     <ErrorBoundary>
       <AppDataProvider>
         <ToastProvider>
-          {isStartupLoading ? (
+          {isStartupLoading || !authReady ? (
             <PageLoader
               fullScreen
               title="Your transport workspace is getting ready"

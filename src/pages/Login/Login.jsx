@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import "./Login.css";
+import { supabase } from "../../lib/supabaseClient";
 
 /* =========================================================
    Config
@@ -228,6 +229,9 @@ function PasswordField({
    ========================================================= */
 export default function Login({ onLogin }) {
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [loginMode, setLoginMode] = useState("device");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -259,6 +263,25 @@ export default function Login({ onLogin }) {
     }, 250);
   }, [isSubmitting, onLogin, password]);
 
+  const handleAccountSubmit = useCallback(async (event) => {
+    event.preventDefault();
+    if (!supabase || isSubmitting) return;
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: accountPassword,
+      });
+      if (authError) throw authError;
+      setAccountPassword("");
+      onLogin?.({ method: "cloud" });
+    } catch (cause) {
+      setError(cause.message || "Could not sign in. Check your email and password.");
+      setIsSubmitting(false);
+    }
+  }, [accountPassword, email, isSubmitting, onLogin]);
+
   const submitDisabled = useMemo(
     () => !password || isSubmitting,
     [password, isSubmitting],
@@ -284,37 +307,111 @@ export default function Login({ onLogin }) {
                 Welcome <em>back</em>
               </h2>
               <p className="panel__lede">
-                Enter your 4-digit passcode to continue to your workspace.
+                {loginMode === "device"
+                  ? "Enter the passcode saved on this device to open your workspace."
+                  : "Sign in with the Supabase account used for SAO Auto Tractor cloud backup."}
               </p>
             </header>
 
-            <form className="form" onSubmit={handleSubmit} noValidate>
-              <PasswordField
-                value={password}
-                onChange={handlePasswordChange}
-                showPassword={showPassword}
-                onToggleShow={handleToggleShow}
-                error={error}
-                disabled={isSubmitting}
-              />
+            {supabase && (
+              <div className="login-methods" role="group" aria-label="Sign-in method">
+                <button
+                  type="button"
+                  className={loginMode === "device" ? "login-method is-active" : "login-method"}
+                  onClick={() => { setLoginMode("device"); setError(""); }}
+                  aria-pressed={loginMode === "device"}
+                  disabled={isSubmitting}
+                >
+                  This device
+                </button>
+                <button
+                  type="button"
+                  className={loginMode === "account" ? "login-method is-active" : "login-method"}
+                  onClick={() => { setLoginMode("account"); setError(""); }}
+                  aria-pressed={loginMode === "account"}
+                  disabled={isSubmitting}
+                >
+                  Supabase account
+                </button>
+              </div>
+            )}
 
-              <button
-                type="submit"
-                className="submit"
-                disabled={submitDisabled}
-              >
-                <span className="submit__label">
-                  {isSubmitting ? "Signing in" : "Sign in to dashboard"}
-                </span>
-                <span className="submit__icon" aria-hidden="true">
-                  {isSubmitting ? (
-                    <Loader2 size={16} strokeWidth={2.2} className="submit__spin" />
-                  ) : (
-                    <ArrowRight size={16} strokeWidth={2.2} />
-                  )}
-                </span>
-              </button>
-            </form>
+            {loginMode === "device" ? (
+              <form className="form" onSubmit={handleSubmit} noValidate>
+                <PasswordField
+                  value={password}
+                  onChange={handlePasswordChange}
+                  showPassword={showPassword}
+                  onToggleShow={handleToggleShow}
+                  error={error}
+                  disabled={isSubmitting}
+                />
+
+                <button
+                  type="submit"
+                  className="submit"
+                  disabled={submitDisabled}
+                >
+                  <span className="submit__label">
+                    {isSubmitting ? "Signing in" : "Open this device workspace"}
+                  </span>
+                  <span className="submit__icon" aria-hidden="true">
+                    {isSubmitting ? (
+                      <Loader2 size={16} strokeWidth={2.2} className="submit__spin" />
+                    ) : (
+                      <ArrowRight size={16} strokeWidth={2.2} />
+                    )}
+                  </span>
+                </button>
+              </form>
+            ) : (
+              <form className="form" onSubmit={handleAccountSubmit}>
+                <label className="account-field">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    autoComplete="username"
+                    value={email}
+                    onChange={(event) => { setEmail(event.target.value); setError(""); }}
+                    placeholder="you@example.com"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </label>
+                <label className="account-field">
+                  <span>Password</span>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={accountPassword}
+                    onChange={(event) => { setAccountPassword(event.target.value); setError(""); }}
+                    placeholder="Your cloud account password"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </label>
+                {error && <p className="account-login-error" role="alert">{error}</p>}
+                <button
+                  type="submit"
+                  className="submit"
+                  disabled={!email.trim() || !accountPassword || isSubmitting}
+                >
+                  <span className="submit__label">
+                    {isSubmitting ? "Signing in" : "Sign in to SAO Auto Tractor"}
+                  </span>
+                  <span className="submit__icon" aria-hidden="true">
+                    {isSubmitting ? (
+                      <Loader2 size={16} strokeWidth={2.2} className="submit__spin" />
+                    ) : (
+                      <ArrowRight size={16} strokeWidth={2.2} />
+                    )}
+                  </span>
+                </button>
+                <small className="account-login-help">
+                  Use the same account as Cloud Backup in Settings. The device passcode remains available if you need local access.
+                </small>
+              </form>
+            )}
 
             <div className="secure-note">
               <span className="secure-note__icon" aria-hidden="true">

@@ -1,5 +1,5 @@
 export const SAO_UPI_VPA = "kallusao218@okaxis";
-export const SAO_UPI_PAYEE = "SAO AUTO TRACTOR";
+export const SAO_UPI_PAYEE = "Kallu Sao";
 
 export function buildUpiQrUrl(amount) {
   const value = Number(amount);

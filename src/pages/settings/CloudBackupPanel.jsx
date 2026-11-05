@@ -165,7 +165,7 @@ export default function CloudBackupPanel() {
     setBusy(true);
     setError("");
     try {
-      const { error: signOutError } = await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
       if (signOutError) throw signOutError;
       setUser(null);
       setCloudBackup(null);
