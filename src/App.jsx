@@ -35,6 +35,7 @@ import {
   Moon,
   Package,
   Plus,
+  QrCode,
   ReceiptText,
   RefreshCw,
   Search,
@@ -71,6 +72,7 @@ import Outstanding from "./pages/outstanding/Outstanding";
 import Expenses from "./pages/expenses/Expenses";
 import Invoice from "./pages/invoice/Invoice";
 import Payments from "./pages/payments/Payments";
+import UpiQrGenerator from "./pages/upiQr/UpiQrGenerator";
 import StaffManagement from "./pages/StaffManagement/StaffManagement";
 import Settings from "./pages/settings/Settings";
 import DailyReport from "./pages/records/DailyReport/DailyReport";
@@ -151,6 +153,7 @@ const NAVIGATION = [
       { id: "party-ledger", label: "Party Ledger", icon: Users },
       { id: "invoice", label: "Invoice", icon: FileBarChart },
       { id: "payments", label: "Payments", icon: CreditCard },
+      { id: "upi-qr", label: "UPI QR Generator", icon: QrCode },
       { id: "outstanding", label: "Outstanding", icon: AlertCircle },
       { id: "expenses", label: "Expenses", icon: ReceiptText },
     ],
@@ -1060,6 +1063,7 @@ function AppLayout({ onLogout }) {
       case "party-ledger": return <PartyLedger />;
       case "invoice": return <Invoice />;
       case "payments": return <Payments />;
+      case "upi-qr": return <UpiQrGenerator />;
       case "outstanding": return <Outstanding />;
       case "expenses": return <Expenses />;
       case "staff": return <StaffManagement />;

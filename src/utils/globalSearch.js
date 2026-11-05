@@ -111,6 +111,7 @@ const NAV_COMMANDS = [
   { id: "nav-tractors", page: "tractors", label: "Tractors", hint: "Fleet management" },
   { id: "nav-parties", page: "parties", label: "Parties", hint: "Customer management" },
   { id: "nav-payments", page: "payments", label: "Payments", hint: "Collection records" },
+  { id: "nav-upi-qr", page: "upi-qr", label: "UPI QR Generator", hint: "Create an amount-specific payment QR" },
   { id: "nav-outstanding", page: "outstanding", label: "Outstanding", hint: "Pending dues" },
   { id: "nav-reports", page: "reports", label: "Reports", hint: "Business analytics" },
   { id: "nav-expenses", page: "expenses", label: "Expenses", hint: "Expense tracking" },
