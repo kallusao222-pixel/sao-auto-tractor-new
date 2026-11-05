@@ -1049,6 +1049,7 @@ function AppLayout({ onLogout }) {
             initialTractor={tripTractor}
             initialMaterial={tripMaterial}
             onEditComplete={handleEditComplete}
+            onNavigate={changePage}
           />
         );
       case "records": return <AllRecords onEditRecord={handleEditRecord} />;

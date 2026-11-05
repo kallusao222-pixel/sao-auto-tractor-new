@@ -50,6 +50,7 @@ Track each workflow improvement in order. Mark an item complete only after its i
 - [x] **36. UPI payee name.** Use “Kallu Sao” as the printed Payee and QR display name so the invoice matches the name shown by the receiving UPI account.
 - [x] **37. Multiple Quick Bill lines.** Transport Quick Bill now supports multiple dated trip/product lines with individual type, description, site, optional vehicle, quantity and rate; totals flow into one invoice and linked All Records summary.
 - [x] **38. JCB working-hour bills.** Quick Bill now supports date-wise JCB hours/minutes, hourly rates, deductions, advance and due; includes a separate JCB + Transport mode with multiple transport lines. Saves to invoice history and All Records with matching PDF layout.
+- [x] **39. JCB work in Add Trip.** Add Trip now offers separate Transport and JCB Work modes. JCB type can stay blank/general; party, material/description, machine number, operator and site are optional, while valid working hours and an hourly rate calculate the amount. Saved records stay independent of the sticky tractor selection, can be edited in All Records and Date Wise, flow into the invoice from a one-click handoff, appear in JCB work reports and billing, and remain excluded from tractor-trip/fleet counts. Print/PDF labels switch to JCB work. Verified with the production build; browser interaction with live business data was not performed.
 
 ## Phase 6 — Fleet operations upgrades
 
@@ -61,7 +62,7 @@ Track each workflow improvement in order. Mark an item complete only after its i
 
 ## Progress log
 
-- **Completed:** 1–19, 24, 26, 28–31, 33–38.
+- **Completed:** 1–19, 24, 26, 28–31, 33–39.
 - **In progress:** #20 authentication/access (optional Supabase sign-in is added; roles and account-owned data access remain). Remaining: #21/#32 automatic cloud sync (manual cloud backup remains opt-in), #22 true account identity, #23 actual mobile-device review, #25 app-wide shared form/table pass, and #27 full accessibility/print review.
 - **Verification:** Production deployment `dpl_GDJtAL7VdLG2wqmBUHVAHAikNmNr` is READY and aliased to `https://sao-auto-tractor-new.vercel.app`; authenticated `vercel curl` returned the final build's app HTML. The deployment build passed (1990 modules transformed); it reports a >1 MB JS chunk warning. No tests were added/run, no business data was created, no backup restored, no GitHub push was made, and nothing was uploaded to Supabase. Browser interaction verification remains outstanding for saved preset save/load/delete, saved-record workflows, party-specific Billing actions, Add Trip/tractor drawer, Staff attendance/payroll and backup restore.
 - **Existing workspace changes:** Preserve all pre-existing modified, deleted and untracked files; do not reset, clean or overwrite them.

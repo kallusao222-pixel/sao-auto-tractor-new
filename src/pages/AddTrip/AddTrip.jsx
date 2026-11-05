@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Building2,
   CheckCircle2,
   Eye,
   FileDown,
@@ -44,6 +45,16 @@ import "./AddTrip.css";
 const DEFAULT_UNIT = "Trip";
 const RETAIN_FIELDS_KEY = "saoAutoTractorTripEntryPreferences";
 const PREFERRED_TRACTOR_KEY = "saoAutoTractorPreferredTripTractor";
+const PREFERRED_JCB_RATE_KEY = "saoAutoTractorPreferredJcbHourlyRate";
+const JCB_WORK_TYPES = [
+  { value: "", label: "Select work type (optional)" },
+  { value: "Excavation", label: "Excavation" },
+  { value: "Earth moving", label: "Earth moving" },
+  { value: "Site preparation", label: "Site preparation" },
+  { value: "Land levelling", label: "Land levelling" },
+  { value: "Demolition", label: "Demolition" },
+  { value: "Other", label: "Other" },
+];
 const DEFAULT_RETAIN_FIELDS = {
   tractor: true,
   party: false,
@@ -51,6 +62,9 @@ const DEFAULT_RETAIN_FIELDS = {
   tripType: false,
   site: false,
   unit: false,
+  jcbWorkType: false,
+  jcbMachine: false,
+  jcbOperator: false,
 };
 const RETAIN_FIELD_OPTIONS = [
   { key: "tractor", label: "Tractor" },
@@ -59,6 +73,9 @@ const RETAIN_FIELD_OPTIONS = [
   { key: "tripType", label: "Trip type" },
   { key: "site", label: "Site" },
   { key: "unit", label: "Unit" },
+  { key: "jcbWorkType", label: "JCB work" },
+  { key: "jcbMachine", label: "JCB machine" },
+  { key: "jcbOperator", label: "Operator" },
 ];
 
 const TRIP_TYPES = [
@@ -91,6 +108,12 @@ const EMPTY_FORM = {
   materialId: "",
   materialName: "",
   tripType: "Loading",
+  jcbWorkType: "",
+  jcbMachineNumber: "",
+  jcbOperatorName: "",
+  jcbOperatorMobile: "",
+  jcbHours: "",
+  jcbMinutes: "0",
   site: "",
   quantity: "",
   unit: DEFAULT_UNIT,
@@ -374,8 +397,9 @@ function TripPreview({
 
   const material =
     trip.materialName ||
+    (trip.jcbWork ? trip.jcbWorkType : "") ||
     trip.material ||
-    "Transport Trip";
+    (trip.jcbWork ? "JCB Working Hours" : "Transport Trip");
 
   const site =
     trip.site ||
@@ -437,7 +461,7 @@ function TripPreview({
                 <span>TRIP RECORD</span>
 
                 <strong>
-                  {trip.tripType ||
+                  {trip.jcbWork ? "JCB Work" : trip.tripType ||
                     "Transport Trip"}
                 </strong>
               </div>
@@ -462,19 +486,19 @@ function TripPreview({
               />
 
               <PreviewField
-                label="Trip Type"
-                value={trip.tripType}
+                label={trip.jcbWork ? "JCB Work" : "Trip Type"}
+                value={trip.jcbWork ? trip.jcbWorkType || "JCB Working Hours" : trip.tripType}
               />
 
               <PreviewField
-                label="Vehicle"
-                value={vehicle}
+                label={trip.jcbWork ? "JCB Machine" : "Vehicle"}
+                value={trip.jcbWork ? trip.jcbMachineNumber || "Not specified" : vehicle}
                 mono
               />
 
               <PreviewField
-                label="Driver"
-                value={trip.driverName}
+                label={trip.jcbWork ? "Operator" : "Driver"}
+                value={trip.jcbWork ? trip.jcbOperatorName : trip.driverName}
               />
             </div>
 
@@ -490,8 +514,8 @@ function TripPreview({
                 />
 
                 <PreviewField
-                  label="Material"
-                  value={material}
+                  label={trip.jcbWork ? "Work / Material" : "Material"}
+                  value={trip.jcbWork ? trip.materialName || trip.jcbWorkType || "—" : material}
                 />
 
                 <PreviewField
@@ -500,8 +524,8 @@ function TripPreview({
                 />
 
                 <PreviewField
-                  label="Driver Mobile"
-                  value={trip.driverMobile}
+                  label={trip.jcbWork ? "Operator Mobile" : "Driver Mobile"}
+                  value={trip.jcbWork ? trip.jcbOperatorMobile : trip.driverMobile}
                   mono
                 />
               </div>
@@ -514,10 +538,10 @@ function TripPreview({
 
               <div className="trip-preview-billing">
                 <div>
-                  <span>Quantity</span>
+                  <span>{trip.jcbWork ? "Working time" : "Quantity"}</span>
 
                   <strong>
-                    {quantity}
+                    {trip.jcbWork ? `${trip.jcbHours || 0} hr ${trip.jcbMinutes || 0} min` : quantity}
                   </strong>
                 </div>
 
@@ -531,7 +555,7 @@ function TripPreview({
                 </div>
 
                 <div>
-                  <span>Rate</span>
+                  <span>{trip.jcbWork ? "Rate / hour" : "Rate"}</span>
 
                   <strong>
                     {formatCurrency(rate)}
@@ -626,7 +650,7 @@ function TripPreview({
    ADD TRIP
 ========================================================= */
 
-export default function AddTrip({ initialTractor = null, initialMaterial = null }) {
+export default function AddTrip({ initialTractor = null, initialMaterial = null, onNavigate = () => {} }) {
   const {
     tractors = [],
     parties = [],
@@ -673,6 +697,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
   const [tractorPickerOpen, setTractorPickerOpen] =
     useState(false);
+  const [lastSavedTripId, setLastSavedTripId] = useState("");
 
   const appliedInitialTractorRef = useRef("");
   const appliedInitialMaterialRef = useRef("");
@@ -765,6 +790,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
         rate,
         unit,
         tripType,
+        jcbWorkType: form.jcbWorkType,
+        jcbMachineNumber: form.jcbMachineNumber,
+        jcbOperatorName: form.jcbOperatorName,
+        jcbOperatorMobile: form.jcbOperatorMobile,
+        jcbHours: form.jcbHours,
+        jcbMinutes: form.jcbMinutes,
         notes: form.notes,
       };
 
@@ -803,6 +834,13 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
       tripType:
         template.tripType ||
         previous.tripType,
+
+      jcbWorkType: template.jcbWorkType || "",
+      jcbMachineNumber: template.jcbMachineNumber || "",
+      jcbOperatorName: template.jcbOperatorName || "",
+      jcbOperatorMobile: template.jcbOperatorMobile || "",
+      jcbHours: template.jcbHours || "",
+      jcbMinutes: template.jcbMinutes ?? "0",
 
       notes:
         template.notes || "",
@@ -861,6 +899,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
       materialId: material ? getId(material) : "",
       materialName: material ? getMaterialName(material) : savedMaterialName,
       tripType: trip?.tripType || previous.tripType,
+      jcbWorkType: trip?.jcbWorkType || "",
+      jcbMachineNumber: trip?.jcbMachineNumber || "",
+      jcbOperatorName: trip?.jcbOperatorName || "",
+      jcbOperatorMobile: trip?.jcbOperatorMobile || "",
+      jcbHours: trip?.jcbHours == null ? "" : String(trip.jcbHours),
+      jcbMinutes: trip?.jcbMinutes == null ? "0" : String(trip.jcbMinutes),
       site: trip?.site || trip?.location || "",
       quantity: String(savedQuantity),
       unit: trip?.unit || previous.unit,
@@ -871,7 +915,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     setEditingId("");
     setErrors({});
     setMessage(
-      `Trip copied. Date is set to today; review quantity ${savedQuantity || "—"} and rate ${savedRate !== "" ? formatCurrency(savedRate) : "not recorded"} before saving${!tractor && savedVehicle ? ". The old tractor is unavailable; choose an active tractor" : ""}.`,
+      `Entry copied. Date is set to today; review the work time and rate before saving${!tractor && savedVehicle ? ". The old tractor is unavailable; choose an active tractor" : ""}.`,
     );
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -919,15 +963,29 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
       [materials]
     );
 
+  const isJcbWork = form.tripType === "JCB Work";
+  const preferredJcbRate = (() => {
+    try {
+      return localStorage.getItem(PREFERRED_JCB_RATE_KEY) || "";
+    } catch {
+      return "";
+    }
+  })();
+
   const amount = useMemo(
     () =>
       calculateTripAmount({
-        quantity: form.quantity,
+        quantity: isJcbWork
+          ? (Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) / 60
+          : form.quantity,
         rate: form.rate,
       }),
     [
       form.quantity,
       form.rate,
+      form.jcbHours,
+      form.jcbMinutes,
+      isJcbWork,
     ]
   );
 
@@ -1024,6 +1082,13 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
           record.tripType ||
           "Loading",
 
+        jcbWorkType: record.jcbWorkType || "",
+        jcbMachineNumber: record.jcbMachineNumber || "",
+        jcbOperatorName: record.jcbOperatorName || "",
+        jcbOperatorMobile: record.jcbOperatorMobile || "",
+        jcbHours: record.jcbHours == null ? "" : String(record.jcbHours),
+        jcbMinutes: record.jcbMinutes == null ? "0" : String(record.jcbMinutes),
+
         site:
           record.site ||
           record.location ||
@@ -1102,6 +1167,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     });
 
     setMessage("");
+    setLastSavedTripId("");
   };
 
   const updateRetainField = (field, checked) => {
@@ -1172,11 +1238,58 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     setTractorPickerOpen(false);
   };
 
+  const changeTripMode = (nextMode) => {
+    setLastSavedTripId("");
+    setErrors({});
+    setMessage("");
+
+    if (nextMode === "jcb") {
+      const lastJcbRate = preferredJcbRate || String(
+        trips.find((trip) => trip?.jcbWork || trip?.tripType === "JCB Work")?.rate || "",
+      );
+      setForm((previous) => ({
+        ...previous,
+        tripType: "JCB Work",
+        tractorId: "",
+        vehicleNumber: "",
+        tractorName: "",
+        driverName: "",
+        driverMobile: "",
+        quantity: "",
+        unit: "hour",
+        rate: previous.tripType === "JCB Work" ? previous.rate : lastJcbRate,
+        jcbHours: previous.tripType === "JCB Work" ? previous.jcbHours : "",
+        jcbMinutes: previous.tripType === "JCB Work" ? previous.jcbMinutes : "0",
+      }));
+      setTractorPickerOpen(false);
+      return;
+    }
+
+    const preferredId = readPreferredTractorId();
+    const preferredTractor = activeTractors.find((tractor) => getId(tractor) === preferredId) || null;
+    setForm((previous) => ({
+      ...previous,
+      tripType: settings?.defaultTripType && settings.defaultTripType !== "JCB Work" ? settings.defaultTripType : "Loading",
+      tractorId: preferredTractor ? getId(preferredTractor) : "",
+      vehicleNumber: preferredTractor ? getVehicle(preferredTractor) : "",
+      tractorName: preferredTractor?.tractorName || preferredTractor?.name || "",
+      driverName: preferredTractor?.driverName || "",
+      driverMobile: preferredTractor?.driverMobile || "",
+      quantity: "",
+      unit: settings?.defaultUnit || DEFAULT_UNIT,
+      rate: "",
+      jcbHours: "",
+      jcbMinutes: "0",
+    }));
+    setTractorPickerOpen(!preferredTractor);
+  };
+
   useEffect(() => {
     if (
       !activeTractors.length ||
       initialTractorId ||
       form.tractorId ||
+      form.tripType === "JCB Work" ||
       editingId
     ) {
       return;
@@ -1362,6 +1475,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     }
 
     if (
+      !isJcbWork &&
       !form.vehicleNumber?.trim()
     ) {
       nextErrors.vehicleNumber =
@@ -1373,18 +1487,27 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
         "Trip type is required.";
     }
 
-    const quantity =
-      Number(form.quantity);
+    const quantity = isJcbWork
+      ? (Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) / 60
+      : Number(form.quantity);
 
     if (
-      form.quantity === "" ||
+      (!isJcbWork && form.quantity === "") ||
       !Number.isFinite(
         quantity
       ) ||
       quantity <= 0
     ) {
-      nextErrors.quantity =
-        "Quantity must be greater than 0.";
+      nextErrors.quantity = isJcbWork
+        ? "Enter JCB working time above 0."
+        : "Quantity must be greater than 0.";
+    }
+
+    if (isJcbWork && (!Number.isInteger(Number(form.jcbHours) || 0) || (form.jcbHours === "" && (Number(form.jcbMinutes) || 0) === 0))) {
+      nextErrors.jcbHours = "Enter the JCB hours and minutes.";
+    }
+    if (isJcbWork && (!Number.isInteger(Number(form.jcbMinutes) || 0) || Number(form.jcbMinutes) < 0 || Number(form.jcbMinutes) > 59)) {
+      nextErrors.jcbMinutes = "Minutes must be a whole number from 0 to 59.";
     }
 
     const rate =
@@ -1393,10 +1516,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     if (
       form.rate === "" ||
       !Number.isFinite(rate) ||
-      rate < 0
+      rate < 0 ||
+      (isJcbWork && rate <= 0)
     ) {
-      nextErrors.rate =
-        form.rate === "" ? "Rate is required." : "Rate cannot be negative.";
+      nextErrors.rate = form.rate === "" || (isJcbWork && rate <= 0)
+        ? (isJcbWork ? "Enter an hourly rate above ₹0." : "Rate is required.")
+        : "Rate cannot be negative.";
     }
 
     setErrors(nextErrors);
@@ -1434,6 +1559,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     });
 
     setEditingId("");
+    setLastSavedTripId("");
     setTractorPickerOpen(!preferredTractor);
     setErrors({});
     setMessage("");
@@ -1485,17 +1611,29 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
       tripType:
         form.tripType,
 
+      jcbWork: isJcbWork,
+      jcbWorkType: form.jcbWorkType,
+      jcbMachineNumber: isJcbWork ? form.jcbMachineNumber.trim() : "",
+      jcbOperatorName: isJcbWork ? form.jcbOperatorName.trim() : "",
+      jcbOperatorMobile: isJcbWork ? form.jcbOperatorMobile.trim() : "",
+      jcbHours: isJcbWork ? Number(form.jcbHours) || 0 : undefined,
+      jcbMinutes: isJcbWork ? Number(form.jcbMinutes) || 0 : undefined,
+      description: isJcbWork
+        ? form.materialName.trim() || form.jcbWorkType || "JCB Working Hours"
+        : form.materialName.trim(),
+
       site:
         form.site.trim(),
 
       location:
         form.site.trim(),
 
-      quantity:
-        Number(form.quantity) || 0,
+      quantity: isJcbWork
+        ? Number(((Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) / 60).toFixed(4))
+        : Number(form.quantity) || 0,
 
       unit:
-        form.unit.trim() ||
+        (isJcbWork ? "hour" : form.unit.trim()) ||
         DEFAULT_UNIT,
 
       rate:
@@ -1545,6 +1683,8 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
     event?.preventDefault?.();
 
     if (saving) return;
+
+    setLastSavedTripId("");
 
     if (!validate()) {
       setMessage(
@@ -1632,8 +1772,9 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
             ]
           : null;
 
-      const quantity =
-        Number(form.quantity);
+      const quantity = isJcbWork
+        ? Number(((Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) / 60).toFixed(4))
+        : Number(form.quantity);
 
       const rate =
         Number(form.rate);
@@ -1652,22 +1793,22 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
         date: form.date,
 
         tractorId:
-          form.tractorId || "",
+          isJcbWork ? "" : form.tractorId || "",
 
         vehicleNumber:
-          form.vehicleNumber.trim(),
+          isJcbWork ? "" : form.vehicleNumber.trim(),
 
         tractorNumber:
-          form.vehicleNumber.trim(),
+          isJcbWork ? "" : form.vehicleNumber.trim(),
 
         tractorName:
-          form.tractorName.trim(),
+          isJcbWork ? "" : form.tractorName.trim(),
 
         driverName:
-          form.driverName.trim(),
+          isJcbWork ? "" : form.driverName.trim(),
 
         driverMobile:
-          form.driverMobile.trim(),
+          isJcbWork ? "" : form.driverMobile.trim(),
 
         partyId:
           form.partyId || "",
@@ -1691,6 +1832,17 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
         tripType:
           form.tripType,
 
+        jcbWork: isJcbWork,
+        jcbWorkType: isJcbWork ? form.jcbWorkType : "",
+        jcbMachineNumber: isJcbWork ? form.jcbMachineNumber.trim() : "",
+        jcbOperatorName: isJcbWork ? form.jcbOperatorName.trim() : "",
+        jcbOperatorMobile: isJcbWork ? form.jcbOperatorMobile.trim() : "",
+        jcbHours: isJcbWork ? Number(form.jcbHours) || 0 : undefined,
+        jcbMinutes: isJcbWork ? Number(form.jcbMinutes) || 0 : undefined,
+        description: isJcbWork
+          ? form.materialName.trim() || form.jcbWorkType || "JCB Working Hours"
+          : form.materialName.trim(),
+
         site:
           form.site.trim(),
 
@@ -1700,7 +1852,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
         quantity,
 
         unit:
-          form.unit.trim(),
+          isJcbWork ? "hour" : form.unit.trim(),
 
         rate,
 
@@ -1815,11 +1967,17 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
         refreshData();
       }
 
+      setLastSavedTripId(trip.id);
+      if (isJcbWork) {
+        try { localStorage.setItem(PREFERRED_JCB_RATE_KEY, String(rate)); } catch {}
+      }
+
       const wasEditing =
         Boolean(editingId);
 
+      const preferredTractorId = isJcbWork ? readPreferredTractorId() : form.tractorId;
       const selectedTractor = activeTractors.find(
-        (tractor) => getId(tractor) === form.tractorId,
+        (tractor) => getId(tractor) === preferredTractorId,
       ) || null;
       let tractorForNextTrip = selectedTractor;
       if (wasEditing) {
@@ -1851,11 +2009,13 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
           : null;
 
       setMessage(
-        (selectedTractor || !form.tractorId || !retainFields.tractor)
-          ? wasEditing
-            ? "Trip updated successfully."
-            : `Trip saved. Ready for another trip${selectedTractor ? ` with ${getVehicle(selectedTractor)}` : ""}.`
-          : "Trip saved, but the selected tractor is no longer active. Choose another tractor."
+        isJcbWork
+          ? wasEditing ? "JCB work entry updated." : "JCB work saved. You can add another entry or create its invoice."
+          : (selectedTractor || !form.tractorId || !retainFields.tractor)
+            ? wasEditing
+              ? "Trip updated successfully."
+              : `Trip saved. Ready for another trip${selectedTractor ? ` with ${getVehicle(selectedTractor)}` : ""}.`
+            : "Trip saved, but the selected tractor is no longer active. Choose another tractor."
       );
 
       setForm({
@@ -1898,19 +2058,31 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
             : ""),
 
         tripType:
-          retainFields.tripType
+          isJcbWork
+            ? "JCB Work"
+            : retainFields.tripType
             ? form.tripType
             : settings?.defaultTripType || "Loading",
+
+        jcbWorkType: retainFields.jcbWorkType ? form.jcbWorkType : "",
+        jcbMachineNumber: retainFields.jcbMachine ? form.jcbMachineNumber : "",
+        jcbOperatorName: retainFields.jcbOperator ? form.jcbOperatorName : "",
+        jcbOperatorMobile: retainFields.jcbOperator ? form.jcbOperatorMobile : "",
+        jcbHours: "",
+        jcbMinutes: "0",
 
         site: retainFields.site ? form.site : "",
 
         unit:
-          retainFields.unit
+          isJcbWork
+            ? "hour"
+            : retainFields.unit
             ? form.unit
             : settings?.defaultUnit || form.unit || DEFAULT_UNIT,
+        rate: isJcbWork ? form.rate : "",
       });
 
-      setTractorPickerOpen(!tractorForNextTrip);
+      setTractorPickerOpen(!isJcbWork && !tractorForNextTrip);
 
       setEditingId("");
       setErrors({});
@@ -2081,6 +2253,8 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
       const quantity =
         Number(trip?.quantity) ||
         0;
+      const isJcbRecord = Boolean(trip?.jcbWork || String(trip?.tripType || "").toLowerCase() === "jcb work");
+      const workingTime = `${Number(trip?.jcbHours) || 0} hr ${Number(trip?.jcbMinutes) || 0} min`;
 
       const rate =
         Number(trip?.rate) ||
@@ -2127,7 +2301,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
           : "—";
 
       const vehicle =
-        trip?.vehicleNumber ||
+        (isJcbRecord ? trip?.jcbMachineNumber : trip?.vehicleNumber) ||
         trip?.vehicleNo ||
         trip?.tractorNumber ||
         "—";
@@ -2135,7 +2309,8 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
       const material =
         trip?.materialName ||
         trip?.material ||
-        "Transport Trip";
+        trip?.jcbWorkType ||
+        (isJcbRecord ? "JCB Working Hours" : "Transport Trip");
 
       const site =
         trip?.site ||
@@ -2382,11 +2557,11 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
                 <div class="title">
                   <small>
-                    TRANSPORT MANAGEMENT
+                    ${isJcbRecord ? "JCB WORK" : "TRANSPORT MANAGEMENT"}
                   </small>
 
                   <strong>
-                    TRIP RECORD
+                    ${isJcbRecord ? "JCB WORK RECORD" : "TRIP RECORD"}
                   </strong>
                 </div>
               </div>
@@ -2406,12 +2581,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
                 <div class="meta-item">
                   <span class="label">
-                    Trip Type
+                    ${isJcbRecord ? "JCB Work Type" : "Trip Type"}
                   </span>
 
                   <span class="value">
                     ${safe(
-                      trip?.tripType ||
+                      (isJcbRecord ? trip?.jcbWorkType || "General / not specified" : trip?.tripType) ||
                         "—"
                     )}
                   </span>
@@ -2419,7 +2594,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
                 <div class="meta-item">
                   <span class="label">
-                    Vehicle Number
+                    ${isJcbRecord ? "JCB / Machine" : "Vehicle Number"}
                   </span>
 
                   <span class="value">
@@ -2429,12 +2604,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
                 <div class="meta-item">
                   <span class="label">
-                    Driver
+                    ${isJcbRecord ? "Operator" : "Driver"}
                   </span>
 
                   <span class="value">
                     ${safe(
-                      trip?.driverName ||
+                      (isJcbRecord ? trip?.jcbOperatorName : trip?.driverName) ||
                         "—"
                     )}
                   </span>
@@ -2443,7 +2618,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
               <div class="section">
                 <div class="section-title">
-                  Party & Material
+                  ${isJcbRecord ? "Party & JCB Work" : "Party & Material"}
                 </div>
 
                 <div class="details">
@@ -2462,7 +2637,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
                   <div class="detail">
                     <span class="label">
-                      Material
+                      ${isJcbRecord ? "Work / Material" : "Material"}
                     </span>
 
                     <span class="value">
@@ -2482,12 +2657,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
                   <div class="detail">
                     <span class="label">
-                      Driver Mobile
+                      ${isJcbRecord ? "Operator Mobile" : "Driver Mobile"}
                     </span>
 
                     <span class="value">
                       ${safe(
-                        trip?.driverMobile ||
+                        (isJcbRecord ? trip?.jcbOperatorMobile : trip?.driverMobile) ||
                           "—"
                       )}
                     </span>
@@ -2497,14 +2672,14 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
 
               <div class="section">
                 <div class="section-title">
-                  Quantity & Billing
+                  ${isJcbRecord ? "Working Time & Billing" : "Quantity & Billing"}
                 </div>
 
                 <table>
                   <thead>
                     <tr>
                       <th>Description</th>
-                      <th>Quantity</th>
+                      <th>${isJcbRecord ? "Working Time" : "Quantity"}</th>
                       <th>Unit</th>
                       <th>Rate</th>
                       <th>Amount</th>
@@ -2518,12 +2693,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                       </td>
 
                       <td>
-                        ${safe(quantity)}
+                        ${safe(isJcbRecord ? workingTime : quantity)}
                       </td>
 
                       <td>
                         ${safe(
-                          trip?.unit ||
+                          (isJcbRecord ? "hour" : trip?.unit) ||
                             DEFAULT_UNIT
                         )}
                       </td>
@@ -2691,8 +2866,9 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
             </h1>
 
             <p>
-              Record a tractor transport trip
-              with billing and site details.
+              {isJcbWork
+                ? "Record JCB working hours with party, site and hourly billing."
+                : "Record a tractor transport trip with billing and site details."}
             </p>
           </div>
 
@@ -2761,17 +2937,27 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
           </div>
         </header>
 
-        <section className="trip-tractor-first" aria-label="Choose tractor first">
+        <section className={`trip-tractor-first${isJcbWork ? " is-jcb-mode" : ""}`} aria-label="Choose transport or JCB work">
+          <div className="trip-entry-mode-select" role="group" aria-label="Choose work type">
+            <button type="button" className={!isJcbWork ? "selected" : ""} aria-pressed={!isJcbWork} onClick={() => changeTripMode("transport")}>
+              <Tractor size={17} aria-hidden="true" /> Transport trip
+            </button>
+            <button type="button" className={isJcbWork ? "selected" : ""} aria-pressed={isJcbWork} onClick={() => changeTripMode("jcb")}>
+              <Building2 size={17} aria-hidden="true" /> JCB work
+            </button>
+          </div>
           <div className="trip-tractor-first__intro">
-            <span className="trip-tractor-first__step">STEP 01 · TRACTOR</span>
-            <h2>{form.tractorId && !tractorPickerOpen ? "Tractor selected" : "Choose a tractor to start"}</h2>
+            <span className="trip-tractor-first__step">STEP 01 · {isJcbWork ? "JCB WORK" : "TRACTOR"}</span>
+            <h2>{isJcbWork ? "JCB work entry" : form.tractorId && !tractorPickerOpen ? "Tractor selected" : "Choose a tractor to start"}</h2>
             <p>
-              {form.tractorId && !tractorPickerOpen
-                ? "This tractor will stay selected for every new trip until you change it."
-                : `Select one of your ${activeTractors.length} active tractors before entering trip details.`}
+              {isJcbWork
+                ? "No tractor trip type is needed. Your saved tractor selection stays ready for the next transport entry."
+                : form.tractorId && !tractorPickerOpen
+                  ? "This tractor will stay selected for every new trip until you change it."
+                  : `Select one of your ${activeTractors.length} active tractors before entering trip details.`}
             </p>
           </div>
-          <div className="trip-tractor-first__picker">
+          {!isJcbWork && <div className="trip-tractor-first__picker">
             {form.tractorId && !tractorPickerOpen ? (
               <div className="selected-tractor-control">
                 <div className="selected-tractor-copy">
@@ -2802,10 +2988,10 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                 {errors.vehicleNumber && <small className="field-error">{errors.vehicleNumber}</small>}
               </div>
             )}
-          </div>
+          </div>}
         </section>
 
-        <div className="trip-entry-workspace" hidden={!form.tractorId && !editingId}>
+        <div className="trip-entry-workspace" hidden={!isJcbWork && !form.tractorId && !editingId}>
 
         {/* =================================================
             TRIP TEMPLATES
@@ -3072,6 +3258,11 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
             <span>
               {message}
             </span>
+            {lastSavedTripId && !editingId && (
+              <button type="button" className="add-trip-invoice-link" onClick={() => onNavigate("invoice", { action: "prefill-invoice-trip", payload: { tripId: lastSavedTripId } })}>
+                <FileText size={15} aria-hidden="true" /> Create invoice
+              </button>
+            )}
           </div>
         )}
 
@@ -3097,12 +3288,11 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                 </span>
 
                 <h2>
-                  Date & Trip Type
+                  {isJcbWork ? "Date & JCB Work" : "Date & Trip Type"}
                 </h2>
 
                 <p>
-                  Choose the trip date and
-                  transport type.
+                  {isJcbWork ? "Choose the work date and an optional work category." : "Choose the trip date and transport type."}
                 </p>
               </div>
             </div>
@@ -3133,6 +3323,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
               </div>
 
               <div className="field">
+                {isJcbWork ? <>
+                  <label htmlFor="jcb-work-type">JCB Work Type</label>
+                  <select id="jcb-work-type" value={form.jcbWorkType} onChange={(event) => update("jcbWorkType", event.target.value)}>
+                    {JCB_WORK_TYPES.map((type) => <option key={type.value || "blank"} value={type.value}>{type.label}</option>)}
+                  </select>
+                </> : <>
                 <label>
                   Trip Type <b>*</b>
                 </label>
@@ -3193,6 +3389,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                     {errors.tripType}
                   </small>
                 )}
+                </>}
               </div>
             </div>
           </Card>
@@ -3201,7 +3398,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
               02 TRANSPORT & DRIVER
           ================================================= */}
 
-          <Card className="add-trip-card add-trip-card--transport">
+          {!isJcbWork && <Card className="add-trip-card add-trip-card--transport">
             <div className="add-trip-card-header">
               <div>
                 <span className="section-number">
@@ -3289,7 +3486,16 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                 />
               </div>
             </div>
-          </Card>
+          </Card>}
+
+          {isJcbWork && <Card className="add-trip-card add-trip-card--transport add-trip-card--jcb">
+            <div className="add-trip-card-header"><div><span className="section-number">02</span><h2>JCB & Operator</h2><p>Machine and operator details are optional; add them only when you want them on the record and invoice.</p></div></div>
+            <div className="add-trip-grid two">
+              <div className="field"><label htmlFor="jcb-machine-number">JCB / Machine Number <span>(optional)</span></label><input id="jcb-machine-number" value={form.jcbMachineNumber} onChange={(event) => update("jcbMachineNumber", event.target.value)} placeholder="e.g. JCB-01" /></div>
+              <div className="field"><label htmlFor="jcb-operator-name">Operator Name <span>(optional)</span></label><input id="jcb-operator-name" value={form.jcbOperatorName} onChange={(event) => update("jcbOperatorName", event.target.value)} placeholder="Operator name" /></div>
+              <div className="field"><label htmlFor="jcb-operator-mobile">Operator Mobile <span>(optional)</span></label><input id="jcb-operator-mobile" type="tel" inputMode="numeric" value={form.jcbOperatorMobile} onChange={(event) => update("jcbOperatorMobile", event.target.value)} placeholder="Mobile number" /></div>
+            </div>
+          </Card>}
 
           {/* =================================================
               03 PARTY & MATERIAL
@@ -3303,12 +3509,11 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                 </span>
 
                 <h2>
-                  Party & Material
+                  {isJcbWork ? "Party & Work Details" : "Party & Material"}
                 </h2>
 
                 <p>
-                  Connect this trip with the
-                  correct customer and material.
+                  {isJcbWork ? "Party and site are optional; add a work note if you know it." : "Connect this trip with the correct customer and material."}
                 </p>
               </div>
             </div>
@@ -3345,33 +3550,20 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
               </div>
 
               <div className="field">
-                <label>
-                  Material (optional)
+                <label htmlFor={isJcbWork ? "jcb-work-description" : undefined}>
+                  {isJcbWork ? "Material / Work Description (optional)" : "Material (optional)"}
                 </label>
 
-                <SearchBox
+                {isJcbWork ? <input id="jcb-work-description" value={form.materialName} onChange={(event) => update("materialName", event.target.value)} placeholder="Leave blank if unknown" /> : <SearchBox
                   icon={Package}
                   placeholder="Search material..."
-                  value={
-                    form.materialName
-                  }
-                  onChange={(value) =>
-                    update(
-                      "materialName",
-                      value
-                    )
-                  }
-                  items={
-                    activeMaterials
-                  }
-                  getLabel={
-                    getMaterialName
-                  }
-                  onSelect={
-                    selectMaterial
-                  }
+                  value={form.materialName}
+                  onChange={(value) => update("materialName", value)}
+                  items={activeMaterials}
+                  getLabel={getMaterialName}
+                  onSelect={selectMaterial}
                   emptyText="No material found."
-                />
+                />}
               </div>
 
               <div className="field trip-site-field">
@@ -3413,8 +3605,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
               </div>
             )}
 
-            {activeMaterials.length ===
-              0 && (
+            {!isJcbWork && activeMaterials.length === 0 && (
               <div className="setup-note">
                 <Package
                   size={17}
@@ -3442,69 +3633,51 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                 </span>
 
                 <h2>
-                  Quantity & Billing
+                  {isJcbWork ? "Working Time & Billing" : "Quantity & Billing"}
                 </h2>
 
                 <p>
-                  Enter quantity and rate
-                  for this trip.
+                  {isJcbWork ? "Enter machine hours and hourly rate; the total is calculated automatically." : "Enter quantity and rate for this trip."}
                 </p>
               </div>
             </div>
 
-            <div className="add-trip-grid three">
-              <div className="field">
-                <label htmlFor="trip-quantity">
-                  Quantity <b>*</b>
-                </label>
+            <div className={`add-trip-grid three${isJcbWork ? " jcb-billing-fields" : ""}`}>
+              {isJcbWork ? <>
+                <div className="field">
+                  <label htmlFor="jcb-hours">Hours <b>*</b></label>
+                  <input id="jcb-hours" type="number" min="0" step="1" inputMode="numeric" value={form.jcbHours} onChange={(event) => {
+                    const hours = event.target.value;
+                    const total = (Number(hours) || 0) + (Number(form.jcbMinutes) || 0) / 60;
+                    update("jcbHours", hours);
+                    update("quantity", total.toFixed(4));
+                  }} placeholder="0" />
+                  {errors.jcbHours && <small className="field-error">{errors.jcbHours}</small>}
+                </div>
+                <div className="field">
+                  <label htmlFor="jcb-minutes">Minutes <span>(optional)</span></label>
+                  <input id="jcb-minutes" type="number" min="0" max="59" step="1" inputMode="numeric" value={form.jcbMinutes} onChange={(event) => {
+                    const minutes = event.target.value;
+                    const total = (Number(form.jcbHours) || 0) + (Number(minutes) || 0) / 60;
+                    update("jcbMinutes", minutes);
+                    update("quantity", total.toFixed(4));
+                  }} placeholder="0" />
+                  {errors.jcbMinutes && <small className="field-error">{errors.jcbMinutes}</small>}
+                </div>
+              </> : <div className="field">
+                <label htmlFor="trip-quantity">Quantity <b>*</b></label>
+                <input id="trip-quantity" type="number" min="0" step="any" value={form.quantity} onChange={(event) => update("quantity", event.target.value)} placeholder="0" />
+                {errors.quantity && <small className="field-error">{errors.quantity}</small>}
+              </div>}
 
-                <input
-                  id="trip-quantity"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={
-                    form.quantity
-                  }
-                  onChange={(event) =>
-                    update(
-                      "quantity",
-                      event.target.value
-                    )
-                  }
-                  placeholder="0"
-                />
-
-                {errors.quantity && (
-                  <small className="field-error">
-                    {
-                      errors.quantity
-                    }
-                  </small>
-                )}
-              </div>
-
-              <div className="field">
-                <label htmlFor="trip-unit">
-                  Unit
-                </label>
-
-                <input
-                  id="trip-unit"
-                  value={form.unit}
-                  onChange={(event) =>
-                    update(
-                      "unit",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Trip"
-                />
-              </div>
+              {!isJcbWork && <div className="field">
+                <label htmlFor="trip-unit">Unit</label>
+                <input id="trip-unit" value={form.unit} onChange={(event) => update("unit", event.target.value)} placeholder="Trip" />
+              </div>}
 
               <div className="field">
                 <label htmlFor="trip-rate">
-                  Rate <b>*</b>
+                  {isJcbWork ? "Hourly Rate (₹)" : "Rate"} <b>*</b>
                 </label>
 
                 <input
@@ -3519,7 +3692,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
                       event.target.value
                     )
                   }
-                  placeholder="0"
+                  placeholder={isJcbWork ? "Rate per hour" : "0"}
                 />
 
                 {errors.rate && (
@@ -3533,11 +3706,11 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null 
             <div className="amount-preview">
               <div>
                 <span>
-                  Calculated Trip Amount
+                  {isJcbWork ? "Calculated JCB Amount" : "Calculated Trip Amount"}
                 </span>
 
                 <small>
-                  Quantity × Rate
+                  {isJcbWork ? "Hours × hourly rate" : "Quantity × Rate"}
                 </small>
               </div>
 

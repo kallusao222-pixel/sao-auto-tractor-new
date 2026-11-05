@@ -138,6 +138,10 @@ function normalizeTripTypeText(value) {
 function getNormalizedTripType(trip) {
   const raw = normalizeTripTypeText(getTripType(trip));
 
+  if (trip?.jcbWork || raw.includes("jcb work")) {
+    return "jcbWork";
+  }
+
   if (
     raw === "unloading" ||
     raw === "unload" ||
@@ -168,6 +172,10 @@ function getNormalizedTripType(trip) {
 
 function getDisplayTripType(trip) {
   const type = getNormalizedTripType(trip);
+
+  if (type === "jcbWork") {
+    return "JCB Work";
+  }
 
   if (type === "unloading") {
     return "Unloading";
@@ -231,6 +239,8 @@ function getCountedTripQuantity(trip) {
   const type = getNormalizedTripType(trip);
 
   switch (type) {
+    case "jcbWork":
+      return 0;
     case "unloading":
       return 0;
 

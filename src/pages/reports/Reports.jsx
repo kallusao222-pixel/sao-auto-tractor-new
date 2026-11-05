@@ -353,6 +353,12 @@ const getTripType = (
     .toLowerCase();
 
   if (
+    trip?.jcbWork || raw === "jcb work"
+  ) {
+    return "JCB Work";
+  }
+
+  if (
     raw.includes("load") ||
     raw === "loading"
   ) {
@@ -393,7 +399,7 @@ const getVehicle = (
   trip
 ) => {
   return String(
-    trip?.vehicleNumber ??
+    (trip?.jcbWork && trip?.jcbMachineNumber ? trip.jcbMachineNumber : trip?.vehicleNumber) ??
       trip?.tractorNumber ??
       trip?.tractorNo ??
       trip?.vehicleNo ??
@@ -422,6 +428,7 @@ const getMaterial = (
       trip?.material ??
       trip?.productName ??
       trip?.product ??
+      (trip?.jcbWork ? trip?.jcbWorkType : "") ??
       ""
   ).trim();
 };
@@ -772,6 +779,7 @@ const EditModal = ({
   onClose,
   onSave,
 }) => {
+  const isJcbWork = Boolean(trip?.jcbWork || trip?.tripType === "JCB Work");
   const createForm = (
     source
   ) => ({
@@ -875,7 +883,7 @@ const EditModal = ({
     }
 
     if (
-      !form.vehicleNumber.trim()
+      !isJcbWork && !form.vehicleNumber.trim()
     ) {
       alert(
         "Please enter vehicle number."
@@ -886,6 +894,12 @@ const EditModal = ({
 
     onSave({
       ...form,
+      vehicleNumber: isJcbWork ? "" : form.vehicleNumber.trim(),
+      jcbMachineNumber: isJcbWork ? form.vehicleNumber.trim() : trip?.jcbMachineNumber,
+      jcbWork: isJcbWork,
+      tripType: isJcbWork ? "JCB Work" : form.tripType,
+      jcbHours: isJcbWork ? Math.floor(Number(form.quantity) || 0) : trip?.jcbHours,
+      jcbMinutes: isJcbWork ? Math.round(((Number(form.quantity) || 0) % 1) * 60) : trip?.jcbMinutes,
       quantity:
         Number(
           form.quantity
@@ -958,7 +972,7 @@ const EditModal = ({
           </label>
 
           <label className="report-input-wrap">
-            <span>Vehicle Number</span>
+            <span>{isJcbWork ? "JCB / Machine Number (optional)" : "Vehicle Number"}</span>
 
             <input
               type="text"
@@ -975,7 +989,7 @@ const EditModal = ({
           </label>
 
           <label className="report-input-wrap">
-            <span>Party</span>
+            <span>{isJcbWork ? "Party (optional)" : "Party"}</span>
 
             <input
               type="text"
@@ -992,7 +1006,7 @@ const EditModal = ({
           </label>
 
           <label className="report-input-wrap">
-            <span>Material</span>
+            <span>{isJcbWork ? "Work / Material (optional)" : "Material"}</span>
 
             <input
               type="text"
@@ -1009,7 +1023,7 @@ const EditModal = ({
           </label>
 
           <label className="report-input-wrap">
-            <span>Driver</span>
+            <span>{isJcbWork ? "Operator" : "Driver"}</span>
 
             <input
               type="text"
@@ -1050,6 +1064,7 @@ const EditModal = ({
               <option value="Site-to-Site">
                 Site-to-Site
               </option>
+              <option value="JCB Work">JCB Work</option>
             </select>
           </label>
 
@@ -1987,7 +2002,7 @@ const Reports = () => {
         );
 
       const tripsCount =
-        filteredTrips.length;
+        filteredTrips.filter((trip) => !trip?.jcbWork && getTripType(trip) !== "JCB Work").length;
 
       return {
         records,
@@ -1999,9 +2014,9 @@ const Reports = () => {
         quantity,
         billing,
         averageTripValue:
-          tripsCount > 0
+          records > 0
             ? billing /
-              tripsCount
+              records
             : 0,
       };
     }, [
@@ -2171,9 +2186,9 @@ const Reports = () => {
         todayBilling,
         yesterdayBilling,
         todayTrips:
-          todayTrips.length,
+          todayTrips.filter((trip) => !trip?.jcbWork && getTripType(trip) !== "JCB Work").length,
         yesterdayTrips:
-          yesterdayTrips.length,
+          yesterdayTrips.filter((trip) => !trip?.jcbWork && getTripType(trip) !== "JCB Work").length,
         billingChange,
       };
     }, [
@@ -2388,9 +2403,10 @@ const Reports = () => {
 
       filteredTrips.forEach(
         (trip) => {
+          if (trip?.jcbWork || getTripType(trip) === "JCB Work") return;
           const name =
-            getVehicle(trip) ||
-            "Unknown";
+            getVehicle(trip);
+          if (!name) return;
 
           if (!map[name]) {
             map[name] = {
@@ -2495,6 +2511,7 @@ const Reports = () => {
         "Loading",
         "Unloading",
         "Site-to-Site",
+              "JCB Work",
         "Other",
       ];
 
@@ -4364,6 +4381,7 @@ const Reports = () => {
                 <option value="Site-to-Site">
                   Site-to-Site
                 </option>
+                <option value="JCB Work">JCB Work</option>
               </select>
             </label>
 
@@ -4441,7 +4459,7 @@ const Reports = () => {
           )}
           detail={`Avg. ${formatCurrency(
             summary.averageTripValue
-          )} / trip`}
+          )} / record`}
           type="dark"
         />
 

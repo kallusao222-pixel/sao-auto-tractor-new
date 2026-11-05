@@ -41,6 +41,7 @@ const TRIPS_KEY = "saoAutoTractorTrips";
 const PAGE_SIZE = 12;
 
 const TRIP_TYPE_LABELS = {
+  "jcb work": "JCB Work",
   loading: "Loading",
   unloading: "Unloading",
   "site to site": "Site to Site",
@@ -114,6 +115,7 @@ const formatNumber = (value) => {
 };
 
 const getTripType = (trip) => {
+  if (trip?.jcbWork) return "JCB Work";
   const raw = String(
     trip?.tripType ?? trip?.type ?? trip?.workType ?? ""
   )
@@ -125,7 +127,7 @@ const getTripType = (trip) => {
 
 const getVehicle = (trip) =>
   String(
-    trip?.vehicleNumber ??
+    (trip?.jcbWork && trip?.jcbMachineNumber ? trip.jcbMachineNumber : trip?.vehicleNumber) ??
       trip?.tractorNumber ??
       trip?.vehicleNo ??
       ""
@@ -135,7 +137,7 @@ const getParty = (trip) =>
   String(trip?.partyName ?? trip?.party ?? "").trim();
 
 const getMaterial = (trip) =>
-  String(trip?.materialName ?? trip?.material ?? "").trim();
+  String(trip?.materialName ?? trip?.material ?? (trip?.jcbWork ? trip?.jcbWorkType : "") ?? "").trim();
 
 const getSite = (trip) =>
   String(trip?.site ?? trip?.location ?? "").trim();
@@ -729,7 +731,7 @@ function DateWise() {
 
     return {
       records: filteredTrips.length,
-      trips: filteredTrips.length,
+      trips: filteredTrips.filter((trip) => !trip?.jcbWork && getTripType(trip) !== "JCB Work").length,
       loading,
       unloading,
       siteToSite,
@@ -1788,6 +1790,7 @@ function DateWise() {
                 <option value="Site to Site">
                   Site to Site
                 </option>
+                <option value="JCB Work">JCB Work</option>
               </select>
             </div>
 
@@ -2691,6 +2694,7 @@ function DateWise() {
 }
 
 function DateWiseEditModal({ trip, onClose, onSave }) {
+  const isJcbWork = Boolean(trip?.jcbWork || trip?.tripType === "JCB Work");
   const [form, setForm] = useState({
     id: trip?.id,
     date: getReportTripDate(trip),
@@ -2748,26 +2752,29 @@ function DateWiseEditModal({ trip, onClose, onSave }) {
       return;
     }
 
-    if (!form.vehicleNumber.trim()) {
+    if (!isJcbWork && !form.vehicleNumber.trim()) {
       alert("Vehicle number is required.");
       return;
     }
 
-    if (!form.partyName.trim()) {
+    if (!isJcbWork && !form.partyName.trim()) {
       alert("Party name is required.");
       return;
     }
 
-    if (!form.materialName.trim()) {
+    if (!isJcbWork && !form.materialName.trim()) {
       alert("Material is required.");
       return;
     }
 
     onSave({
       ...form,
-      vehicleNumber: form.vehicleNumber.trim(),
+      vehicleNumber: isJcbWork ? "" : form.vehicleNumber.trim(),
+      jcbMachineNumber: isJcbWork ? form.vehicleNumber.trim() : trip?.jcbMachineNumber,
       partyName: form.partyName.trim(),
       materialName: form.materialName.trim(),
+      tripType: isJcbWork ? "JCB Work" : form.tripType,
+      jcbWork: isJcbWork,
       driverName: form.driverName.trim(),
       site: form.site.trim(),
       notes: form.notes.trim(),
@@ -2827,24 +2834,24 @@ function DateWiseEditModal({ trip, onClose, onSave }) {
             </label>
 
             <label>
-              <span>Vehicle Number *</span>
+              <span>{isJcbWork ? "JCB / Machine Number (optional)" : "Vehicle Number *"}</span>
 
               <input
                 type="text"
-                value={form.vehicleNumber}
+                value={isJcbWork ? form.vehicleNumber || trip?.jcbMachineNumber || "" : form.vehicleNumber}
                 onChange={(event) =>
                   updateField(
                     "vehicleNumber",
                     event.target.value
                   )
                 }
-                placeholder="Vehicle number"
-                required
+                placeholder={isJcbWork ? "Optional machine number" : "Vehicle number"}
+                required={!isJcbWork}
               />
             </label>
 
             <label>
-              <span>Party Name *</span>
+              <span>{isJcbWork ? "Party Name (optional)" : "Party Name *"}</span>
 
               <input
                 type="text"
@@ -2853,12 +2860,12 @@ function DateWiseEditModal({ trip, onClose, onSave }) {
                   updateField("partyName", event.target.value)
                 }
                 placeholder="Party name"
-                required
+                required={!isJcbWork}
               />
             </label>
 
             <label>
-              <span>Material *</span>
+              <span>{isJcbWork ? "Work / Material (optional)" : "Material *"}</span>
 
               <input
                 type="text"
@@ -2870,7 +2877,7 @@ function DateWiseEditModal({ trip, onClose, onSave }) {
                   )
                 }
                 placeholder="Material"
-                required
+                required={!isJcbWork}
               />
             </label>
 
@@ -2909,6 +2916,7 @@ function DateWiseEditModal({ trip, onClose, onSave }) {
                 <option value="Site to Site">
                   Site to Site
                 </option>
+                <option value="JCB Work">JCB Work</option>
                 <option value="Other">Other</option>
               </select>
             </label>

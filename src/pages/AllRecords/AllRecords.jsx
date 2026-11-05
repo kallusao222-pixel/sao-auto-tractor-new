@@ -73,6 +73,7 @@ function getTripId(trip, index) {
 }
 
 function getVehicleNumber(trip) {
+  if (trip?.jcbWork && trip?.jcbMachineNumber) return trip.jcbMachineNumber;
   return (
     trip?.vehicleNumber ||
     trip?.tractorNumber ||
@@ -93,11 +94,13 @@ function getMaterialName(trip) {
     trip?.material ||
     trip?.productName ||
     trip?.product ||
+    (trip?.jcbWork ? trip?.jcbWorkType : "") ||
     "—"
   );
 }
 
 function getDriverName(trip) {
+  if (trip?.jcbWork && trip?.jcbOperatorName) return trip.jcbOperatorName;
   return trip?.driverName || trip?.driver || "—";
 }
 
@@ -115,6 +118,7 @@ function getTripType(trip) {
   if (value.includes("site")) return "Site to Site";
   if (value.includes("load")) return "Loading";
 
+  if (trip?.jcbWork) return "JCB Work";
   if (trip?.jcbWorkBill) return trip?.tripType === "JCB + Transport" ? "JCB + Transport Bill" : "JCB Work · JCB Hours Bill";
   if (trip?.quickBill) return type ? `${type} · Quick Bill` : "Quick Bill";
   return type || "—";
@@ -292,14 +296,14 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
 
         <div className="all-records-detail-grid">
           <DetailItem
-            label="Vehicle"
-            value={getVehicleNumber(trip)}
+            label={trip?.jcbWork ? "JCB / Machine" : "Vehicle"}
+            value={trip?.jcbWork ? trip?.jcbMachineNumber || "Not specified" : getVehicleNumber(trip)}
             icon={<Tractor size={14} />}
           />
 
           <DetailItem
-            label="Driver"
-            value={getDriverName(trip)}
+            label={trip?.jcbWork ? "Operator" : "Driver"}
+            value={trip?.jcbWork ? trip?.jcbOperatorName || "Not specified" : getDriverName(trip)}
           />
 
           <DetailItem
@@ -308,8 +312,8 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
           />
 
           <DetailItem
-            label="Material"
-            value={getMaterialName(trip)}
+            label={trip?.jcbWork ? "Work / Material" : "Material"}
+            value={trip?.jcbWork ? trip?.materialName || trip?.jcbWorkType || "Not specified" : getMaterialName(trip)}
             icon={<Package size={14} />}
           />
 
@@ -319,12 +323,12 @@ function DetailModal({ trip, onClose, onDelete, onEdit, onClone }) {
           />
 
           <DetailItem
-            label="Quantity"
-            value={`${getQuantity(trip)} ${trip?.unit || "Trip"}`}
+            label={trip?.jcbWork ? "Working time" : "Quantity"}
+            value={trip?.jcbWork ? `${trip?.jcbHours || 0} hr ${trip?.jcbMinutes || 0} min` : `${getQuantity(trip)} ${trip?.unit || "Trip"}`}
           />
 
           <DetailItem
-            label="Rate"
+            label={trip?.jcbWork ? "Hourly rate" : "Rate"}
             value={formatCurrency(getRate(trip))}
           />
 
@@ -415,6 +419,7 @@ function DetailItem({ label, value, icon, highlight = false }) {
 ========================================================= */
 
 function EditModal({ trip, onClose, onSave }) {
+  const isJcbWork = Boolean(trip?.jcbWork || trip?.tripType === "JCB Work");
   const [form, setForm] = useState({
     date: "",
     vehicleNumber: "",
@@ -428,6 +433,12 @@ function EditModal({ trip, onClose, onSave }) {
     rate: "",
     amount: "",
     notes: "",
+    jcbWorkType: "",
+    jcbMachineNumber: "",
+    jcbOperatorName: "",
+    jcbOperatorMobile: "",
+    jcbHours: "",
+    jcbMinutes: "0",
   });
 
   useEffect(() => {
@@ -486,6 +497,12 @@ function EditModal({ trip, onClose, onSave }) {
           : "",
 
       notes: trip?.notes || "",
+      jcbWorkType: trip?.jcbWorkType || "",
+      jcbMachineNumber: trip?.jcbMachineNumber || "",
+      jcbOperatorName: trip?.jcbOperatorName || "",
+      jcbOperatorMobile: trip?.jcbOperatorMobile || "",
+      jcbHours: String(trip?.jcbHours ?? Math.floor(Number(trip?.quantity) || 0)),
+      jcbMinutes: String(trip?.jcbMinutes ?? Math.round(((Number(trip?.quantity) || 0) % 1) * 60)),
     });
   }, [trip]);
 
@@ -526,39 +543,60 @@ function EditModal({ trip, onClose, onSave }) {
       return;
     }
 
-    if (!form.vehicleNumber.trim()) {
+    if (isJcbWork && ((Number(form.jcbHours) || 0) < 0 || !Number.isInteger(Number(form.jcbHours) || 0) || !Number.isInteger(Number(form.jcbMinutes) || 0) || ((Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) <= 0) || Number(form.jcbMinutes) < 0 || Number(form.jcbMinutes) > 59)) {
+      alert("Enter valid JCB hours and minutes (minutes must be 0–59). ");
+      return;
+    }
+
+    if (isJcbWork && (!Number.isFinite(Number(form.rate)) || Number(form.rate) <= 0)) {
+      alert("Enter an hourly rate above ₹0.");
+      return;
+    }
+
+    if (!isJcbWork && !form.vehicleNumber.trim()) {
       alert("Please enter vehicle number.");
       return;
     }
 
-    if (!form.partyName.trim()) {
+    if (!isJcbWork && !form.partyName.trim()) {
       alert("Please enter party name.");
       return;
     }
 
-    if (!form.materialName.trim()) {
+    if (!isJcbWork && !form.materialName.trim()) {
       alert("Please enter material.");
       return;
     }
 
-    const finalAmount =
-      form.amount === ""
+    const jcbQuantity = Number(((Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) / 60).toFixed(4));
+    const finalAmount = isJcbWork
+      ? Math.round(jcbQuantity * (Number(form.rate) || 0) * 100) / 100
+      : form.amount === ""
         ? calculatedAmount
         : Number(form.amount) || 0;
 
     onSave({
       date: form.date,
-      vehicleNumber: form.vehicleNumber.trim(),
+      vehicleNumber: isJcbWork ? "" : form.vehicleNumber.trim(),
       partyName: form.partyName.trim(),
       materialName: form.materialName.trim(),
-      driverName: form.driverName.trim(),
-      tripType: form.tripType,
+      driverName: isJcbWork ? "" : form.driverName.trim(),
+      tripType: isJcbWork ? "JCB Work" : form.tripType,
       site: form.site.trim(),
-      quantity: Number(form.quantity) || 0,
-      unit: form.unit.trim(),
+      quantity: isJcbWork
+        ? jcbQuantity
+        : Number(form.quantity) || 0,
+      unit: isJcbWork ? "hour" : form.unit.trim(),
       rate: Number(form.rate) || 0,
       amount: finalAmount,
       notes: form.notes.trim(),
+      jcbWork: isJcbWork,
+      jcbWorkType: form.jcbWorkType.trim(),
+      jcbMachineNumber: isJcbWork ? form.jcbMachineNumber.trim() : "",
+      jcbOperatorName: isJcbWork ? form.jcbOperatorName.trim() : "",
+      jcbOperatorMobile: form.jcbOperatorMobile.trim(),
+      jcbHours: isJcbWork ? Number(form.jcbHours) || 0 : undefined,
+      jcbMinutes: isJcbWork ? Number(form.jcbMinutes) || 0 : undefined,
     });
   };
 
@@ -624,28 +662,28 @@ function EditModal({ trip, onClose, onSave }) {
             </label>
 
             <label>
-              <span>Vehicle / Tractor *</span>
+              <span>{isJcbWork ? "JCB / Machine Number (optional)" : "Vehicle / Tractor *"}</span>
 
               <div className="all-records-input-wrap">
                 <Tractor size={15} />
 
                 <input
                   type="text"
-                  value={form.vehicleNumber}
+                  value={isJcbWork ? form.jcbMachineNumber : form.vehicleNumber}
                   onChange={(event) =>
                     handleChange(
-                      "vehicleNumber",
+                      isJcbWork ? "jcbMachineNumber" : "vehicleNumber",
                       event.target.value,
                     )
                   }
-                  placeholder="Vehicle number"
-                  required
+                  placeholder={isJcbWork ? "Optional machine number" : "Vehicle number"}
+                  required={!isJcbWork}
                 />
               </div>
             </label>
 
             <label>
-              <span>Party *</span>
+              <span>Party{isJcbWork ? " (optional)" : " *"}</span>
 
               <input
                 type="text"
@@ -657,12 +695,12 @@ function EditModal({ trip, onClose, onSave }) {
                   )
                 }
                 placeholder="Party name"
-                required
+                required={!isJcbWork}
               />
             </label>
 
             <label>
-              <span>Material *</span>
+              <span>{isJcbWork ? "Work / Material (optional)" : "Material *"}</span>
 
               <input
                 type="text"
@@ -674,47 +712,57 @@ function EditModal({ trip, onClose, onSave }) {
                   )
                 }
                 placeholder="Material"
-                required
+                required={!isJcbWork}
               />
             </label>
 
             <label>
-              <span>Driver</span>
+              <span>{isJcbWork ? "Operator (optional)" : "Driver"}</span>
 
               <input
                 type="text"
-                value={form.driverName}
+                value={isJcbWork ? form.jcbOperatorName : form.driverName}
                 onChange={(event) =>
                   handleChange(
-                    "driverName",
+                    isJcbWork ? "jcbOperatorName" : "driverName",
                     event.target.value,
                   )
                 }
-                placeholder="Driver name"
+                  placeholder={isJcbWork ? "Operator name" : "Driver name"}
               />
             </label>
 
             <label>
-              <span>Trip Type</span>
+              <span>{isJcbWork ? "JCB Work Type (optional)" : "Trip Type"}</span>
 
               <select
-                value={form.tripType}
+                value={isJcbWork ? form.jcbWorkType : form.tripType}
                 onChange={(event) =>
-                  handleChange(
-                    "tripType",
-                    event.target.value,
-                  )
+                  handleChange(isJcbWork ? "jcbWorkType" : "tripType", event.target.value)
                 }
               >
-                <option value="Loading">Loading</option>
-                <option value="Unloading">
+                {isJcbWork ? <><option value="">General / blank</option><option value="Excavation">Excavation</option><option value="Earth moving">Earth moving</option><option value="Site preparation">Site preparation</option><option value="Land levelling">Land levelling</option><option value="Demolition">Demolition</option><option value="Other">Other</option></> : <><option value="Loading">Loading</option><option value="Unloading">
                   Unloading
-                </option>
-                <option value="Site to Site">
+                </option><option value="Site to Site">
                   Site to Site
-                </option>
+                </option></>}
               </select>
             </label>
+
+            {isJcbWork && <>
+              <label>
+                <span>Operator Mobile (optional)</span>
+                <input type="tel" value={form.jcbOperatorMobile} onChange={(event) => handleChange("jcbOperatorMobile", event.target.value)} placeholder="Operator mobile" />
+              </label>
+              <label>
+                <span>Hours *</span>
+                <input type="number" min="0" step="1" value={form.jcbHours} onChange={(event) => handleChange("jcbHours", event.target.value)} />
+              </label>
+              <label>
+                <span>Minutes *</span>
+                <input type="number" min="0" max="59" step="1" value={form.jcbMinutes} onChange={(event) => handleChange("jcbMinutes", event.target.value)} />
+              </label>
+            </>}
 
             <label className="all-records-edit-full">
               <span>Site / Location</span>
@@ -733,29 +781,30 @@ function EditModal({ trip, onClose, onSave }) {
             </label>
 
             <label>
-              <span>Quantity</span>
+              <span>{isJcbWork ? "Working time" : "Quantity"}</span>
 
               <input
                 type="number"
                 min="0"
                 step="any"
-                value={form.quantity}
+                value={isJcbWork ? ((Number(form.jcbHours) || 0) + (Number(form.jcbMinutes) || 0) / 60) : form.quantity}
                 onChange={(event) =>
                   handleQuantityOrRateChange(
                     "quantity",
                     event.target.value,
                   )
                 }
-                placeholder="0"
+                placeholder={isJcbWork ? "Calculated from hours and minutes" : "0"}
+                disabled={isJcbWork}
               />
             </label>
 
             <label>
-              <span>Unit</span>
+              <span>{isJcbWork ? "Unit" : "Unit"}</span>
 
               <input
                 type="text"
-                value={form.unit}
+                value={isJcbWork ? "hour" : form.unit}
                 onChange={(event) =>
                   handleChange(
                     "unit",
@@ -763,11 +812,12 @@ function EditModal({ trip, onClose, onSave }) {
                   )
                 }
                 placeholder="Trip / Ton / CFT..."
+                disabled={isJcbWork}
               />
             </label>
 
             <label>
-              <span>Rate</span>
+              <span>{isJcbWork ? "Hourly Rate" : "Rate"}</span>
 
               <div className="all-records-input-wrap">
                 <IndianRupee size={15} />
@@ -1704,11 +1754,19 @@ function AllRecords() {
       ...originalTrip,
 
       date: changes.date,
-      vehicleNumber: changes.vehicleNumber,
+      vehicleNumber: changes.jcbWork ? "" : changes.vehicleNumber,
+      tractorNumber: changes.jcbWork ? "" : changes.vehicleNumber,
       partyName: changes.partyName,
       materialName: changes.materialName,
-      driverName: changes.driverName,
-      tripType: changes.tripType,
+      driverName: changes.jcbWork ? "" : changes.driverName,
+      tripType: changes.jcbWork ? "JCB Work" : changes.tripType,
+      jcbWork: changes.jcbWork,
+      jcbWorkType: changes.jcbWorkType,
+      jcbMachineNumber: changes.jcbMachineNumber,
+      jcbOperatorName: changes.jcbOperatorName,
+      jcbOperatorMobile: changes.jcbOperatorMobile,
+      jcbHours: changes.jcbHours,
+      jcbMinutes: changes.jcbMinutes,
       site: changes.site,
       quantity: changes.quantity,
       unit: changes.unit,

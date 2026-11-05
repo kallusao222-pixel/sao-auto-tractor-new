@@ -419,6 +419,7 @@
 
 .add-trip-message {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: var(--space-4, 16px);
@@ -3244,6 +3245,72 @@
   box-shadow: var(--shadow-sm, 0 4px 14px rgba(21, 32, 51, 0.05));
 }
 
+.trip-entry-mode-select {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border, #ddd6ca);
+}
+
+.trip-entry-mode-select button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong, #d4cdbf);
+  border-radius: 10px;
+  background: var(--surface, #fffcf7);
+  color: var(--text-secondary, #394454);
+  font: 650 0.72rem var(--font-body, "Outfit", sans-serif);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.trip-entry-mode-select button:hover,
+.trip-entry-mode-select button.selected {
+  border-color: var(--primary, #1b4b73);
+  background: var(--primary-soft, rgba(27, 75, 115, 0.08));
+  color: var(--primary, #1b4b73);
+}
+
+.trip-entry-mode-select button:focus-visible {
+  outline: 2px solid var(--primary, #1b4b73);
+  outline-offset: 2px;
+}
+
+.trip-tractor-first.is-jcb-mode {
+  border-color: var(--accent-border, rgba(156, 115, 73, 0.34));
+}
+
+.jcb-billing-fields {
+  align-items: end;
+}
+
+.add-trip-invoice-link {
+  flex: 0 0 auto;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid var(--primary, #1b4b73);
+  border-radius: 9px;
+  background: var(--primary, #1b4b73);
+  color: #fff;
+  font: 650 0.68rem var(--font-body, "Outfit", sans-serif);
+  cursor: pointer;
+}
+
+.add-trip-invoice-link:hover {
+  filter: brightness(1.08);
+}
+
 .trip-tractor-first__intro,
 .trip-tractor-first__picker {
   min-width: 0;
@@ -3289,6 +3356,14 @@
 }
 
 @media (max-width: 768px) {
+  .trip-entry-mode-select button {
+    flex: 1 1 140px;
+  }
+
+  .add-trip-invoice-link {
+    margin-left: 0;
+  }
+
   .add-trip-card--party .add-trip-grid.three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

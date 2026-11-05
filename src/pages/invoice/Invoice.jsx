@@ -302,6 +302,10 @@ function getTripTypeSafe(trip) {
     return "Unloading";
   }
 
+  if (raw === "jcb work" || raw === "jcb working hours") {
+    return "JCB Work";
+  }
+
   if (
     raw === "site to site" ||
     raw === "site-to-site" ||
@@ -851,6 +855,35 @@ function Invoice() {
 
   useEffect(() => {
     const handleQuickAction = (event) => {
+      if (event.detail?.action === "prefill-invoice-trip") {
+        const tripId = String(event.detail?.payload?.tripId || "");
+        const index = trips.findIndex((trip) => String(trip?.id || trip?.tripId || "") === tripId);
+        const trip = trips[index];
+        if (!trip) {
+          setError("That saved work entry could not be found. Open All Records and try again.");
+          return;
+        }
+        setEditingInvoiceId(null);
+        setSelectedHistoryInvoice(null);
+        setPreviewOpen(false);
+        setInvoiceNumber(generateNextInvoiceNumber());
+        setInvoiceDate(trip.date || todayISO());
+        setPartyName(trip.partyName || trip.party || "");
+        setSelectedTripIndexes([index]);
+        setQuickBillMode(false);
+        setQuickBillKind("transport");
+        setJcbWorkRows([createJcbWorkRow()]);
+        setJcbWorkSite("");
+        setDiscountEnabled(false);
+        setDiscount("");
+        setCustomChargeEnabled(false);
+        setCustomChargeAmount("");
+        setGstEnabled(false);
+        setReceivedAmount("");
+        setError("");
+        setMessage(`${trip.jcbWork ? "JCB work" : "Trip"} added to the invoice. Review the party, then save.`);
+        return;
+      }
       if (event.detail?.action !== "prefill-invoice-party") return;
       const name = String(event.detail?.payload?.partyName || "").trim();
       if (!name) return;
@@ -867,7 +900,7 @@ function Invoice() {
 
     window.addEventListener("saoAutoTractorQuickAction", handleQuickAction);
     return () => window.removeEventListener("saoAutoTractorQuickAction", handleQuickAction);
-  }, [normalizedParties]);
+  }, [normalizedParties, trips]);
 
   /* =======================================================
      TRACTOR MAP
@@ -1171,12 +1204,13 @@ function Invoice() {
         : transportInvoiceRows
     : selectedTripRows.map(({ trip, index }) => {
         const vehicle = getVehicleNumber(trip);
+        const isJcbWork = Boolean(trip?.jcbWork || String(trip?.tripType || "").toLowerCase() === "jcb work");
         const tractor = tractorMap.get(normalizeText(vehicle));
         return {
           tripIndex: index,
           tripId: trip?.id || trip?.tripId || null,
           date: trip?.date || invoiceDate,
-          vehicleNumber: vehicle,
+          vehicleNumber: isJcbWork ? trip?.jcbMachineNumber || "" : vehicle,
           tractorName: tractor?.tractorName || tractor?.model || "",
           partyName: trip?.partyName || partyName,
           tripType: getTripTypeSafe(trip),
@@ -1185,6 +1219,13 @@ function Invoice() {
           quantity: getQuantity(trip),
           rate: getRate(trip),
           amount: getAmount(trip),
+          unit: trip?.unit || (trip?.jcbWork ? "hour" : ""),
+          jcbWork: isJcbWork,
+          jcbWorkType: trip?.jcbWorkType || "",
+          jcbHours: trip?.jcbHours ?? 0,
+          jcbMinutes: trip?.jcbMinutes ?? 0,
+          jcbMachineNumber: trip?.jcbMachineNumber || "",
+          jcbOperatorName: trip?.jcbOperatorName || "",
           quickBill: false,
       };
       }), [quickBillMode, quickBillKind, quickBillAmount, jcbInvoiceRowsWithSite, transportInvoiceRows, invoiceDate, partyName, selectedTripRows, tractorMap]);
@@ -4061,14 +4102,17 @@ function Invoice() {
                           </span>
                         </td>
 
-                        <td>{getTripDescription(trip) || "—"}</td>
+                        <td>
+                          {getTripDescription(trip) || "—"}
+                          {trip?.jcbOperatorName && <small className="invoice-row-secondary">Operator: {trip.jcbOperatorName}</small>}
+                        </td>
 
                         <td>{getTripSite(trip) || "—"}</td>
 
                         <td>
-                          {getQuantity(
-                            trip
-                          )}
+                          {trip?.jcbWork
+                            ? `${trip.jcbHours || 0} hr ${trip.jcbMinutes || 0} min`
+                            : getQuantity(trip)}
                         </td>
 
                         <td>
@@ -5275,7 +5319,7 @@ function Invoice() {
 
                           <td>{item.tripType || "—"}</td>
 
-                          <td>{item.description || "—"}</td>
+                          <td>{item.description || "—"}{item.jcbOperatorName && <small>Operator: {item.jcbOperatorName}</small>}</td>
 
                           <td>
                             {item.jcbWork ? <><strong>{Number(item.quantity || 0).toFixed(2)} hr</strong><small>{item.jcbHours || 0} hr {item.jcbMinutes || 0} min</small></> : item.quantity}

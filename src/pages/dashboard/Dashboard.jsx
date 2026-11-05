@@ -533,6 +533,10 @@ function Dashboard({ onNavigate }) {
     const date = String(trip?.date || "").slice(0, 10);
     return date >= overviewStartDate && date <= today;
   }), [safeTrips, overviewStartDate, today]);
+  const overviewTransportTrips = useMemo(
+    () => overviewTrips.filter((trip) => !trip?.jcbWork && String(trip?.tripType || "").toLowerCase() !== "jcb work"),
+    [overviewTrips],
+  );
   const overviewPayments = useMemo(() => safePayments.filter((payment) => {
     const date = String(payment?.date || "").slice(0, 10);
     return date >= overviewStartDate && date <= today;
@@ -542,6 +546,14 @@ function Dashboard({ onNavigate }) {
   const yesterdayTrips = useMemo(
     () => safeTrips.filter((trip) => trip?.date === yesterday),
     [safeTrips, yesterday],
+  );
+  const todayTransportTrips = useMemo(
+    () => todayTrips.filter((trip) => !trip?.jcbWork && String(trip?.tripType || "").toLowerCase() !== "jcb work"),
+    [todayTrips],
+  );
+  const yesterdayTransportTrips = useMemo(
+    () => yesterdayTrips.filter((trip) => !trip?.jcbWork && String(trip?.tripType || "").toLowerCase() !== "jcb work"),
+    [yesterdayTrips],
   );
   const yesterdayPayments = useMemo(
     () => safePayments.filter((payment) => payment?.date === yesterday),
@@ -559,8 +571,8 @@ function Dashboard({ onNavigate }) {
 
   /* ---- Deltas (Today vs Yesterday) ---- */
   const tripsDelta = useMemo(
-    () => calculateDelta(todayTrips.length, yesterdayTrips.length),
-    [todayTrips.length, yesterdayTrips.length],
+    () => calculateDelta(todayTransportTrips.length, yesterdayTransportTrips.length),
+    [todayTransportTrips.length, yesterdayTransportTrips.length],
   );
   const billingDelta = useMemo(
     () => calculateDelta(todayBilling, yesterdayBilling),
@@ -572,7 +584,7 @@ function Dashboard({ onNavigate }) {
   );
 
   /* ---- Trip summary ---- */
-  const todayTripSummary = calculateTripSummary(todayTrips);
+  const todayTripSummary = calculateTripSummary(todayTransportTrips);
   const todayLoading = todayTripSummary?.loading ?? 0;
   const todayUnloading = todayTripSummary?.unloading ?? 0;
   const todaySiteToSite =
@@ -581,10 +593,10 @@ function Dashboard({ onNavigate }) {
   /* ---- Unique counts ---- */
   const todayUniqueVehicles = useMemo(() => {
     const s = new Set(
-      todayTrips.map(getTripVehicleNumber).map(normalizeName).filter(Boolean),
+      todayTransportTrips.map(getTripVehicleNumber).map(normalizeName).filter(Boolean),
     );
     return s.size;
-  }, [todayTrips]);
+  }, [todayTransportTrips]);
 
   const todayUniqueParties = useMemo(() => {
     const s = new Set(
@@ -621,8 +633,10 @@ function Dashboard({ onNavigate }) {
   const todayTractorSummary = useMemo(() => {
     const grouped = new Map();
     todayTrips.forEach((trip) => {
+      if (trip?.jcbWork || String(trip?.tripType || "").toLowerCase() === "jcb work") return;
       const vehicle = getTripVehicleNumber(trip);
-      const displayVehicle = vehicle || "Vehicle not specified";
+      if (!vehicle) return;
+      const displayVehicle = vehicle;
       const key = normalizeName(displayVehicle);
       if (!key) return;
       if (!grouped.has(key)) grouped.set(key, { vehicle: displayVehicle, trips: 0, billing: 0 });
@@ -1077,8 +1091,8 @@ function Dashboard({ onNavigate }) {
         >
           <StatCard
             label={overviewRange === "today" ? "Today's Trips" : `${overviewRangeLabel} Trips`}
-            value={overviewTrips.length}
-            description={overviewTrips.length ? `Trips in ${overviewRangeLabel.toLowerCase()}` : safeTrips.length ? `No trips in ${overviewRangeLabel.toLowerCase()}` : "No trip records yet"}
+            value={overviewTransportTrips.length}
+            description={overviewTransportTrips.length ? `Tractor trips in ${overviewRangeLabel.toLowerCase()}` : overviewTrips.length ? `JCB work only in ${overviewRangeLabel.toLowerCase()}` : safeTrips.length ? `No trips in ${overviewRangeLabel.toLowerCase()}` : "No trip records yet"}
             icon={<Activity size={18} strokeWidth={1.9} aria-hidden="true" />}
             accent="primary"
           />
