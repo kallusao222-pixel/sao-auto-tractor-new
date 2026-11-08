@@ -411,7 +411,6 @@ function Dashboard({ onNavigate }) {
   const [dismissedReminders, setDismissedReminders] = useState(() =>
     loadDismissedReminders(),
   );
-  const [lastUpdated, setLastUpdated] = useState(() => new Date());
   const [dashboardPreferences, setDashboardPreferences] = useState(
     readDashboardPreferences,
   );
@@ -486,11 +485,6 @@ function Dashboard({ onNavigate }) {
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
     );
   }, []);
-
-  /* ---- Update lastUpdated whenever data changes ---- */
-  useEffect(() => {
-    setLastUpdated(new Date());
-  }, [safeTrips, safePayments, safeParties, safeTractors]);
 
   const currentHour = nowHeader.getHours();
   const timeGreeting = getTimeGreeting(currentHour);
@@ -979,16 +973,6 @@ function Dashboard({ onNavigate }) {
       .slice(0, 6);
   }, [safeTrips, safePayments]);
 
-  /* ---- Last updated label ---- */
-  const lastUpdatedLabel = useMemo(() => {
-    const diff = Date.now() - lastUpdated.getTime();
-    if (diff < 60_000) return "Just now";
-    const mins = Math.floor(diff / 60_000);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    return `${hrs}h ago`;
-  }, [lastUpdated, nowHeader]);
-
   /* =========================================================
      RENDER
      ========================================================= */
@@ -1047,10 +1031,6 @@ function Dashboard({ onNavigate }) {
                 {locationText}
               </span>
 
-              <span className="dash-hero__chip dash-hero__chip--updated">
-                <Clock3 size={13} strokeWidth={1.9} aria-hidden="true" />
-                Updated {lastUpdatedLabel}
-              </span>
             </div>
           </div>
 
