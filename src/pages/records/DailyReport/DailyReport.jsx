@@ -886,9 +886,6 @@ export default function DailyReport() {
             />
           </div>
 
-          <div className="daily-date-display">
-            {formatDate(selectedDate)}
-          </div>
         </div>
 
         {/* ==================================================

@@ -1,5 +1,6 @@
 import {
   Component,
+  lazy,
   Suspense,
   createContext,
   useCallback,
@@ -58,28 +59,29 @@ import { useAppData } from "./context/AppDataContext";
 import { buildAlerts } from "./utils/alerts";
 import { formatDate } from "./utils/date";
 
-import Dashboard from "./pages/dashboard/Dashboard";
-import TractorManagement from "./pages/TractorManagement/TractorManagement";
-import PartyManagement from "./pages/PartyManagement/PartyManagement";
-import MaterialManagement from "./pages/MaterialManagement/MaterialManagement";
-import AddTrip from "./pages/AddTrip/AddTrip";
-import AllRecords from "./pages/AllRecords/AllRecords";
-import DateWise from "./pages/DateWise/DateWise";
-import Reports from "./pages/reports/Reports";
-import Billing from "./pages/billing/Billing";
-import PartyLedger from "./pages/PartyLedger/PartyLedger";
-import Outstanding from "./pages/outstanding/Outstanding";
-import Expenses from "./pages/expenses/Expenses";
-import Invoice from "./pages/invoice/Invoice";
-import Payments from "./pages/payments/Payments";
-import UpiQrGenerator from "./pages/upiQr/UpiQrGenerator";
-import StaffManagement from "./pages/StaffManagement/StaffManagement";
-import Settings from "./pages/settings/Settings";
-import DailyReport from "./pages/records/DailyReport/DailyReport";
+const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
+const TractorManagement = lazy(() => import("./pages/TractorManagement/TractorManagement"));
+const PartyManagement = lazy(() => import("./pages/PartyManagement/PartyManagement"));
+const MaterialManagement = lazy(() => import("./pages/MaterialManagement/MaterialManagement"));
+const AddTrip = lazy(() => import("./pages/AddTrip/AddTrip"));
+const AllRecords = lazy(() => import("./pages/AllRecords/AllRecords"));
+const DateWise = lazy(() => import("./pages/DateWise/DateWise"));
+const Reports = lazy(() => import("./pages/reports/Reports"));
+const Billing = lazy(() => import("./pages/billing/Billing"));
+const PartyLedger = lazy(() => import("./pages/PartyLedger/PartyLedger"));
+const Outstanding = lazy(() => import("./pages/outstanding/Outstanding"));
+const Expenses = lazy(() => import("./pages/expenses/Expenses"));
+const Invoice = lazy(() => import("./pages/invoice/Invoice"));
+const Payments = lazy(() => import("./pages/payments/Payments"));
+const UpiQrGenerator = lazy(() => import("./pages/upiQr/UpiQrGenerator"));
+const StaffManagement = lazy(() => import("./pages/StaffManagement/StaffManagement"));
+const Settings = lazy(() => import("./pages/settings/Settings"));
+const DailyReport = lazy(() => import("./pages/records/DailyReport/DailyReport"));
 import Login from "./pages/Login/Login";
 
 import "./App.css";
 import "./styles/theme-overrides.css";
+import "./styles/redesign.css";
 
 /* =========================================================
    CONFIG
@@ -1604,7 +1606,7 @@ function App() {
   useEffect(() => {
     const startupTimer = window.setTimeout(() => {
       setIsStartupLoading(false);
-    }, 3500);
+    }, 4200);
 
     return () => window.clearTimeout(startupTimer);
   }, []);

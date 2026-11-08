@@ -11,9 +11,9 @@
 
 :root {
   /* ---------- PAGE ---------- */
-  --bg: #f3efe6;
-  --surface: #fffcf7;
-  --surface-soft: #f6f1e8;
+  --bg: #f2f7ff;
+  --surface: #ffffff;
+  --surface-soft: #f5f7fd;
   --surface-raised: #ffffff;
 
   /* ---------- TEXT ---------- */
@@ -24,9 +24,9 @@
   --text-inverse: #ffffff;
 
   /* ---------- BORDERS ---------- */
-  --border: #ddd6ca;
-  --border-soft: #e9e3d9;
-  --border-strong: #cfc5b7;
+  --border: #e2e9f3;
+  --border-soft: #e2e9f3;
+  --border-strong: #e2e9f3;
 
   /* ---------- BRAND — NAVY ---------- */
   --primary: #1b4b73;
@@ -36,10 +36,10 @@
   --primary-border: rgba(27, 75, 115, 0.18);
 
   /* ---------- BRAND — AMBER / GOLD ---------- */
-  --accent: #9c7349;
-  --accent-dark: #7d5a38;
-  --accent-light: #c9a37a;
-  --accent-soft: #faf3e3;
+  --accent: #5546a3;
+  --accent-dark: #413780;
+  --accent-light: #5546a3;
+  --accent-soft: #efedff;
 
   /* ---------- SEMANTIC ---------- */
   --success: #47775d;
@@ -64,7 +64,7 @@
   --info-border: rgba(61, 111, 150, 0.22);
 
   /* ---------- HEADER ---------- */
-  --header-bg: rgba(255, 252, 247, 0.94);
+  --header-bg: #f2f7ff;
   --header-border: rgba(27, 75, 115, 0.06);
 
   /* ---------- OVERLAYS ---------- */
@@ -137,23 +137,23 @@
   --color-primary-soft: #e9f0f5;
   --color-primary-border: rgba(27, 75, 115, 0.18);
 
-  --color-accent: #9c7349;
-  --color-accent-dark: #7d5a38;
-  --color-accent-light: #c9a37a;
-  --color-accent-soft: #faf3e3;
+  --color-accent: #5546a3;
+  --color-accent-dark: #413780;
+  --color-accent-light: #5546a3;
+  --color-accent-soft: #efedff;
 
   --color-text: #152033;
   --color-text-muted: #6d675e;
   --color-text-soft: #8a847b;
   --color-text-disabled: #9b968d;
 
-  --color-surface: #fffcf7;
-  --color-surface-soft: #faf7f0;
-  --color-background: #f3efe6;
+  --color-surface: #ffffff;
+  --color-surface-soft: #ffffff;
+  --color-background: #f2f7ff;
 
-  --color-border: #ddd6ca;
-  --color-border-soft: #e9e3d9;
-  --color-border-strong: #cfc5b7;
+  --color-border: #e2e9f3;
+  --color-border-soft: #e2e9f3;
+  --color-border-strong: #e2e9f3;
 
   --color-success: #47775d;
   --color-success-soft: #eef6f1;
@@ -165,7 +165,7 @@
   --color-info: #3d6f96;
   --color-info-soft: #eaf1f6;
 
-  --color-brown: #9c7349;
+  --color-brown: #5546a3;
 }
 
 
@@ -196,10 +196,10 @@ html[data-theme="dark"] {
   --primary-soft: rgba(142, 191, 224, 0.12);
   --primary-border: rgba(142, 191, 224, 0.28);
 
-  --accent: #d3ad7a;
-  --accent-dark: #b78e5c;
-  --accent-light: #e5c899;
-  --accent-soft: rgba(211, 173, 122, 0.13);
+  --accent: #5546a3;
+  --accent-dark: #5546a3;
+  --accent-light: #5546a3;
+  --accent-soft: rgba(85, 70, 163, 0.13);
 
   --success: #7fc49a;
   --success-dark: #5da67b;
@@ -251,10 +251,10 @@ html[data-theme="dark"] {
   --color-primary-soft: rgba(142, 191, 224, 0.12);
   --color-primary-border: rgba(142, 191, 224, 0.28);
 
-  --color-accent: #d3ad7a;
-  --color-accent-dark: #b78e5c;
-  --color-accent-light: #e5c899;
-  --color-accent-soft: rgba(211, 173, 122, 0.13);
+  --color-accent: #5546a3;
+  --color-accent-dark: #5546a3;
+  --color-accent-light: #5546a3;
+  --color-accent-soft: rgba(85, 70, 163, 0.13);
 
   --color-text: #f2f5f7;
   --color-text-secondary: #c2ccd5;
@@ -280,7 +280,7 @@ html[data-theme="dark"] {
   --color-info: #8ebfe0;
   --color-info-soft: rgba(142, 191, 224, 0.12);
 
-  --color-brown: #d3ad7a;
+  --color-brown: #5546a3;
 }
 
 
@@ -1664,7 +1664,8 @@ button.header-weather-block:focus-visible {
   border: 0;
   padding: clamp(14px, 3vw, 28px);
   background:
-    radial-gradient(ellipse at 50% 43%, rgba(255, 252, 247, 0.96) 0%, rgba(243, 239, 230, 0.98) 58%, #eee8dc 100%);
+    radial-gradient(ellipse at 50% 43%, color-mix(in srgb, var(--primary-soft) 76%, transparent) 0%, transparent 58%),
+    var(--bg);
 }
 
 .app-page-loader--startup .app-loader-card {
@@ -1742,7 +1743,7 @@ button.header-weather-block:focus-visible {
   border-radius: 0;
   background: transparent;
   color: var(--primary);
-  animation: app-loader-drive 3.5s cubic-bezier(0.45, 0, 0.3, 1) forwards;
+  animation: app-loader-drive 4.2s cubic-bezier(0.45, 0, 0.3, 1) forwards;
 }
 
 .app-loader-trailer {
@@ -1797,7 +1798,7 @@ button.header-weather-block:focus-visible {
   background: linear-gradient(90deg, var(--accent-light), var(--primary));
   transform: scaleX(0);
   transform-origin: left center;
-  animation: app-loader-fill 3.5s linear forwards;
+  animation: app-loader-fill 4.2s linear forwards;
 }
 
 .app-page-loader--startup .app-loader-footnote {
@@ -2164,7 +2165,7 @@ button.header-weather-block:focus-visible {
    ========================================================= */
 
 html[data-theme="dark"] .sidebar-brand-mark {
-  color: #f4f1e9;
+  color: #5546a3;
   box-shadow: 0 5px 16px rgba(0, 0, 0, 0.28);
 }
 

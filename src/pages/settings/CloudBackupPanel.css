@@ -26,7 +26,7 @@
 .cloud-backup-actions .settings-btn-primary:hover:not(:disabled) { background: #116651; }
 .cloud-backup-actions .settings-btn:disabled { cursor: not-allowed; opacity: .58; }
 .cloud-backup-notice, .cloud-backup-message, .cloud-backup-error { margin: 0; padding: 11px 13px; border-radius: 9px; font-size: 13px; line-height: 1.5; }
-.cloud-backup-notice { color: #725416; background: #fff7df; }
+.cloud-backup-notice { color: #5546a3; background: #ffffff; }
 .cloud-backup-message { color: #17634f; background: #eaf7f2; }
 .cloud-backup-error { color: #a52d2d; background: #fff0f0; }
 .cloud-backup-privacy { padding-top: 13px; border-top: 1px solid var(--border-color, #e5e7eb); font-size: 12px; }

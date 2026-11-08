@@ -2397,12 +2397,12 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
               .meta {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
-                border: 1px solid #d8d3c9;
+                border: 1px solid #e2e9f3;
               }
 
               .meta-item {
                 padding: 10px;
-                border-right: 1px solid #d8d3c9;
+                border-right: 1px solid #e2e9f3;
               }
 
               .meta-item:last-child {
@@ -2433,7 +2433,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
               .section-title {
                 margin-bottom: 8px;
                 padding-bottom: 6px;
-                border-bottom: 1px solid #d8d3c9;
+                border-bottom: 1px solid #e2e9f3;
                 color: #1b4b73;
                 font-size: 9px;
                 font-weight: 700;
@@ -2444,14 +2444,14 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
               .details {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
-                border: 1px solid #d8d3c9;
+                border: 1px solid #e2e9f3;
               }
 
               .detail {
                 min-height: 50px;
                 padding: 10px;
-                border-right: 1px solid #d8d3c9;
-                border-bottom: 1px solid #d8d3c9;
+                border-right: 1px solid #e2e9f3;
+                border-bottom: 1px solid #e2e9f3;
               }
 
               .detail:nth-child(2n) {
@@ -2470,13 +2470,13 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
               th,
               td {
                 padding: 9px 10px;
-                border: 1px solid #d8d3c9;
+                border: 1px solid #e2e9f3;
                 font-size: 9px;
                 text-align: left;
               }
 
               th {
-                background: #f3efe6;
+                background: #f2f7ff;
                 font-size: 8px;
                 font-weight: 700;
                 text-transform: uppercase;
@@ -2488,7 +2488,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
               }
 
               tfoot td {
-                background: #f7f4ed;
+                background: #f5f7fd;
                 font-weight: 700;
               }
 
@@ -2500,8 +2500,8 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
               .notes {
                 min-height: 50px;
                 padding: 10px;
-                border: 1px solid #d8d3c9;
-                background: #faf9f5;
+                border: 1px solid #e2e9f3;
+                background: #ffffff;
                 font-size: 9px;
                 line-height: 1.5;
                 white-space: pre-wrap;
@@ -2527,7 +2527,7 @@ export default function AddTrip({ initialTractor = null, initialMaterial = null,
                 justify-content: space-between;
                 margin-top: 35px;
                 padding-top: 8px;
-                border-top: 1px solid #d8d3c9;
+                border-top: 1px solid #e2e9f3;
                 color: #8a847a;
                 font-size: 7px;
               }

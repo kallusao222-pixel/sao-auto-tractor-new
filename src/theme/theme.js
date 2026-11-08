@@ -4,7 +4,7 @@ const STORAGE_KEY = "saoTheme";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 const META_COLOR = {
-  light: "#f3efe6",
+  light: "#f2f7ff",
   dark: "#101512",
 };
 

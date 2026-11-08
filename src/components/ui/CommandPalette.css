@@ -35,8 +35,8 @@
   max-height: min(600px, 80vh);
   display: flex;
   flex-direction: column;
-  background: var(--surface, #fffcf7);
-  border: 1px solid var(--border, #ddd6ca);
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e9f3);
   border-radius: var(--radius-lg, 14px);
   box-shadow: var(--shadow-xl, 0 24px 60px -20px rgba(20, 58, 89, 0.28));
   overflow: hidden;
@@ -63,7 +63,7 @@
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-soft, #e9e3d9);
+  border-bottom: 1px solid var(--border-soft, #e2e9f3);
 }
 
 .cmd-palette__input-icon {
@@ -88,17 +88,17 @@
 }
 
 .cmd-palette__input::placeholder {
-  color: var(--text-muted, #6d675e);
+  color: var(--text-muted, #535c76);
   font-weight: 400;
 }
 
 .cmd-palette__kbd {
   flex: 0 0 auto;
   padding: 3px 8px;
-  border: 1px solid var(--border, #ddd6ca);
+  border: 1px solid var(--border, #e2e9f3);
   border-radius: 6px;
-  background: var(--surface-soft, #f6f1e8);
-  color: var(--text-muted, #6d675e);
+  background: var(--surface-soft, #ffffff);
+  color: var(--text-muted, #535c76);
   font-family: var(--font-mono, "IBM Plex Mono", monospace);
   font-size: 10px;
   font-weight: 800;
@@ -111,10 +111,10 @@
   height: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border, #ddd6ca);
+  border: 1px solid var(--border, #e2e9f3);
   border-radius: 7px;
-  background: var(--surface, #fffcf7);
-  color: var(--text-muted, #6d675e);
+  background: var(--surface, #ffffff);
+  color: var(--text-muted, #535c76);
   cursor: pointer;
   transition: all var(--transition-fast, 150ms ease);
 }
@@ -140,7 +140,7 @@
   overflow-y: auto;
   padding: 8px;
   scrollbar-width: thin;
-  scrollbar-color: var(--border, #ddd6ca) transparent;
+  scrollbar-color: var(--border, #7d879b) transparent;
 }
 
 .cmd-palette__results::-webkit-scrollbar {
@@ -148,7 +148,7 @@
 }
 
 .cmd-palette__results::-webkit-scrollbar-thumb {
-  background: var(--border, #ddd6ca);
+  background: var(--border, #f5f7fd);
   border-radius: var(--radius-full, 999px);
 }
 
@@ -163,11 +163,11 @@
   min-height: 180px;
   padding: 24px 16px;
   text-align: center;
-  color: var(--text-muted, #6d675e);
+  color: var(--text-muted, #535c76);
 }
 
 .cmd-palette__empty svg {
-  color: var(--text-disabled, #9b968d);
+  color: var(--text-disabled, #7d879b);
 }
 
 .cmd-palette__empty strong {
@@ -200,7 +200,7 @@
 }
 
 .cmd-palette__group-title {
-  color: var(--text-muted, #6d675e);
+  color: var(--text-muted, #535c76);
   font-family: var(--font-mono, "IBM Plex Mono", monospace);
   font-size: 10px;
   font-weight: 800;
@@ -250,7 +250,7 @@
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: var(--surface-soft, #f6f1e8);
+  background: var(--surface-soft, #ffffff);
   color: var(--primary, #1b4b73);
 }
 
@@ -278,7 +278,7 @@
 
 .cmd-palette__item-text small {
   overflow: hidden;
-  color: var(--text-muted, #6d675e);
+  color: var(--text-muted, #535c76);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -290,7 +290,7 @@
 
 .cmd-palette__item-arrow {
   flex: 0 0 auto;
-  color: var(--text-disabled, #9b968d);
+  color: var(--text-disabled, #7d879b);
   opacity: 0;
   transition: opacity var(--transition-fast, 150ms ease);
 }
@@ -309,15 +309,15 @@
   align-items: center;
   gap: 14px;
   padding: 9px 14px;
-  border-top: 1px solid var(--border-soft, #e9e3d9);
-  background: var(--surface-soft, #f6f1e8);
+  border-top: 1px solid var(--border-soft, #e2e9f3);
+  background: var(--surface-soft, #ffffff);
 }
 
 .cmd-palette__foot-hint {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--text-muted, #6d675e);
+  color: var(--text-muted, #535c76);
   font-size: 10px;
   font-weight: 600;
 }
@@ -328,9 +328,9 @@
   min-width: 20px;
   height: 18px;
   padding: 0 5px;
-  border: 1px solid var(--border, #ddd6ca);
+  border: 1px solid var(--border, #e2e9f3);
   border-radius: 4px;
-  background: var(--surface, #fffcf7);
+  background: var(--surface, #ffffff);
   color: var(--text-secondary, #394454);
   font-family: var(--font-mono, "IBM Plex Mono", monospace);
   font-size: 9px;

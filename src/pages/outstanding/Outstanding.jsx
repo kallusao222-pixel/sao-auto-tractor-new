@@ -987,7 +987,7 @@ export default function Outstanding() {
               min-width: 150px;
             }
             .eyebrow {
-              color: #9c7349;
+              color: #5546a3;
               font-size: 10px;
               font-weight: 700;
               letter-spacing: 1.5px;
@@ -1013,7 +1013,7 @@ export default function Outstanding() {
               border: 1px solid #ddd5c8;
               padding: 14px 16px;
               border-radius: 6px;
-              background: #faf8f4;
+              background: #f5f7fd;
             }
             .summary-box span {
               display: block;
@@ -1052,7 +1052,7 @@ export default function Outstanding() {
               vertical-align: top;
             }
             th {
-              background: #f3efe6;
+              background: #f2f7ff;
               color: #1b4b73;
               font-size: 10px;
               text-transform: uppercase;

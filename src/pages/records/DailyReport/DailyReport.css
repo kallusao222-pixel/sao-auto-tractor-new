@@ -6,25 +6,25 @@
 
 .daily-report-page,
 .daily-full-report-page {
-  --daily-bg: #f3efe6;
-  --daily-surface: #fffcf7;
-  --daily-surface-soft: #faf6ef;
-  --daily-surface-muted: #f5f0e7;
+  --daily-bg: #f2f7ff;
+  --daily-surface: #ffffff;
+  --daily-surface-soft: #ffffff;
+  --daily-surface-muted: #f5f7fd;
 
   --daily-navy: #1b4b73;
   --daily-navy-dark: #143a59;
   --daily-navy-soft: #e8f0f6;
 
-  --daily-brass: #9c7349;
-  --daily-brass-soft: #f1e8dc;
+  --daily-brass: #5546a3;
+  --daily-brass-soft: #efedff;
 
   --daily-text: #152033;
   --daily-secondary: #394454;
   --daily-muted: #6d675e;
   --daily-muted-2: #8a8378;
 
-  --daily-border: #ddd6ca;
-  --daily-border-soft: #e8e1d6;
+  --daily-border: #e2e9f3;
+  --daily-border-soft: #e2e9f3;
 
   --daily-success: #287653;
   --daily-success-soft: #e8f3ed;
@@ -71,7 +71,7 @@
     ),
     linear-gradient(
       315deg,
-      rgba(156, 115, 73, 0.012) 25%,
+      rgba(85, 70, 163, 0.012) 25%,
       transparent 25%
     );
 
@@ -99,7 +99,7 @@
   background:
     radial-gradient(
       circle at 0% 100%,
-      rgba(156, 115, 73, 0.10),
+      rgba(85, 70, 163, 0.10),
       transparent 35%
     ),
     radial-gradient(
@@ -383,7 +383,7 @@
   background:
     radial-gradient(
       circle at 92% 50%,
-      rgba(156, 115, 73, 0.055),
+      rgba(85, 70, 163, 0.055),
       transparent 25%
     ),
     var(--daily-surface);
@@ -404,7 +404,7 @@
   right: -60px;
   top: -80px;
 
-  background: rgba(156, 115, 73, 0.035);
+  background: rgba(85, 70, 163, 0.035);
 
   border-radius: 50%;
   pointer-events: none;
@@ -750,7 +750,7 @@
     ),
     radial-gradient(
       circle at 0% 100%,
-      rgba(156, 115, 73, 0.035),
+      rgba(85, 70, 163, 0.035),
       transparent 26%
     ),
     var(--daily-surface);
@@ -1038,7 +1038,7 @@
   background:
     radial-gradient(
       circle at 100% 0%,
-      rgba(156, 115, 73, 0.045),
+      rgba(85, 70, 163, 0.045),
       transparent 35%
     ),
     var(--daily-surface);
@@ -1127,7 +1127,7 @@
 .daily-summary-chip-unloading {
   color: var(--daily-warning);
   background: var(--daily-warning-soft);
-  border-color: rgba(154, 106, 25, 0.11);
+  border-color: rgba(203, 214, 232, 0.11);
 }
 
 .daily-summary-chip-site {
@@ -1153,7 +1153,7 @@
     linear-gradient(
       135deg,
       rgba(27, 75, 115, 0.055),
-      rgba(156, 115, 73, 0.045)
+      rgba(85, 70, 163, 0.045)
     );
 
   border: 1px solid rgba(27, 75, 115, 0.12);
@@ -1596,7 +1596,7 @@
     linear-gradient(
       135deg,
       rgba(27, 75, 115, 0.055),
-      rgba(156, 115, 73, 0.045)
+      rgba(85, 70, 163, 0.045)
     );
 
   border: 1px solid rgba(27, 75, 115, 0.12);
@@ -1666,8 +1666,8 @@
   --daily-navy-dark: #8bb4d5;
   --daily-navy-soft: rgba(65, 111, 148, 0.2);
 
-  --daily-brass: #c49a68;
-  --daily-brass-soft: rgba(156, 115, 73, 0.18);
+  --daily-brass: #5546a3;
+  --daily-brass-soft: rgba(85, 70, 163, 0.18);
 
   --daily-text: #edf2f6;
   --daily-secondary: #c6d0d8;
@@ -1699,7 +1699,7 @@
   background:
     radial-gradient(
       circle at 0% 100%,
-      rgba(156, 115, 73, 0.08),
+      rgba(85, 70, 163, 0.08),
       transparent 35%
     ),
     radial-gradient(
@@ -1753,7 +1753,7 @@
   background:
     radial-gradient(
       circle at 92% 50%,
-      rgba(156, 115, 73, 0.06),
+      rgba(85, 70, 163, 0.06),
       transparent 25%
     ),
     var(--daily-surface);
@@ -1826,7 +1826,7 @@
     ),
     radial-gradient(
       circle at 0% 100%,
-      rgba(156, 115, 73, 0.035),
+      rgba(85, 70, 163, 0.035),
       transparent 26%
     ),
     var(--daily-surface);
@@ -1874,7 +1874,7 @@
     linear-gradient(
       135deg,
       rgba(65, 111, 148, 0.12),
-      rgba(156, 115, 73, 0.08)
+      rgba(85, 70, 163, 0.08)
     );
 
   border-color: rgba(109, 159, 199, 0.16);

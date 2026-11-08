@@ -3261,9 +3261,9 @@
   opacity: 0.55;
 
   box-shadow:
-    18px 9px 0 rgba(156, 115, 73, 0.25),
+    18px 9px 0 rgba(49, 57, 92, 0.25),
     -13px 20px 0 rgba(27, 75, 115, 0.18),
-    29px 28px 0 rgba(156, 115, 73, 0.14);
+    29px 28px 0 rgba(49, 57, 92, 0.14);
 
   pointer-events: none;
 }
@@ -3349,8 +3349,8 @@
   background:
     radial-gradient(
       ellipse,
-      rgba(156, 115, 73, 0.085) 0%,
-      rgba(156, 115, 73, 0.035) 45%,
+      rgba(85, 70, 163, 0.085) 0%,
+      rgba(85, 70, 163, 0.035) 45%,
       transparent 75%
     );
 
@@ -3599,9 +3599,9 @@
   margin: 0 auto;
   padding: 38px 42px;
 
-  border: 1px solid #ddd7cc;
+  border: 1px solid #e2e9f3;
 
-  background: #fffdf9;
+  background: #ffffff;
 
   box-shadow:
     0 8px 24px rgba(21, 32, 51, 0.08);
@@ -3655,7 +3655,7 @@
 .material-print-sheet-header p {
   margin: 6px 0 0;
 
-  color: #6d675e;
+  color: #535c76;
 
   font-size: 12px;
 }
@@ -3665,7 +3665,7 @@
 
   padding-left: 18px;
 
-  border-left: 1px solid #ddd7cc;
+  border-left: 1px solid #e2e9f3;
 
   text-align: right;
 }
@@ -3675,7 +3675,7 @@
 
   margin-bottom: 5px;
 
-  color: #8a847a;
+  color: #7d879b;
 
   font-family: var(--font-mono);
   font-size: 8px;
@@ -3703,7 +3703,7 @@
 
   margin-top: 22px;
 
-  border: 1px solid #ddd7cc;
+  border: 1px solid #e2e9f3;
 }
 
 .material-print-meta > div {
@@ -3711,7 +3711,7 @@
 
   padding: 13px 15px;
 
-  border-right: 1px solid #ddd7cc;
+  border-right: 1px solid #e2e9f3;
 }
 
 .material-print-meta > div:last-child {
@@ -3725,7 +3725,7 @@
 
   margin-bottom: 5px;
 
-  color: #817b72;
+  color: #535c76;
 
   font-family: var(--font-mono);
   font-size: 8px;
@@ -3754,13 +3754,13 @@
 
   margin-top: 20px;
 
-  border: 1px solid #ddd7cc;
+  border: 1px solid #e2e9f3;
 }
 
 .material-print-summary > div {
   padding: 15px 17px;
 
-  border-right: 1px solid #ddd7cc;
+  border-right: 1px solid #e2e9f3;
 }
 
 .material-print-summary > div:last-child {
@@ -3776,7 +3776,7 @@
 }
 
 .material-print-summary > div:last-child strong {
-  color: #9c7349;
+  color: #5546a3;
 }
 
 
@@ -3798,7 +3798,7 @@
 
   padding-bottom: 8px;
 
-  border-bottom: 1px solid #d8d1c6;
+  border-bottom: 1px solid #e2e9f3;
 }
 
 .material-print-section-heading span {
@@ -3812,7 +3812,7 @@
 }
 
 .material-print-section-heading strong {
-  color: #6d675e;
+  color: #535c76;
 
   font-family: var(--font-mono);
   font-size: 10px;
@@ -3827,7 +3827,7 @@
 .material-print-table-wrap {
   overflow: hidden;
 
-  border: 1px solid #d8d1c6;
+  border: 1px solid #e2e9f3;
 }
 
 .material-print-table {
@@ -3841,11 +3841,11 @@
 .material-print-table th {
   padding: 10px 11px;
 
-  border-bottom: 1px solid #cfc7bb;
+  border-bottom: 1px solid #e2e9f3;
 
-  background: #f3efe6;
+  background: #f5f7fd;
 
-  color: #6d675e;
+  color: #535c76;
 
   font-family: var(--font-mono);
   font-size: 8px;
@@ -3858,7 +3858,7 @@
 .material-print-table td {
   padding: 10px 11px;
 
-  border-bottom: 1px solid #e7e1d8;
+  border-bottom: 1px solid #e2e9f3;
 
   color: #283345;
 
@@ -3905,7 +3905,7 @@
 }
 
 .material-print-table td:nth-child(5) {
-  color: #9c7349;
+  color: #5546a3;
   font-weight: 600;
 }
 
@@ -3917,9 +3917,9 @@
 .material-print-empty {
   padding: 24px;
 
-  border: 1px dashed #d8d1c6;
+  border: 1px dashed #e2e9f3;
 
-  color: #817b72;
+  color: #535c76;
 
   font-size: 11px;
   text-align: center;
@@ -3934,14 +3934,14 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
 
-  border: 1px solid #ddd7cc;
+  border: 1px solid #e2e9f3;
 }
 
 .material-print-overall-grid > div {
   padding: 14px 15px;
 
-  border-right: 1px solid #ddd7cc;
-  border-bottom: 1px solid #ddd7cc;
+  border-right: 1px solid #e2e9f3;
+  border-bottom: 1px solid #e2e9f3;
 }
 
 .material-print-overall-grid > div:nth-child(3n) {
@@ -3961,7 +3961,7 @@
 }
 
 .material-print-overall-grid > div:last-child strong {
-  color: #9c7349;
+  color: #5546a3;
   font-size: 15px;
 }
 
@@ -3979,9 +3979,9 @@
   margin-top: 32px;
   padding-top: 12px;
 
-  border-top: 1px solid #d8d1c6;
+  border-top: 1px solid #e2e9f3;
 
-  color: #8a847a;
+  color: #7d879b;
 
   font-family: var(--font-mono);
   font-size: 8px;
@@ -4089,7 +4089,7 @@
   .material-print-preview-body {
     padding: 14px;
 
-    background: #e9e4da;
+    background: #f5f7fd;
   }
 
   .material-print-sheet {
@@ -4117,7 +4117,7 @@
 
   .material-print-meta > div {
     border-right: 0;
-    border-bottom: 1px solid #ddd7cc;
+    border-bottom: 1px solid #e2e9f3;
   }
 
   .material-print-meta > div:last-child {
@@ -4130,7 +4130,7 @@
 
   .material-print-summary > div {
     border-right: 0;
-    border-bottom: 1px solid #ddd7cc;
+    border-bottom: 1px solid #e2e9f3;
   }
 
   .material-print-summary > div:last-child {
@@ -4150,7 +4150,7 @@
   }
 
   .material-print-overall-grid > div:nth-child(3n) {
-    border-right: 1px solid #ddd7cc;
+    border-right: 1px solid #e2e9f3;
   }
 
   .material-print-overall-grid > div:nth-child(2n) {
@@ -4158,7 +4158,7 @@
   }
 
   .material-print-overall-grid > div:nth-last-child(-n + 3) {
-    border-bottom: 1px solid #ddd7cc;
+    border-bottom: 1px solid #e2e9f3;
   }
 
   .material-print-overall-grid > div:nth-last-child(-n + 2) {
@@ -4195,7 +4195,7 @@
 
     padding: 9px 0 0;
 
-    border-top: 1px solid #ddd7cc;
+    border-top: 1px solid #e2e9f3;
     border-left: 0;
 
     text-align: left;
@@ -4219,7 +4219,7 @@
   .material-print-overall-grid > div:nth-child(2n),
   .material-print-overall-grid > div:nth-child(3n) {
     border-right: 0;
-    border-bottom: 1px solid #ddd7cc;
+    border-bottom: 1px solid #e2e9f3;
   }
 
   .material-print-overall-grid > div:last-child {

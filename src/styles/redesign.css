@@ -1,0 +1,2871 @@
+/*
+ * SAO Auto Tractor — operations workspace refresh
+ * Shared visual language inspired by the supplied airy blue/indigo dashboard.
+ * Keep product pages data-driven and customer invoice paper print-safe.
+ */
+
+:root {
+  --bg: #f2f7ff;
+  --surface: #ffffff;
+  --surface-soft: #f5f7fd;
+  --surface-raised: #ffffff;
+  --text-primary: #20243a;
+  --text: var(--text-primary);
+  --text-secondary: #535c76;
+  --text-muted: #7d879b;
+  --text-disabled: #9aa2b4;
+  --text-inverse: #ffffff;
+  --border: #e2e9f3;
+  --border-soft: #ebf0f7;
+  --border-strong: #cbd6e8;
+  --primary: #5546a3;
+  --primary-dark: #413780;
+  --primary-light: #7368c0;
+  --primary-soft: #efedff;
+  --primary-border: #d8d2f5;
+  --accent: #48adc2;
+  --accent-dark: #347f96;
+  --accent-light: #83d7e1;
+  --accent-soft: #e7f8fb;
+  --success: #36866f;
+  --success-dark: #286b58;
+  --success-soft: #e8f5ef;
+  --success-border: #c9e7d8;
+  --success-dot: #3db68e;
+  --warning: #9c7136;
+  --warning-dark: #79572c;
+  --warning-soft: #faf1e1;
+  --warning-border: #eddcb9;
+  --danger: #b64d5b;
+  --danger-dark: #953b4a;
+  --danger-soft: #fbecef;
+  --danger-border: #f1cbd2;
+  --info: #4d78a8;
+  --info-dark: #3c6089;
+  --info-soft: #eaf2fb;
+  --info-border: #cfdeef;
+  --header-bg: rgba(255, 255, 255, 0.94);
+  --header-border: rgba(81, 79, 148, 0.12);
+  --backdrop: rgba(35, 39, 69, 0.42);
+  --overlay: rgba(35, 39, 69, 0.42);
+  --shadow-color: rgba(49, 57, 92, 0.035);
+  --shadow-color-strong: rgba(49, 57, 92, 0.09);
+  --header-shadow: rgba(49, 57, 92, 0.035);
+  --brand-shadow: rgba(81, 79, 148, 0.16);
+  --theme-shadow: rgba(49, 57, 92, 0.04);
+  --theme-shadow-hover: rgba(81, 79, 148, 0.1);
+  --menu-shadow: rgba(49, 57, 92, 0.13);
+  --menu-shadow-hover: rgba(49, 57, 92, 0.17);
+  --shadow-xs: 0 1px 3px rgba(49, 57, 92, 0.04);
+  --shadow-sm: 0 5px 16px rgba(49, 57, 92, 0.055);
+  --shadow-md: 0 10px 28px rgba(49, 57, 92, 0.09);
+  --shadow-lg: 0 18px 44px rgba(49, 57, 92, 0.13);
+  --shadow-xl: 0 24px 60px -20px rgba(49, 57, 92, 0.2);
+  --shadow-card: 0 5px 20px rgba(49, 57, 92, 0.045);
+  --grid-color: rgba(81, 79, 148, 0.035);
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+  --font-number: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  /* Keep enough room for the full Finance and Staff destination names. */
+  --sidebar-width: 268px;
+  --sidebar-collapsed-width: 72px;
+  --transition-fast: 160ms ease;
+  --transition-move: 240ms cubic-bezier(0.2, 0, 0, 1);
+
+  /* Compatibility tokens used by older page modules. */
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-soft: #e7edff;
+  --color-surface-muted: #edf1fb;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-dark);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
+  --color-secondary: var(--accent);
+  --color-secondary-soft: var(--accent-soft);
+  --color-secondary-border: #cceaf0;
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-light: var(--accent-light);
+  --color-accent-soft: var(--accent-soft);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-inverse: var(--text-inverse);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-dark: var(--danger-dark);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-brown: var(--primary);
+}
+
+html[data-theme="dark"] {
+  --bg: #14182a;
+  --surface: #1c2137;
+  --surface-soft: #242a43;
+  --surface-raised: #2b3150;
+  --text-primary: #f0f1fb;
+  --text: var(--text-primary);
+  --text-secondary: #c8cbe0;
+  --text-muted: #9da4bf;
+  --text-disabled: #727b9a;
+  --text-inverse: #171a2b;
+  --border: #343a58;
+  --border-soft: #2a304c;
+  --border-strong: #485071;
+  --primary: #aaa8ed;
+  --primary-dark: #8f8cda;
+  --primary-light: #c6c4ff;
+  --primary-soft: rgba(170, 168, 237, 0.13);
+  --primary-border: rgba(170, 168, 237, 0.28);
+  --accent: #70ccdc;
+  --accent-dark: #56adc1;
+  --accent-light: #9ce7ed;
+  --accent-soft: rgba(112, 204, 220, 0.13);
+  --success: #78c6a2;
+  --success-dark: #5ba582;
+  --success-soft: rgba(120, 198, 162, 0.13);
+  --success-border: rgba(120, 198, 162, 0.28);
+  --success-dot: #5bd4a8;
+  --warning: #e3bd7a;
+  --warning-dark: #c99e57;
+  --warning-soft: rgba(227, 189, 122, 0.14);
+  --warning-border: rgba(227, 189, 122, 0.28);
+  --danger: #ee96a2;
+  --danger-dark: #d87684;
+  --danger-soft: rgba(238, 150, 162, 0.14);
+  --danger-border: rgba(238, 150, 162, 0.28);
+  --info: #91b8e4;
+  --info-dark: #76a0d0;
+  --info-soft: rgba(145, 184, 228, 0.13);
+  --info-border: rgba(145, 184, 228, 0.28);
+  --header-bg: rgba(28, 33, 55, 0.96);
+  --header-border: rgba(170, 168, 237, 0.14);
+  --backdrop: rgba(4, 6, 15, 0.65);
+  --overlay: rgba(4, 6, 15, 0.65);
+  --shadow-color: rgba(0, 0, 0, 0.2);
+  --shadow-color-strong: rgba(0, 0, 0, 0.34);
+  --header-shadow: rgba(0, 0, 0, 0.2);
+  --brand-shadow: rgba(0, 0, 0, 0.28);
+  --theme-shadow: rgba(0, 0, 0, 0.2);
+  --theme-shadow-hover: rgba(0, 0, 0, 0.3);
+  --menu-shadow: rgba(0, 0, 0, 0.28);
+  --menu-shadow-hover: rgba(0, 0, 0, 0.36);
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 5px 16px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.26);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.34);
+  --shadow-xl: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 5px 20px rgba(0, 0, 0, 0.2);
+  --grid-color: rgba(170, 168, 237, 0.055);
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-soft: #252b46;
+  --color-surface-muted: #2b3150;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-dark);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
+  --color-secondary: var(--accent);
+  --color-secondary-soft: var(--accent-soft);
+  --color-secondary-border: rgba(112, 204, 220, 0.28);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-light: var(--accent-light);
+  --color-accent-soft: var(--accent-soft);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-inverse: var(--text-inverse);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-dark: var(--danger-dark);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-brown: var(--primary);
+}
+
+html,
+body,
+#root,
+.app {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app-sidebar {
+  background: #c9d7fa;
+  border-right-color: #bdcbed;
+  box-shadow: 4px 0 20px rgba(49, 57, 92, 0.045);
+}
+
+html[data-theme="dark"] .app-sidebar {
+  background: #1b2036;
+  border-right-color: var(--border);
+}
+
+.sidebar-brand {
+  background: transparent;
+  border-bottom-color: rgba(81, 79, 148, 0.1);
+}
+
+.sidebar-brand::after,
+.desktop-header::after {
+  display: none;
+}
+
+.sidebar-brand-mark {
+  border-radius: 13px;
+  background: linear-gradient(145deg, #5546a3, #413780);
+  box-shadow: 0 5px 12px rgba(64, 61, 126, 0.18);
+}
+
+.sidebar-nav-item,
+.sidebar-group-button {
+  border-radius: 12px;
+}
+
+.sidebar-nav {
+  padding-inline: 0.8rem;
+}
+
+.sidebar-subnav-item {
+  min-height: 42px;
+  border-radius: 10px;
+}
+
+/* Never abbreviate a destination name: labels remain visible in the rail and
+   may wrap to a second line when the window or drawer is narrow. */
+.sidebar-subnav-item {
+  align-items: flex-start;
+}
+
+.sidebar-subnav-connector,
+.sidebar-subnav-icon {
+  margin-top: 1px;
+}
+
+.sidebar-subnav-label {
+  flex: 1 1 auto;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.sidebar-nav-item.active,
+.sidebar-group.has-active .sidebar-group-button {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: #cfd6f1;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+html[data-theme="dark"] .sidebar-nav-item.active,
+html[data-theme="dark"] .sidebar-group.has-active .sidebar-group-button {
+  background: rgba(170, 168, 237, 0.1);
+  border-color: var(--primary-border);
+}
+
+.sidebar-nav-item.active .sidebar-nav-item-icon,
+.sidebar-group.has-active .sidebar-group-icon {
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.desktop-header {
+  border-bottom-color: var(--border-soft);
+  box-shadow: 0 3px 16px rgba(49, 57, 92, 0.035);
+}
+
+.desktop-header h1 {
+  font-family: var(--font-body);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.desktop-header-actions {
+  gap: 0.5rem;
+}
+
+.header-icon-button,
+.header-theme-button,
+.header-weather-block,
+.header-date-block {
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+.header-profile--button {
+  border-radius: 12px;
+}
+
+.app-content {
+  width: 100%;
+  min-width: 0;
+  max-width: 1680px;
+  padding-top: clamp(1rem, 2vw, 1.65rem);
+}
+
+.app-content-inner {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-content-inner > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Older page modules define their own color aliases. Rebind these roots to
+   the shared palette while leaving print-report roots outside this bridge. */
+.app-content :is(
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page,
+  .all-records-page,
+  .date-wise-page,
+  .reports-page,
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .upi-qr-page
+) {
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-hover: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
+  --color-secondary: var(--accent);
+  --color-secondary-soft: var(--accent-soft);
+  --color-secondary-border: color-mix(in srgb, var(--accent) 25%, var(--border));
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-light: var(--accent-light);
+  --color-accent-soft: var(--accent-soft);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-soft: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-inverse: var(--text-inverse);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-muted: var(--surface-soft);
+  --color-background: var(--bg);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-danger: var(--danger);
+  --color-danger-dark: var(--danger-dark);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-dark: var(--warning-dark);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-dark: var(--info-dark);
+  --color-info-soft: var(--info-soft);
+  --pay-surface: var(--surface);
+  --pay-surface-soft: var(--surface-soft);
+  --pay-border: var(--border);
+  --pay-border-soft: var(--border-soft);
+  --os-surface: var(--surface);
+  --os-surface-soft: var(--surface-soft);
+  --os-border: var(--border);
+  --pay-navy: var(--primary);
+  --pay-navy-deep: var(--primary-dark);
+  --pay-navy-light: var(--primary-light);
+  --pay-mint: var(--success);
+  --pay-mint-light: var(--accent);
+  --pay-gold: var(--accent-dark);
+  --pay-gold-light: var(--accent);
+  --pay-danger: var(--danger);
+  --pay-warning: var(--warning);
+  --os-navy: var(--primary);
+  --os-navy-deep: var(--primary-dark);
+  --os-amber: var(--accent-dark);
+  --os-amber-light: var(--accent);
+  --os-rust: var(--danger);
+  --os-mint: var(--success);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+/* One shared surface treatment across each page family. */
+.app-content .card,
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-header,
+  .outstanding-header,
+  .expenses-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .records-header,
+  .date-wise-header,
+  .reports-header,
+  .add-trip-hero
+),
+.app-content :is(
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-section-card"]
+) {
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-content .card {
+  background: var(--surface);
+}
+
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-header,
+  .outstanding-header,
+  .expenses-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .records-header,
+  .date-wise-header,
+  .reports-header,
+  .add-trip-hero
+) {
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-content .invoice-page-header::before {
+  display: none;
+}
+
+.app-content :is(.tractor-page-header, .party-page-header, .material-page-header, .settings-header, .staff-page-header)::after {
+  opacity: 0.35;
+}
+
+.app-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--border-strong);
+  border-radius: 10px;
+  background-color: var(--surface);
+  color: var(--text-primary);
+}
+
+.app-content :is(input, select, textarea)::placeholder {
+  color: var(--text-disabled);
+  opacity: 1;
+}
+
+.app-content :is(input, select, textarea):focus-visible {
+  border-color: var(--primary);
+  outline: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
+  outline-offset: 1px;
+}
+
+.app-content :is(table, .ui-data-table) {
+  border-color: var(--border);
+}
+
+.app-content :is(th, .ui-data-table th) {
+  background: #f0f2fd;
+  color: #555b79;
+}
+
+html[data-theme="dark"] .app-content :is(th, .ui-data-table th) {
+  background: #252b46;
+  color: var(--text-secondary);
+}
+
+.app-content :is(td, .ui-data-table td) {
+  border-color: var(--border-soft);
+}
+
+.app-content :is(tbody tr:hover, .ui-data-table tbody tr:hover) {
+  background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface));
+}
+
+.app-content :is(button, a, input, select, textarea):focus-visible {
+  scroll-margin-block: 12px;
+}
+
+/* Dashboard: make its greeting panel light and its data cards calm and compact. */
+.dash {
+  gap: 1rem;
+}
+
+.dash-hero {
+  min-height: 190px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-hero__title,
+.dash-hero__sub,
+.dash-hero__lede {
+  color: var(--text-primary);
+}
+
+.dash-hero__title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.dash-hero__sub em {
+  color: var(--primary);
+}
+
+.dash-hero__eyebrow,
+.dash-hero__chip {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--text-secondary);
+}
+
+.dash-hero__dot {
+  background: var(--success-dot);
+}
+
+.dash-hero__grid {
+  opacity: 0.24;
+  background-image:
+    linear-gradient(rgba(81, 79, 148, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(81, 79, 148, 0.055) 1px, transparent 1px);
+}
+
+.dash-hero__orb {
+  opacity: 0.2;
+}
+
+.dash-kpis {
+  gap: 0.85rem;
+}
+
+.dash-kpi-btn .stat-card,
+.dash-kpi-btn {
+  border-color: var(--border);
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-today,
+.dash-ops,
+.dash-actions,
+.dash-attn,
+.dash-trend,
+.dash-activity,
+.dash-panel,
+.dash-fleet,
+.dash-finance,
+.dash-outstanding,
+.dash-staff {
+  border-color: var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-card-title,
+.dash-sec-head__title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.dash-eyebrow {
+  color: var(--primary);
+}
+
+.dash-ops__type-icon,
+.dash-action__icon,
+.dash-today__icon,
+.dash-card-icon {
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.dash-trend__bar,
+.dash-trend__col.is-today .dash-trend__bar {
+  background: linear-gradient(180deg, var(--accent-light), var(--primary));
+}
+
+html[data-theme="dark"] .dash-hero {
+  border-color: var(--border);
+  background:
+    radial-gradient(ellipse at 95% 0%, rgba(112, 204, 220, 0.13), transparent 35%),
+    linear-gradient(120deg, #1f2540 0%, #202741 68%, #222a45 100%);
+  color: var(--text-primary);
+}
+
+/* Reference pass: the dashboard route CSS is lazy-loaded after the shared
+   stylesheet, so these higher-specificity rules keep its hero on the same
+   quiet white/blue surface as every other workspace page. */
+.app-content .dash .dash-hero {
+  min-height: 0 !important;
+  padding: clamp(1rem, 1.7vw, 1.4rem) clamp(1.25rem, 2vw, 1.75rem) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.app-content .dash .dash-hero__bg {
+  display: none !important;
+}
+
+.app-content .dash .dash-hero__title,
+.app-content .dash .dash-hero__sub,
+.app-content .dash .dash-hero__sub em,
+.app-content .dash .dash-hero__lede {
+  color: var(--text-primary) !important;
+  text-shadow: none !important;
+}
+
+.app-content .dash .dash-hero__title {
+  font-size: clamp(1.65rem, 2.25vw, 1.9rem) !important;
+  letter-spacing: -0.04em !important;
+}
+
+.app-content .dash .dash-hero__eyebrow {
+  margin-bottom: 0.45rem !important;
+  padding: 0.25rem 0.6rem !important;
+}
+
+.app-content .dash .dash-hero__sub {
+  margin-top: 0.3rem !important;
+  font-size: 0.98rem !important;
+}
+
+.app-content .dash .dash-hero__lede {
+  max-width: 78ch !important;
+  margin: 0.55rem 0 0.7rem !important;
+  font-size: 0.82rem !important;
+  line-height: 1.45 !important;
+}
+
+.app-content .dash .dash-hero__meta {
+  gap: 0.4rem !important;
+}
+
+.app-content .dash .dash-hero__chip {
+  min-height: 28px !important;
+  padding: 0.25rem 0.6rem !important;
+  font-size: 0.7rem !important;
+}
+
+.app-content .dash .dash-hero__eyebrow,
+.app-content .dash .dash-hero__chip {
+  border: 1px solid var(--border) !important;
+  background: var(--surface-soft) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-content .dash .dash-hero__greet-icon,
+.app-content .dash .dash-hero__chip--updated svg {
+  color: var(--primary) !important;
+  filter: none !important;
+}
+
+.app-content .dash .dash-hero__right .ui-button,
+.app-content .dash .dash-hero__right button {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.app-sidebar {
+  background: #c9d7fa !important;
+  border-right-color: #bdcbed !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav-item-icon,
+.sidebar-group-icon {
+  width: 38px !important;
+  height: 38px !important;
+  flex-basis: 38px !important;
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+  border-radius: 11px !important;
+  background: #ffffff !important;
+  color: #535c76 !important;
+}
+
+.sidebar-nav-item,
+.sidebar-group-button {
+  min-height: 52px !important;
+  gap: 12px !important;
+  padding: 6px 10px !important;
+  color: #454e68 !important;
+}
+
+.sidebar-nav-list {
+  gap: 8px !important;
+}
+
+.sidebar-group-main {
+  gap: 12px !important;
+}
+
+.sidebar-subnav-icon {
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+  background: #ffffff !important;
+  color: #535c76 !important;
+}
+
+.sidebar-nav-item.active,
+.sidebar-group.has-active .sidebar-group-button {
+  border-color: rgba(255, 255, 255, 0.88) !important;
+  background: #ffffff !important;
+  color: #413780 !important;
+}
+
+.sidebar-nav-item.active .sidebar-nav-item-icon,
+.sidebar-group.has-active .sidebar-group-icon,
+.sidebar-subnav-item.active .sidebar-subnav-icon {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(85, 70, 163, 0.2) !important;
+}
+
+.sidebar-subnav-item.active {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #413780 !important;
+}
+
+html[data-theme="dark"] .app-sidebar {
+  background: #202846 !important;
+  border-right-color: var(--border) !important;
+}
+
+html[data-theme="dark"] .sidebar-nav-item-icon,
+html[data-theme="dark"] .sidebar-group-icon,
+html[data-theme="dark"] .sidebar-subnav-icon {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .sidebar-nav-item.active,
+html[data-theme="dark"] .sidebar-group.has-active .sidebar-group-button,
+html[data-theme="dark"] .sidebar-subnav-item.active {
+  border-color: var(--primary-border) !important;
+  background: var(--surface) !important;
+  color: var(--primary) !important;
+}
+
+html[data-theme="dark"] .sidebar-nav-item.active .sidebar-nav-item-icon,
+html[data-theme="dark"] .sidebar-group.has-active .sidebar-group-icon,
+html[data-theme="dark"] .sidebar-subnav-item.active .sidebar-subnav-icon {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: var(--text-inverse) !important;
+}
+
+html[data-theme="dark"] .dash-hero__title,
+html[data-theme="dark"] .dash-hero__sub,
+html[data-theme="dark"] .dash-hero__lede {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .dash-hero__eyebrow,
+html[data-theme="dark"] .dash-hero__chip {
+  border-color: var(--border);
+  background: rgba(20, 24, 42, 0.55);
+  color: var(--text-secondary);
+}
+
+/* The invoice UI adopts workspace colors; its dedicated paper remains white. */
+.invoice-live-paper,
+.invoice-print-page,
+.invoice-document,
+.invoice-paper {
+  background-color: #ffffff;
+  color: #20263a;
+}
+
+/* Login and first-run surfaces use the same quiet brand instead of green cast. */
+.login {
+  background:
+    radial-gradient(ellipse at 10% 8%, rgba(87, 193, 221, 0.14), transparent 34%),
+    var(--bg);
+}
+
+.login__shell {
+  border-color: var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-lg);
+}
+
+.showcase__overlay {
+  background: linear-gradient(140deg, rgba(48, 48, 88, 0.84), rgba(81, 79, 148, 0.67) 54%, rgba(38, 63, 93, 0.85));
+}
+
+html[data-theme="dark"] .login__shell {
+  background: var(--surface);
+}
+
+/* A few finance modules still have legacy ivory gradients hard-coded in their
+   page styles. Keep their labels readable when the workspace is in dark mode. */
+html[data-theme="dark"] .app-content .payments-header-actions .payments-btn-secondary,
+html[data-theme="dark"] .app-content .payments-btn-secondary {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-theme="dark"] .app-content .payments-header-actions .payments-btn-secondary:hover,
+html[data-theme="dark"] .app-content .payments-btn-secondary:hover:not(:disabled) {
+  border-color: var(--primary-border);
+  background: var(--surface-raised);
+  color: var(--primary-light);
+}
+
+html[data-theme="dark"] .app-content .payments-overview-card {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="dark"] .app-content .payments-overview-card.featured {
+  border-color: var(--primary-border);
+  background: linear-gradient(145deg, var(--primary-soft), var(--surface));
+}
+
+html[data-theme="dark"] .app-content .payments-overview-icon {
+  border-color: var(--border);
+  background: var(--surface-soft);
+  color: var(--primary-light);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .app-content .payments-toolbar {
+  background: var(--surface-soft);
+}
+
+html[data-theme="dark"] .app-content .outstanding-header-actions .outstanding-btn.secondary,
+html[data-theme="dark"] .app-content .row-action:not(.primary-action):not(.whatsapp-action) {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-theme="dark"] .app-content .outstanding-header-actions .outstanding-btn.secondary:hover,
+html[data-theme="dark"] .app-content .row-action:not(.primary-action):not(.whatsapp-action):hover {
+  border-color: var(--primary-border);
+  background: var(--surface-raised);
+  color: var(--primary-light);
+}
+
+html[data-theme="dark"] .app-content .invoice-page {
+  --color-primary: var(--primary-light);
+  --color-primary-dark: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
+  --color-accent: var(--surface-raised);
+  --color-text: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+}
+
+html[data-theme="dark"] .app-content .invoice-page .invoice-page-header .invoice-btn-light,
+html[data-theme="dark"] .app-content .invoice-page .invoice-btn-light {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-theme="dark"] .app-content .invoice-page .invoice-btn-light:hover:not(:disabled) {
+  border-color: var(--primary-border);
+  background: var(--surface-raised);
+  color: var(--primary-light);
+}
+
+html[data-theme="dark"] .app-content .billing-header .billing-btn-secondary {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-theme="dark"] .app-content .billing-header .billing-btn-secondary:hover {
+  border-color: var(--primary-border);
+  background: var(--surface-raised);
+  color: var(--primary-light);
+}
+
+html[data-theme="dark"] .app-content .billing-filter-header {
+  background: var(--surface-soft);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-content :is(.billing-main-header, .party-toolbar, .history-toolbar, .payment-toolbar) {
+  background: var(--surface-soft);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .app-content .billing-tabs {
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .app-content .billing-tabs button:not(.active) {
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .app-content .billing-tabs button:not(.active):hover {
+  color: var(--primary-light);
+  background: var(--primary-soft);
+}
+
+html[data-theme="dark"] .app-content .expenses-header-actions .expenses-btn-secondary {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-theme="dark"] .app-content .expenses-header-actions .expenses-btn-secondary:hover {
+  border-color: var(--primary-border);
+  background: var(--surface-raised);
+  color: var(--primary-light);
+}
+
+html[data-theme="dark"] .app-content .expenses-toolbar {
+  border-color: var(--border);
+  background: var(--surface-soft);
+}
+
+html[data-theme="dark"] .app-content .expenses-quick-dates {
+  border-color: var(--border);
+  background: var(--surface-soft);
+}
+
+@media (max-width: 900px) {
+  .app-content {
+    padding: 0.9rem 0.9rem 1.5rem;
+  }
+
+  .app-content :is(.tractor-page-header, .party-page-header, .material-page-header, .billing-header, .party-ledger-header, .invoice-page-header, .payments-header, .outstanding-header, .expenses-header, .staff-page-header, .settings-header, .upi-qr-heading, .records-header, .date-wise-header, .reports-header, .add-trip-hero) {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dash {
+    gap: 0.8rem;
+  }
+
+  .dash-hero {
+    min-height: 0;
+    padding: 1.2rem;
+    border-radius: 16px;
+  }
+
+  .dash-kpis {
+    gap: 0.6rem;
+  }
+
+  .app-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Page headers whose names predate the shared header component. */
+.app-content :is(
+  .add-trip-header,
+  .all-records-page-header,
+  .expenses-page-header,
+  .payments-page-header,
+  .outstanding-page-header
+) {
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Payments: remove the legacy decorative stripe/rings and spine that competed
+   with the title, and allow the toolbar to wrap inside the available width. */
+.app-content .payments-page {
+  width: 100%;
+  max-width: 1500px;
+  min-width: 0;
+  padding: clamp(16px, 2vw, 26px) clamp(12px, 1.8vw, 24px) 40px;
+}
+
+.app-content .payments-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  background: var(--surface);
+}
+
+.app-content .payments-page-header::before,
+.app-content .payments-page-header::after,
+.app-content .payments-page-header > div:first-child::before,
+.app-content .payments-page-header > div:last-child::before,
+.app-content .payments-header-actions::before {
+  content: none !important;
+  display: none !important;
+}
+
+.app-content .payments-page-header > div:first-child {
+  min-width: 0;
+  padding-left: 0;
+}
+
+.app-content .payments-page-header > div:last-child {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.app-content .payments-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: auto;
+}
+
+.app-content .payments-overview {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  min-width: 0;
+}
+
+.app-content .payments-card,
+.app-content .payments-table-wrapper,
+.app-content .payments-toolbar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 1050px) {
+  .app-content .payments-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-content .payments-header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-content .payments-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-content .payments-header-actions .payments-btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-content .payments-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-content .party-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .party-summary-card {
+    min-height: 76px;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .app-content .party-summary-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .app-content .party-summary-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .app-content .tractor-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .tractor-summary-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .app-content .material-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .material-summary-card {
+    min-width: 0;
+    min-height: 76px;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .app-content .staff-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .staff-stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .app-content .outstanding-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .outstanding-stat-card {
+    min-width: 0;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .app-content .expenses-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .expenses-overview-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .app-content .invoice-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .app-content .daily-report-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .app-content .daily-report-actions > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .app-content .daily-report-page .daily-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-content .all-records-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .app-content .all-records-header-actions > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .app-content .all-records-header-actions > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .app-content .reports-page .report-quick-stats,
+  .app-content .reports-page .reports-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-content .reports-page .reports-header-actions .report-action {
+    min-width: 0;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .app-content .settings-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .app-content .settings-header-actions > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  .app-content .billing-page .billing-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-content .billing-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .app-content .billing-header-actions .billing-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    justify-content: center;
+  }
+}
+
+/* Billing has six filters and six summary cards. Reflow them before the
+   sidebar-reduced content column gets narrow enough to clip the final date. */
+@media (max-width: 1400px) {
+  .app-content .all-records-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-content .all-records-filter-grid .all-records-search-field {
+    grid-column: 1 / -1;
+  }
+
+  .app-content .billing-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-content .billing-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .app-content .billing-search-box {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-content .billing-filter-grid,
+  .app-content .billing-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-content .billing-search-box {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-content .billing-filter-grid,
+  .app-content .billing-stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  /* Keep the three lightweight trip actions in one thumb-friendly row. */
+  .app-content .add-trip-header-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 7px;
+  }
+
+  .app-content .add-trip-header-actions button {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding-inline: 5px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 1220px) {
+  .app-content .payments-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-content .payments-header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+/* Give every active page the same quiet header surface and remove decorative
+   rings/stripes from the older page-specific header implementations. */
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .add-trip-header,
+  .all-records-page-header,
+  .date-wise-header,
+  .reports-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .expenses-page-header,
+  .payments-page-header,
+  .outstanding-page-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .daily-report-header
+) {
+  position: relative;
+  isolation: isolate;
+  border-color: var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .add-trip-header,
+  .all-records-page-header,
+  .date-wise-header,
+  .reports-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .expenses-page-header,
+  .payments-page-header,
+  .outstanding-page-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .daily-report-header
+)::before,
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .add-trip-header,
+  .all-records-page-header,
+  .date-wise-header,
+  .reports-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .expenses-page-header,
+  .payments-page-header,
+  .outstanding-page-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .daily-report-header
+)::after {
+  display: none !important;
+  content: none !important;
+}
+
+.app-content :is([class$="header-actions"], .settings-header-left)::before,
+.app-content :is([class$="header-actions"], .settings-header-left)::after,
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .add-trip-header,
+  .all-records-page-header,
+  .date-wise-header,
+  .reports-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .expenses-page-header,
+  .payments-page-header,
+  .outstanding-page-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .daily-report-header
+) > div:first-child::before,
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .add-trip-header,
+  .all-records-page-header,
+  .date-wise-header,
+  .reports-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .expenses-page-header,
+  .payments-page-header,
+  .outstanding-page-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .daily-report-header
+) > div:first-child::after,
+.app-content .invoice-page-header > div:last-child::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Keep page roots inside their workspace column. Dense records can scroll
+   inside a table wrapper instead of forcing the whole page sideways. */
+.app-content :is(
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page,
+  .all-records-page,
+  .date-wise-page,
+  .reports-page,
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .upi-qr-page,
+  .daily-report-page
+) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-content :is(
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page,
+  .all-records-page,
+  .date-wise-page,
+  .reports-page,
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .upi-qr-page,
+  .daily-report-page
+) :is(.table-wrapper, .table-container, [class$="-table-wrapper"], [class$="-table-scroll"]) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+/* 2026 workspace finish: bring every Finance, Staff, Settings and Records
+   destination onto the same airy blue/indigo language as the dashboard. */
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) {
+  max-width: none !important;
+  width: 100% !important;
+  margin-inline: 0 !important;
+  padding: 0 0 28px !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-body) !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(h1, h2, h3, h4) {
+  color: var(--text-primary) !important;
+  font-family: var(--font-body) !important;
+  letter-spacing: -0.035em;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(p, small, label, .section-kicker) {
+  font-family: var(--font-body) !important;
+}
+
+/* One consistent surface system for section cards, filters and toolbars. */
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-toolbar"],
+  [class$="-summary"],
+  [class$="-overview"],
+  [class$="-filter-bar"],
+  [class$="-filter-panel"],
+  .report-trend-section,
+  .report-records-panel,
+  .report-table-panel,
+  .report-top-performers,
+  .daily-report-controls,
+  .daily-filters-panel,
+  .daily-summary-section,
+  .settings-content-header,
+  .settings-bottom-bar,
+  .invoice-creation-form,
+  .invoice-total-panel,
+  .invoice-trip-search-panel,
+  .history-toolbar,
+  .report-quick-stat,
+  .report-stat-card,
+  .daily-stat,
+  .billing-stat-grid > *,
+  .daily-stats > *
+) {
+  border-color: var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Keep the actual invoice sheet and generated statement/receipt paper white. */
+.app-content .invoice-page :is(
+  .invoice-live-paper,
+  .invoice-preview-paper,
+  .invoice-print-page,
+  .invoice-document,
+  .print-invoice,
+  .invoice-paper
+),
+.app-content .payments-page :is(.payments-print-receipt, .payments-print-statement),
+.app-content .expenses-page .expenses-print-voucher,
+.app-content .reports-page :is(.report-print-page, .report-print-preview),
+.app-content .daily-report-page :is(.daily-full-report-page, .daily-print-report) {
+  background: #fff !important;
+  color: #172033 !important;
+}
+
+.app-content .add-trip-page :is(
+  .trip-tractor-first,
+  .add-trip-summary-card,
+  .summary-icon,
+  .trip-type.selected,
+  .amount-preview,
+  .add-trip-submit
+) {
+  background-image: none !important;
+}
+
+.app-content .add-trip-page :is(.trip-tractor-first, .add-trip-summary-card, .amount-preview) {
+  border-color: var(--border) !important;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content .add-trip-page .summary-icon {
+  border-color: var(--primary-border) !important;
+  background-color: var(--primary-soft) !important;
+  color: var(--primary) !important;
+}
+
+.app-content .add-trip-page .trip-type.selected {
+  border-color: var(--primary) !important;
+  background-color: var(--primary-soft) !important;
+  color: var(--primary) !important;
+}
+
+.app-content .add-trip-page .add-trip-submit {
+  border-color: var(--primary) !important;
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+}
+
+/* Header cards have one restrained outline and consistent title treatment. */
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-page-header,
+  .upi-qr-heading,
+  .outstanding-page-header,
+  .expenses-page-header,
+  .staff-page-header,
+  .settings-header,
+  .reports-header,
+  .daily-report-header
+) {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xl) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  box-shadow: var(--shadow-sm) !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-page-header,
+  .upi-qr-heading,
+  .outstanding-page-header,
+  .expenses-page-header,
+  .staff-page-header,
+  .settings-header,
+  .reports-header,
+  .daily-report-header
+) :is(h1, h2, p, small, span, strong) {
+  color: inherit;
+  font-family: var(--font-body) !important;
+}
+
+/* Shared input, selection and table surfaces across ledgers and forms. */
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: var(--border-strong) !important;
+  border-radius: var(--radius-md) !important;
+  background-color: var(--surface) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-body) !important;
+  box-shadow: none;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(input, textarea)::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .reports-page,
+  .daily-report-page
+) :is(.billing-table, .party-ledger-table, .party-register-table, .payments-table, .outstanding-table, .expenses-table, .staff-table, .report-table, .daily-table, .statement-table, .invoice-history-table) {
+  color: var(--text-primary);
+  font-family: var(--font-body) !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .reports-page,
+  .daily-report-page
+) :is(.billing-table, .party-ledger-table, .party-register-table, .payments-table, .outstanding-table, .expenses-table, .staff-table, .report-table, .daily-table, .statement-table, .invoice-history-table) :is(th, thead) {
+  border-color: var(--border) !important;
+  background: var(--surface-soft) !important;
+  color: var(--text-secondary) !important;
+  font-family: var(--font-body) !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .reports-page,
+  .daily-report-page
+) :is(.billing-table, .party-ledger-table, .party-register-table, .payments-table, .outstanding-table, .expenses-table, .staff-table, .report-table, .daily-table, .statement-table, .invoice-history-table) :is(td, tbody tr) {
+  border-color: var(--border-soft) !important;
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .reports-page,
+  .daily-report-page
+) :is(.billing-table, .party-ledger-table, .party-register-table, .payments-table, .outstanding-table, .expenses-table, .staff-table, .report-table, .daily-table, .statement-table, .invoice-history-table) tbody tr:hover > td {
+  background: var(--surface-soft) !important;
+}
+
+/* Match the dashboard's icon tiles and active-state accent. */
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  .billing-title-icon,
+  .billing-stat-icon,
+  .party-ledger-summary-icon,
+  .payments-overview-icon,
+  .expenses-overview-icon,
+  .outstanding-stat-icon,
+  .staff-stat-icon,
+  .settings-header-icon,
+  .upi-qr-heading-mark,
+  .daily-report-icon,
+  .report-stat-icon,
+  .report-quick-stat-icon
+) {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  box-shadow: none !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(button, [role="button"]) {
+  font-family: var(--font-body) !important;
+}
+
+/* The settings category rail keeps every category named while gaining the
+   same compact icon rail, soft tint and clear selected item as the reference. */
+.app-content .settings-page .settings-nav {
+  border-color: var(--border) !important;
+  border-radius: var(--radius-xl) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.app-content .settings-page :is(.settings-nav-group, .settings-nav-group-items) {
+  border-color: var(--border-soft) !important;
+}
+
+.app-content .settings-page :is(.settings-nav-item, .settings-nav-link, [role="tab"]) {
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-body) !important;
+}
+
+.app-content .settings-page :is(.settings-nav-item.active, .settings-nav-link.active, [role="tab"][aria-selected="true"]) {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  box-shadow: inset 3px 0 0 var(--primary) !important;
+}
+
+.sidebar-nav-item.active,
+.sidebar-subnav-item.active,
+.sidebar-group.has-active .sidebar-group-button {
+  overflow: visible !important;
+}
+
+.sidebar-nav-item.active::before,
+.sidebar-subnav-item.active::before,
+.sidebar-group.has-active .sidebar-group-button::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  right: -7px;
+  top: 50%;
+  width: 17px;
+  height: 21px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+.sidebar-subnav-item.active::after {
+  z-index: 3;
+  width: 7px;
+  height: 7px;
+  right: -2px;
+  border: 0;
+  transform: translateY(-50%);
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+.sidebar-subnav-item.active .sidebar-subnav-arrow {
+  opacity: 0;
+}
+
+.sidebar-subnav {
+  gap: 4px !important;
+  padding: 5px 0 8px 8px !important;
+  overflow: visible !important;
+}
+
+.sidebar-subnav::before,
+.sidebar-subnav-connector {
+  display: none !important;
+}
+
+.sidebar-subnav-item {
+  min-height: 41px !important;
+  gap: 8px !important;
+  padding: 6px 9px !important;
+  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  color: var(--text-secondary) !important;
+  font-size: 0.76rem !important;
+  font-weight: 550 !important;
+}
+
+.sidebar-subnav-item.active {
+  padding-left: 9px !important;
+  border-color: var(--primary-border) !important;
+  background: #f8f9ff !important;
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+  box-shadow: inset 3px 0 0 var(--primary) !important;
+}
+
+.sidebar-subnav-icon {
+  width: 29px !important;
+  height: 29px !important;
+  flex-basis: 29px !important;
+  border-radius: 8px !important;
+}
+
+/* Remove the remaining cream strips in settings, finance tabs and report
+   panel headings so the whole workspace shares one neutral blue-white tone. */
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  .billing-card-heading,
+  .billing-filter-header,
+  .billing-main-header,
+  .billing-tabs,
+  .party-toolbar,
+  .party-ledger-toolbar,
+  .party-ledger-filter-bar,
+  .payments-toolbar,
+  .payments-card-heading,
+  .payments-filter-panel,
+  .expenses-toolbar,
+  .expenses-card-heading,
+  .expenses-quick-dates,
+  .outstanding-card-header,
+  .outstanding-filter-panel,
+  .staff-tabs,
+  .staff-filter-bar,
+  .settings-search,
+  .settings-searchbar,
+  .settings-sidebar-title,
+  .settings-sidebar-footer,
+  .settings-icon-btn,
+  .settings-card .card-heading,
+  .settings-section .card-heading,
+  .settings-panel .card-heading,
+  .report-panel-header,
+  .report-top-header,
+  .report-table-header,
+  .daily-report-card-header,
+  .daily-filters-panel
+) {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content .settings-page .settings-info-box {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  background-image: none !important;
+  color: var(--text-secondary) !important;
+}
+
+.app-content .settings-page .logo-preview-large {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  background-image: none !important;
+  color: var(--primary) !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  .billing-btn-secondary,
+  .payments-btn-secondary,
+  .expenses-btn-secondary,
+  .staff-secondary-btn,
+  .settings-btn-secondary,
+  .invoice-btn-light,
+  .report-action,
+  .daily-btn-light,
+  .daily-btn-ghost
+) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-secondary) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.app-content :is(
+  .settings-page,
+  .staff-page,
+  .reports-page,
+  .daily-report-page
+) :is(
+  .settings-section-icon,
+  .settings-header-icon,
+  .settings-info-icon,
+  .settings-nav-icon,
+  .setting-row-icon,
+  .staff-stat-icon,
+  .daily-report-icon,
+  .daily-stat-icon,
+  .report-stat-icon,
+  .report-quick-stat > span:first-child
+) {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav-item.active::before,
+.sidebar-subnav-item.active::before,
+.sidebar-group.has-active .sidebar-group-button::before {
+  right: -7px;
+}
+
+/* Expanded navigation remains labeled; active icons use the reference's
+   filled tile and a small edge marker makes the current destination obvious. */
+.app-sidebar {
+  background: #c9d7fa !important;
+  border-color: #bdcbed !important;
+}
+
+html[data-theme="dark"] .app-sidebar {
+  background: linear-gradient(180deg, #202846 0%, #1b2036 100%) !important;
+  border-color: var(--border) !important;
+}
+
+.sidebar-nav-item.active .sidebar-nav-item-icon,
+.sidebar-group.has-active .sidebar-group-icon,
+.sidebar-subnav-item.active .sidebar-subnav-icon {
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 13px rgba(81, 79, 148, 0.24) !important;
+}
+
+.sidebar-subnav-item.active::after {
+  content: "";
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 5px var(--bg);
+}
+
+.sidebar-group.has-active .sidebar-group-button {
+  position: relative;
+  border: 1px solid var(--primary-border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface) !important;
+  color: var(--primary) !important;
+  box-shadow: inset 3px 0 0 var(--primary) !important;
+}
+
+.sidebar-group.has-active .sidebar-group-button::after {
+  display: none;
+}
+
+.sidebar-group-active-dot,
+.sidebar-nav-active-dot {
+  z-index: 4;
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+.sidebar-subnav-item.active {
+  position: relative;
+  overflow: visible;
+  border-color: var(--primary-border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface) !important;
+  color: var(--primary) !important;
+  box-shadow: inset 3px 0 0 var(--primary) !important;
+}
+
+.sidebar-subnav-item.active::after {
+  width: 8px;
+  height: 8px;
+  right: -5px;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+@media (max-width: 760px) {
+  .app-content :is(
+    .billing-page,
+    .party-ledger-page,
+    .invoice-page,
+    .payments-page,
+    .upi-qr-page,
+    .outstanding-page,
+    .expenses-page,
+    .staff-page,
+    .settings-page,
+    .reports-page,
+    .daily-report-page
+  ) {
+    padding-bottom: 20px !important;
+  }
+}
+
+/* Normalize primary actions and inactive tab labels that retain legacy navy
+   gradients or warm gray text inside lazy-loaded page styles. */
+.app-content :is(
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page,
+  .all-records-page,
+  .date-wise-page,
+  .reports-page,
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .daily-report-page
+) :is(button, a, [role="button"]):is(
+  [class*="btn-primary"],
+  [class*="button-primary"],
+  [class*="primary-btn"],
+  [class*="btn--primary"],
+  [class*="primary-action"],
+  [class*="primary"],
+  [class*="primary-button"],
+  .btn-primary,
+  .button-primary,
+  .primary-button
+) {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.app-content :is(
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page,
+  .all-records-page,
+  .date-wise-page,
+  .reports-page,
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .daily-report-page
+) :is(button, a, [role="button"]):is(
+  [class*="btn-primary"],
+  [class*="button-primary"],
+  [class*="primary-btn"],
+  [class*="btn--primary"],
+  [class*="primary-action"],
+  [class*="primary"],
+  [class*="primary-button"],
+  .btn-primary,
+  .button-primary,
+  .primary-button
+):hover:not(:disabled) {
+  border-color: var(--primary-dark) !important;
+  background: var(--primary-dark) !important;
+  background-image: none !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .staff-page,
+  .reports-page,
+  .daily-report-page
+) :is([role="tab"], button[aria-pressed="false"]):not([aria-selected="true"]) {
+  color: var(--text-secondary) !important;
+}
+
+.app-content .billing-page .billing-tabs button:not(.active),
+.app-content .staff-page .staff-tabs button:not(.active),
+.app-content .reports-page .report-trend-toggle button:not(.active),
+.app-content .daily-report-page .daily-period-tabs button:not(.active) {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--text-secondary) !important;
+}
+
+.app-content .billing-page .billing-tabs button.active,
+.app-content .staff-page .staff-tabs button.active,
+.app-content .reports-page .report-trend-toggle button.active,
+.app-content .daily-report-page .daily-period-tabs button.active {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+/* Unify section eyebrows and branded page actions across every sidebar page.
+   Several lazily loaded modules use legacy cyan kickers and navy gradients. */
+.app-content :is(
+  .section-kicker,
+  .daily-report-title .section-kicker,
+  [class*="eyebrow"],
+  [class*="kicker"],
+  [class*="section-label"]
+) {
+  color: var(--text-secondary) !important;
+}
+
+.app-content :is(.staff-page, .daily-report-page) .staff-primary-btn,
+.app-content :is(.staff-page, .daily-report-page) .daily-btn-primary {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+/* The invoice totals panel is intentionally white like the other work cards.
+   Its legacy children were still white, making a valid zero-value preview
+   look empty until browser text selection highlighted the hidden text. */
+.app-content .invoice-page .invoice-total-panel {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel::after {
+  display: none !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .total-panel-label {
+  color: var(--text-muted) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .total-panel-amount {
+  color: var(--text-primary) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .total-panel-row,
+.app-content .invoice-page .invoice-total-panel .total-panel-row.total-panel-due span {
+  color: var(--text-secondary) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .total-panel-row strong,
+.app-content .invoice-page .invoice-total-panel .total-panel-row.total-panel-due strong {
+  color: var(--text-primary) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .total-panel-row.total-panel-due {
+  border-color: var(--border) !important;
+  background: var(--surface-soft) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .total-panel-divider {
+  background: var(--border) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .invoice-status {
+  border: 1px solid var(--border) !important;
+  background: var(--surface-soft) !important;
+  color: var(--text-secondary) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .invoice-status.status-paid {
+  border-color: var(--success-border) !important;
+  background: var(--success-soft) !important;
+  color: var(--success-dark) !important;
+}
+
+.app-content .invoice-page .invoice-total-panel .invoice-status.status-unpaid,
+.app-content .invoice-page .invoice-total-panel .invoice-status.status-partially-paid {
+  border-color: var(--warning-border) !important;
+  background: var(--warning-soft) !important;
+  color: var(--warning-dark) !important;
+}
+
+.app-content .invoice-page .invoice-payment-entry {
+  border-color: var(--border) !important;
+  background: var(--surface-soft) !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content :is(
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page,
+  .all-records-page,
+  .date-wise-page,
+  .reports-page,
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .daily-report-page
+) :is(button, a, [role="button"]):is(
+  [class*="btn-secondary"],
+  [class*="button-secondary"],
+  [class*="secondary-btn"],
+  [class*="secondary-button"],
+  [class~="secondary"]
+) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface-raised) !important;
+  background-image: none !important;
+  color: var(--text-secondary) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+/* Every route uses the same lightly tinted glass panels over the pale-blue
+   workspace: a cool border, restrained floating shadow and mild backdrop blur. */
+.app-content :is(
+  .card,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-toolbar"],
+  [class$="-overview"],
+  [class$="-summary"],
+  [class$="-stat"],
+  [class$="-metric"],
+  [class$="-filter-bar"],
+  [class$="-filter-panel"],
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-header,
+  .outstanding-header,
+  .expenses-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .records-header,
+  .date-wise-header,
+  .reports-header,
+  .add-trip-hero
+):not(.invoice-live-paper):not(.invoice-preview-paper):not(.invoice-print-page):not(.invoice-document):not(.print-invoice):not(.invoice-paper):not([class*="print-"]) {
+  border-color: #eef2f8 !important;
+  border-radius: 12px !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  box-shadow: 0 3px 12px rgba(32, 46, 72, 0.035) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme="dark"] .app-content :is(
+  .card,
+  [class$="-card"],
+  [class*="-card "],
+  [class$="-panel"],
+  [class*="-panel "],
+  [class$="-toolbar"],
+  [class$="-overview"],
+  [class$="-summary"],
+  [class$="-stat"],
+  [class$="-metric"],
+  [class$="-filter-bar"],
+  [class$="-filter-panel"],
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-header,
+  .outstanding-header,
+  .expenses-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .records-header,
+  .date-wise-header,
+  .reports-header,
+  .add-trip-hero
+):not(.invoice-live-paper):not(.invoice-preview-paper):not(.invoice-print-page):not(.invoice-document):not(.print-invoice):not(.invoice-paper):not([class*="print-"]) {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+/* Match the supplied reference's compact, clean sans-serif hierarchy. */
+.app-content :is(
+  .tractor-page-header,
+  .party-page-header,
+  .material-page-header,
+  .billing-header,
+  .party-ledger-header,
+  .invoice-page-header,
+  .payments-header,
+  .outstanding-header,
+  .expenses-header,
+  .staff-page-header,
+  .settings-header,
+  .upi-qr-heading,
+  .records-header,
+  .date-wise-header,
+  .reports-header,
+  .add-trip-hero,
+  .daily-report-title
+) h1 {
+  font-family: var(--font-body) !important;
+  font-size: clamp(28px, 2.5vw, 32px) !important;
+  font-weight: 650 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.app-content :is(
+  .billing-page,
+  .party-ledger-page,
+  .invoice-page,
+  .payments-page,
+  .upi-qr-page,
+  .outstanding-page,
+  .expenses-page,
+  .staff-page,
+  .settings-page,
+  .reports-page,
+  .daily-report-page,
+  .all-records-page,
+  .date-wise-page,
+  .tractor-management-page,
+  .party-management-page,
+  .material-management-page,
+  .add-trip-page
+) :is(h2, h3, h4) {
+  font-family: var(--font-body) !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.app-content :is(
+  [class$="-metric-icon"],
+  [class$="-stat-icon"],
+  [class$="-summary-icon"],
+  [class$="-overview-icon"],
+  .summary-icon,
+  .dw-quick-stat-icon,
+  .dw-top-performer-icon,
+  .dw-date-icon,
+  .daily-report-icon,
+  .dash-today__icon
+) {
+  border-radius: 50% !important;
+}
+
+/* Keep navigation rows open and light; only the selected icon tile and the
+   tiny edge dot carry the indigo selection treatment. Subpages connect back
+   to their group with a quiet vertical rail and short branch strokes. */
+.sidebar-nav-item.active,
+.sidebar-group.has-active .sidebar-group-button,
+.sidebar-subnav-item.active {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav-item.active::before,
+.sidebar-group.has-active .sidebar-group-button::before,
+.sidebar-subnav-item.active::before {
+  display: none !important;
+}
+
+.sidebar-nav-item.active,
+.sidebar-group.has-active .sidebar-group-button,
+.sidebar-subnav-item.active {
+  color: #413780 !important;
+}
+
+.sidebar-subnav {
+  position: relative !important;
+  gap: 4px !important;
+  padding: 5px 0 8px 8px !important;
+}
+
+.sidebar-subnav::before {
+  display: block !important;
+  position: absolute !important;
+  top: 5px !important;
+  bottom: 14px !important;
+  left: 16px !important;
+  width: 1px !important;
+  background: color-mix(in srgb, var(--primary) 18%, transparent) !important;
+}
+
+.sidebar-subnav-connector {
+  display: flex !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 8px !important;
+  width: 22px !important;
+  height: 15px !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+}
+
+.sidebar-subnav-connector::before {
+  width: 22px !important;
+  background: color-mix(in srgb, var(--primary) 20%, transparent) !important;
+}
+
+.sidebar-subnav-connector span {
+  left: 8px !important;
+  border-color: color-mix(in srgb, var(--primary) 26%, transparent) !important;
+  background: #c9d7fa !important;
+}
+
+.sidebar-subnav-item {
+  min-height: 44px !important;
+  padding: 6px 10px 6px 30px !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sidebar-subnav-item:hover:not(.active) {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.48) !important;
+}
+
+.sidebar-subnav-item.active {
+  font-weight: 700 !important;
+}
+
+.sidebar-subnav-item.active::after {
+  z-index: 4 !important;
+  top: 50% !important;
+  right: -5px !important;
+  width: 7px !important;
+  height: 7px !important;
+  border: 0 !important;
+  transform: translateY(-50%) !important;
+  background: var(--primary) !important;
+  box-shadow: 0 0 0 4px var(--bg) !important;
+}
+
+html[data-theme="dark"] .sidebar-subnav-connector span {
+  background: #202846 !important;
+}
+
+html[data-theme="dark"] .sidebar-subnav-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-theme="dark"] .sidebar-nav-item.active,
+html[data-theme="dark"] .sidebar-group.has-active .sidebar-group-button,
+html[data-theme="dark"] .sidebar-subnav-item.active {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .sidebar-nav-item.active .sidebar-nav-item-icon,
+html[data-theme="dark"] .sidebar-group.has-active .sidebar-group-icon,
+html[data-theme="dark"] .sidebar-subnav-item.active .sidebar-subnav-icon {
+  border-color: #6658c8 !important;
+  background: #6658c8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.24) !important;
+}
+
+html[data-theme="dark"] .sidebar-group-active-dot,
+html[data-theme="dark"] .sidebar-nav-active-dot,
+html[data-theme="dark"] .sidebar-subnav-item.active::after {
+  background: #aaa1ff !important;
+  box-shadow: 0 0 0 4px var(--bg) !important;
+}
+
+/* Daily Report had its own cream/brass control palette. Keep its date, search,
+   quick-date and filter surfaces white like the rest of the workspace. */
+.app-content .daily-report-page {
+  background: var(--bg) !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content .daily-report-page .daily-report-controls {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.app-content .daily-report-page .daily-report-controls::after {
+  display: none !important;
+}
+
+.app-content .daily-report-page :is(
+  .daily-date-input-wrap,
+  .daily-date-display,
+  .daily-quick-date-controls,
+  .daily-search-box,
+  .daily-filters-panel,
+  .daily-filter-group select
+) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-secondary) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.app-content .daily-report-page :is(
+  .daily-date-input-wrap input,
+  .daily-search-box input,
+  .daily-filter-group select
+) {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.app-content .date-wise-page :is(
+  .dw-date-panel,
+  .dw-quick-stat-card,
+  .dw-trend-section,
+  .dw-top-performer-card,
+  .dw-summary-card,
+  .dw-breakdown,
+  .dw-record-section,
+  .dw-daily-summary
+) {
+  border-color: var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.app-content .date-wise-page .dw-date-icon {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  background-image: none !important;
+  color: var(--primary) !important;
+}
+
+.app-content .all-records-page .all-records-header-actions {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+}
+
+.app-content .all-records-page :is(.all-records-title-icon, .all-records-summary-icon) {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  background-image: none !important;
+  color: var(--primary) !important;
+}
+
+.app-content .reports-page .report-search {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-secondary) !important;
+}
+
+.app-content .reports-page .breakdown-fill {
+  background: var(--primary) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.app-content .reports-page .breakdown-item:nth-child(2) .breakdown-fill {
+  background: var(--accent) !important;
+}
+
+.app-content .reports-page .breakdown-item:nth-child(3) .breakdown-fill {
+  background: var(--info) !important;
+}
+
+.app-content .dash .dash-trend__bar {
+  background: var(--primary) !important;
+  background-image: none !important;
+}
+
+.app-content .dash .dash-trend__col:nth-child(odd) .dash-trend__bar {
+  background: var(--accent) !important;
+}
+
+.app-content .dash .dash-trend__col.is-today .dash-trend__bar {
+  background: var(--primary) !important;
+}
+
+/* Finance > Billing: replace the remaining legacy cream inset tiles. */
+.app-content .billing-page :is(.summary-item, .account-status-summary > div, .billing-rule) {
+  border-color: var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.app-content .billing-page :is(.summary-item:hover, .billing-rule:hover) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+}
+
+.app-content .billing-page .rules-icon {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+}

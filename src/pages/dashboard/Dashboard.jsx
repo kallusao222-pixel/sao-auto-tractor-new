@@ -2068,23 +2068,6 @@ function Dashboard({ onNavigate }) {
         </Card>
       </section>
 
-      {/* =============================================
-          FINAL SUMMARY
-          ============================================= */}
-      <section className="dash-final" aria-label="Quick totals">
-        {[
-          { icon: <Package size={16} strokeWidth={2} aria-hidden="true" />, label: "Materials", value: safeMaterials.length },
-          { icon: <Truck size={16} strokeWidth={2} aria-hidden="true" />, label: "Active Fleet", value: activeTractors.length },
-          { icon: <Users size={16} strokeWidth={2} aria-hidden="true" />, label: "Active Parties", value: activeParties.length },
-          { icon: <IndianRupee size={16} strokeWidth={2} aria-hidden="true" />, label: "Total Received", value: formatCurrency(totalReceived, "INR", 0) },
-        ].map((item) => (
-          <div key={item.label} className="dash-final__cell">
-            <span className="dash-final__icon" aria-hidden="true">{item.icon}</span>
-            <span className="dash-final__label">{item.label}</span>
-            <strong className="dash-final__value">{item.value}</strong>
-          </div>
-        ))}
-      </section>
     </div>
   );
 }

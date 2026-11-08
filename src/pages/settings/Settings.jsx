@@ -1972,7 +1972,7 @@ export default function Settings() {
         return (
           <>
             <InfoBox icon={Tractor} title="Transport defaults">
-              Default trip type and unit are applied in Add Trip. Rate type and required-step switches are saved for reference but are not enforced by the trip form yet.
+              Default trip type and unit are applied in Add Trip. Rate type, required-step and automatic-number options are saved for reference; Add Trip does not enforce them yet.
             </InfoBox>
 
             <SettingsCard
@@ -2111,7 +2111,7 @@ export default function Settings() {
 
             <SettingsCard
               title="Payment Rules"
-              description="Advance and extra-payment switches are saved preferences; receipt validation does not enforce them yet."
+              description="These switches are checked when recording a payment. Turning one off blocks receipts without a bill or payments above the party’s current due."
             >
               <SettingRow
                 icon={WalletCards}

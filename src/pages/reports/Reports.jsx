@@ -2928,11 +2928,11 @@ const Reports = () => {
               padding: 12px;
 
               border:
-                1px solid #d8d3c9;
+                1px solid #d1dced;
 
               border-radius: 8px;
 
-              background: #faf9f5;
+              background: #ffffff;
             }
 
             .report-summary .stat span {
@@ -2978,13 +2978,13 @@ const Reports = () => {
 
             th {
               background:
-                #f3efe6;
+                #f2f7ff;
 
               padding:
                 10px 8px;
 
               border:
-                1px solid #d8d3c9;
+                1px solid #d1dced;
 
               text-align:
                 left;
@@ -3002,7 +3002,7 @@ const Reports = () => {
               padding: 8px;
 
               border:
-                1px solid #d8d3c9;
+                1px solid #d1dced;
 
               vertical-align:
                 top;
@@ -3016,7 +3016,7 @@ const Reports = () => {
                 12px;
 
               border-top:
-                1px solid #d8d3c9;
+                1px solid #d1dced;
 
               font-size: 10px;
 

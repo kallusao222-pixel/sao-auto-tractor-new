@@ -1795,7 +1795,7 @@ function MaterialManagement({ onAddTrip }) {
 
           <div className="material-page-header-copy">
             <span className="material-page-eyebrow">
-              MATERIAL MANAGEMENT
+              TRANSPORT INVENTORY
             </span>
 
             <h2>
@@ -1808,9 +1808,6 @@ function MaterialManagement({ onAddTrip }) {
               material-wise activity.
             </p>
 
-            <span className="material-page-header-accent">
-              MATERIAL
-            </span>
           </div>
         </div>
 

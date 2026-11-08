@@ -1817,12 +1817,12 @@
 
   padding: var(--space-4) var(--space-5);
 
-  border-color: #f3dfbd;
+  border-color: #e2e9f3;
 
   background:
     linear-gradient(
       145deg,
-      #fffbeb 0%,
+      #ffffff 0%,
       var(--color-surface) 100%
     );
 }
@@ -1846,11 +1846,11 @@
 
   place-items: center;
 
-  border: 1px solid #f6dfb6;
+  border: 1px solid #e2e9f3;
   border-radius: var(--radius-md);
 
-  background: #fef3e2;
-  color: #f39c12;
+  background: #ffffff;
+  color: #5546a3;
 }
 
 .tractor-reminder-eyebrow {
@@ -1925,7 +1925,7 @@
 
   border-radius: 50%;
 
-  background: #f39c12;
+  background: #5546a3;
 }
 
 .tractor-reminder-more {
@@ -2342,18 +2342,18 @@
 }
 
 [data-theme="dark"] .tractor-reminder-card {
-  border-color: rgba(243, 156, 18, 0.22);
+  border-color: rgba(203, 214, 232, 0.22);
   background:
     linear-gradient(
       145deg,
-      rgba(243, 156, 18, 0.07),
+      rgba(85, 70, 163, 0.07),
       var(--color-surface)
     );
 }
 
 [data-theme="dark"] .tractor-reminder-icon {
-  border-color: rgba(243, 156, 18, 0.2);
-  background: rgba(243, 156, 18, 0.1);
+  border-color: rgba(203, 214, 232, 0.2);
+  background: rgba(85, 70, 163, 0.1);
 }
 
 [data-theme="dark"] .tractor-daily-activity {

@@ -8,9 +8,9 @@
 .saved-report-presets select,
 .saved-report-presets button {
   min-height: 40px;
-  border: 1px solid var(--border, var(--color-border, #ddd6ca));
+  border: 1px solid var(--border, var(--color-border, #e2e9f3));
   border-radius: 9px;
-  background: var(--surface, var(--color-surface, #fffcf7));
+  background: var(--surface, var(--color-surface, #ffffff));
   color: var(--text-primary, var(--color-text, #152033));
   padding: 0 11px;
   font: inherit;

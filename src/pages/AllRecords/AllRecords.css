@@ -4,9 +4,9 @@
 ========================================================= */
 
 .all-records-page {
-  --ar-bg: var(--bg, #f3efe6);
-  --ar-surface: var(--surface, #fffcf7);
-  --ar-surface-soft: var(--surface-soft, #f6f1e8);
+  --ar-bg: var(--bg, #f2f7ff);
+  --ar-surface: var(--surface, #ffffff);
+  --ar-surface-soft: var(--surface-soft, #f5f7fd);
 
   --ar-primary: var(--primary, #1b4b73);
   --ar-primary-dark: var(--primary-dark, #143a59);
@@ -19,7 +19,7 @@
     rgba(27, 75, 115, 0.24)
   );
 
-  --ar-brown: var(--accent, #9c7349);
+  --ar-brown: var(--accent, #5546a3);
 
   --ar-text: var(--text-primary, #152033);
   --ar-text-secondary: var(
@@ -28,10 +28,10 @@
   );
   --ar-muted: var(--text-muted, #6d675e);
 
-  --ar-border: var(--border, #ddd6ca);
+  --ar-border: var(--border, #e2e9f3);
   --ar-border-soft: var(
     --border-soft,
-    #e9e3d9
+    #e2e9f3
   );
 
   --ar-shadow-sm: var(
@@ -486,9 +486,9 @@
 
 .all-records-summary-card.is-billing
   .all-records-summary-icon {
-  border-color: rgba(156, 115, 73, 0.25);
+  border-color: rgba(203, 214, 232, 0.25);
   color: var(--ar-brown);
-  background: rgba(156, 115, 73, 0.09);
+  background: rgba(85, 70, 163, 0.09);
 }
 
 .all-records-summary-content {
@@ -920,7 +920,7 @@
 .all-records-breakdown-item.is-billing
   .all-records-breakdown-icon {
   color: var(--ar-brown);
-  background: rgba(156, 115, 73, 0.08);
+  background: rgba(85, 70, 163, 0.08);
 }
 
 .all-records-breakdown-item > div:last-child {
@@ -1082,9 +1082,9 @@
   min-height: 40px;
   max-width: 210px;
   padding: 0 10px;
-  border: 1px solid var(--color-border, #d7d0c4);
+  border: 1px solid var(--color-border, #e2e9f3);
   border-radius: 8px;
-  background: var(--color-surface, #fffdf9);
+  background: var(--color-surface, #ffffff);
   color: var(--color-text, #202820);
   font: inherit;
 }
@@ -1402,9 +1402,9 @@
 }
 
 .all-records-status.is-unloading {
-  border-color: rgba(156, 115, 73, 0.2);
+  border-color: rgba(85, 70, 163, 0.2);
   color: var(--ar-brown);
-  background: rgba(156, 115, 73, 0.07);
+  background: rgba(85, 70, 163, 0.07);
 }
 
 .all-records-status.is-site {
@@ -2620,7 +2620,7 @@
   --ar-primary-soft: rgba(120, 169, 203, 0.12);
   --ar-primary-border: rgba(120, 169, 203, 0.25);
 
-  --ar-brown: #c29a6d;
+  --ar-brown: #5546a3;
 
   --ar-shadow-sm: 0 5px 18px rgba(0, 0, 0, 0.14);
   --ar-shadow-md: 0 14px 32px rgba(0, 0, 0, 0.22);
@@ -2901,7 +2901,7 @@
   border: 1px solid color-mix(
     in srgb,
     var(--color-primary, #1b4b73) 24%,
-    var(--color-border, #ddd6ca)
+    var(--color-border, #e2e9f3)
   );
 
   border-radius: 24px;
@@ -2918,41 +2918,41 @@
       transparent 32%
     ),
 
-    /* bottom-left warm glow */
+
     radial-gradient(
       circle at 8% 92%,
       color-mix(
         in srgb,
-        var(--color-accent, #9c7349) 13%,
+        var(--color-accent, #5546a3) 13%,
         transparent
       ) 0%,
       transparent 30%
     ),
 
-    /* central soft light */
+
     radial-gradient(
       ellipse at 55% 45%,
       color-mix(
         in srgb,
-        var(--color-surface, #fffcf7) 92%,
+        var(--color-surface, #ffffff) 92%,
         var(--color-primary, #1b4b73)
       ) 0%,
-      var(--color-surface, #fffcf7) 62%
+      var(--color-surface, #ffffff) 62%
     ),
 
-    /* subtle diagonal radiant layer */
+
     linear-gradient(
       135deg,
-      var(--color-surface, #fffcf7) 0%,
+      var(--color-surface, #ffffff) 0%,
       color-mix(
         in srgb,
-        var(--color-surface, #fffcf7) 94%,
+        var(--color-surface, #ffffff) 94%,
         var(--color-primary, #1b4b73)
       ) 48%,
       color-mix(
         in srgb,
-        var(--color-surface, #fffcf7) 88%,
-        var(--color-accent, #9c7349)
+        var(--color-surface, #ffffff) 88%,
+        var(--color-accent, #5546a3)
       ) 100%
     );
 
@@ -2994,7 +2994,7 @@
     var(--color-primary, #1b4b73) 50%,
     color-mix(
       in srgb,
-      var(--color-accent, #9c7349) 55%,
+      var(--color-accent, #5546a3) 55%,
       transparent
     ) 75%,
     transparent 100%
@@ -3027,7 +3027,7 @@
     ),
     radial-gradient(
       circle at 75% 70%,
-      rgba(156, 115, 73, 0.055) 0 1px,
+      rgba(85, 70, 163, 0.055) 0 1px,
       transparent 1.5px
     ),
     radial-gradient(
@@ -3098,7 +3098,7 @@
 
   color: color-mix(
     in srgb,
-    var(--color-accent, #9c7349) 70%,
+    var(--color-accent, #5546a3) 70%,
     transparent
   );
 
@@ -3145,17 +3145,17 @@
 
   border-radius: 50%;
 
-  background: var(--color-accent, #9c7349);
+  background: var(--color-accent, #5546a3);
 
   box-shadow:
     0 0 0 4px color-mix(
       in srgb,
-      var(--color-accent, #9c7349) 10%,
+      var(--color-accent, rgb(49, 57, 92)) 10%,
       transparent
     ),
     0 0 12px color-mix(
       in srgb,
-      var(--color-accent, #9c7349) 30%,
+      var(--color-accent, rgb(49, 57, 92)) 30%,
       transparent
     );
 }
@@ -3200,7 +3200,7 @@
   background: linear-gradient(
     90deg,
     var(--color-primary, #1b4b73),
-    var(--color-accent, #9c7349)
+    var(--color-accent, #5546a3)
   );
 
   opacity: 0.72;
@@ -3219,7 +3219,7 @@
 
   margin: 14px 0 0;
 
-  color: var(--color-text-muted, #6d675e);
+  color: var(--color-text-muted, #535c76);
 
   font-family: "Outfit", sans-serif;
   font-size: 14px;
@@ -3248,7 +3248,7 @@
 
   border: 1px solid color-mix(
     in srgb,
-    var(--color-border, #ddd6ca) 75%,
+    var(--color-border, #e2e9f3) 75%,
     transparent
   );
 
@@ -3259,12 +3259,12 @@
       145deg,
       color-mix(
         in srgb,
-        var(--color-surface, #fffcf7) 94%,
+        var(--color-surface, #ffffff) 94%,
         white
       ),
       color-mix(
         in srgb,
-        var(--color-surface-soft, #f6f1e8) 72%,
+        var(--color-surface-soft, #ffffff) 72%,
         transparent
       )
     );
@@ -3285,7 +3285,7 @@
   border-color: color-mix(
     in srgb,
     var(--color-primary, #1b4b73) 32%,
-    var(--color-border, #ddd6ca)
+    var(--color-border, #e2e9f3)
   );
 
   box-shadow:
@@ -3309,10 +3309,10 @@
 
   padding: 8px 12px;
 
-  border: 1px solid var(--color-border, #ddd6ca);
+  border: 1px solid var(--color-border, #e2e9f3);
   border-radius: 10px;
 
-  background: var(--color-surface, #fffcf7);
+  background: var(--color-surface, #ffffff);
 
   color: var(--color-text, #152033);
 
@@ -3339,7 +3339,7 @@
   background: color-mix(
     in srgb,
     var(--color-primary, #1b4b73) 7%,
-    var(--color-surface, #fffcf7)
+    var(--color-surface, #ffffff)
   );
 
   color: var(--color-primary, #1b4b73);
@@ -3512,7 +3512,7 @@
     ),
     radial-gradient(
       circle at 8% 92%,
-      rgba(156, 115, 73, 0.10) 0%,
+      rgba(85, 70, 163, 0.10) 0%,
       transparent 30%
     ),
     radial-gradient(
@@ -3544,7 +3544,7 @@
     ),
     radial-gradient(
       circle at 75% 70%,
-      rgba(156, 115, 73, 0.055) 0 1px,
+      rgba(85, 70, 163, 0.055) 0 1px,
       transparent 1.5px
     ),
     radial-gradient(
@@ -3599,7 +3599,7 @@
   transform: translateY(-50%);
   z-index: 2;
   pointer-events: none;
-  color: var(--color-text-muted, #6d675e);
+  color: var(--color-text-muted, #535c76);
 }
 
 .all-records-input-wrap input,

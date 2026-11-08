@@ -5,11 +5,11 @@
    ========================================================= */
 
 .date-wise-page {
-  --dw-bg: var(--bg, var(--color-bg, #f3efe6));
-  --dw-surface: var(--surface, var(--color-surface, #fffcf7));
+  --dw-bg: var(--bg, var(--color-bg, #f2f7ff));
+  --dw-surface: var(--surface, var(--color-surface, #ffffff));
   --dw-surface-soft: var(
     --surface-soft,
-    var(--color-surface-soft, #f6f1e8)
+    var(--color-surface-soft, #f5f7fd)
   );
 
   --dw-text: var(
@@ -29,12 +29,12 @@
 
   --dw-border: var(
     --border,
-    var(--color-border, #ddd6ca)
+    var(--color-border, #e2e9f3)
   );
 
   --dw-border-soft: var(
     --border-soft,
-    var(--color-border-soft, #e9e3d9)
+    var(--color-border-soft, #e2e9f3)
   );
 
   --dw-primary: var(
@@ -59,7 +59,7 @@
 
   --dw-accent: var(
     --accent,
-    var(--color-accent, #9c7349)
+    var(--color-accent, #5546a3)
   );
 
   --dw-radius-sm: var(--radius-sm, 8px);
@@ -556,7 +556,7 @@
 
   box-shadow:
     0 2px 7px
-    rgba(37, 31, 22, 0.07);
+    rgba(49, 57, 92, 0.07);
 }
 
 .dw-date-inputs {
@@ -1505,7 +1505,7 @@
 }
 
 .dw-breakdown-dot.unloading {
-  background: #a16d45;
+  background: #5546a3;
 }
 
 .dw-breakdown-dot.site {
@@ -2074,9 +2074,9 @@
 }
 
 .dw-trip-badge.unloading {
-  border-color: rgba(161, 109, 69, 0.18);
-  background: rgba(161, 109, 69, 0.09);
-  color: #8b5e3c;
+  border-color: rgba(203, 214, 232, 0.18);
+  background: rgba(85, 70, 163, 0.09);
+  color: #5546a3;
 }
 
 .dw-trip-badge.site-to-site {
@@ -4207,7 +4207,7 @@ body.dark .date-wise-page {
   --dw-primary-soft: rgba(120, 169, 203, 0.12);
   --dw-primary-border: rgba(120, 169, 203, 0.25);
 
-  --dw-accent: #c19a6b;
+  --dw-accent: #5546a3;
 
   --dw-shadow-sm:
     0 7px 22px rgba(0, 0, 0, 0.16);
@@ -4224,8 +4224,8 @@ body.dark .date-wise-page {
 
 [data-theme="dark"] .date-wise-page .dw-trip-badge.unloading,
 .dark .date-wise-page .dw-trip-badge.unloading {
-  background: rgba(193, 139, 91, 0.13);
-  color: #d0a077;
+  background: rgba(85, 70, 163, 0.13);
+  color: #5546a3;
 }
 
 [data-theme="dark"] .date-wise-page .dw-trip-badge.site-to-site,
@@ -4320,7 +4320,7 @@ body.dark .date-wise-page {
     --dw-primary-soft: #edf3f7;
     --dw-primary-border: #cbdbe6;
 
-    --dw-accent: #8d683f;
+    --dw-accent: #5546a3;
   }
 
   .date-wise-page *,
@@ -4415,7 +4415,7 @@ body.dark .date-wise-page {
   .dw-selected-period {
     min-height: 32px;
 
-    background: #faf7f2 !important;
+    background: #ffffff !important;
   }
 
   .dw-summary-grid {
@@ -4771,7 +4771,7 @@ body.dark .date-wise-page {
   min-height: 0;
   overflow: auto;
   padding: 22px;
-  background: #ece9e2;
+  background: #f5f7fd;
 }
 
 .dw-preview-scroll .dw-print-report {
@@ -4780,10 +4780,10 @@ body.dark .date-wise-page {
   max-width: 1120px;
   margin: 0 auto;
   padding: 22px;
-  border: 1px solid #d8d3ca;
+  border: 1px solid #e2e9f3;
   background: #fff;
   color: #152033;
-  box-shadow: 0 10px 28px rgba(37, 31, 22, 0.08);
+  box-shadow: 0 10px 28px rgba(49, 57, 92, 0.08);
 }
 
 .dw-preview-footer {
